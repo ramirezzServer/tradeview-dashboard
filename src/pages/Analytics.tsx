@@ -1,36 +1,18 @@
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/dashboard/AppSidebar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { BarChart3 } from 'lucide-react';
 
 const Analytics = () => (
-  <div className="dark">
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="flex h-14 items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
-            <SidebarTrigger />
-            <h1 className="text-lg font-semibold text-foreground">Analytics</h1>
-          </header>
-          <main className="flex-1 overflow-auto p-4 lg:p-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Analytics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">Advanced analytics and insights are coming soon.</p>
-              </CardContent>
-            </Card>
-          </main>
+  <DashboardLayout title="Analytics">
+    <div className="p-4 lg:p-6">
+      <div className="glass-card rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Analytics</h2>
         </div>
+        <p className="text-sm text-muted-foreground/60">Advanced analytics and insights are available in the Technical Analysis section.</p>
       </div>
-    </SidebarProvider>
-  </div>
+    </div>
+  </DashboardLayout>
 );
 
 export default Analytics;
