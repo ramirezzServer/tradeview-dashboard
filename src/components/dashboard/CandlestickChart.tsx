@@ -8,15 +8,12 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Cell,
-  ReferenceLine,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ohlcvData } from '@/data/mockStockData';
 import { OHLCVData } from '@/types/stock';
 
 type Timeframe = '1W' | '1M' | '3M';
-
 const TIMEFRAMES: Timeframe[] = ['1W', '1M', '3M'];
 
 const sliceData = (tf: Timeframe): OHLCVData[] => {
@@ -38,8 +35,8 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload as CandleData;
   return (
-    <div className="rounded-lg border border-border bg-popover p-3 text-xs shadow-lg">
-      <p className="mb-1 font-medium text-foreground">{d.date}</p>
+    <div className="glass-card rounded-lg p-3 text-xs">
+      <p className="mb-1.5 font-semibold text-foreground">{d.date}</p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
         <span>Open</span><span className="text-foreground font-medium">${d.open.toFixed(2)}</span>
         <span>High</span><span className="text-foreground font-medium">${d.high.toFixed(2)}</span>
@@ -59,12 +56,11 @@ export function CandlestickChart() {
     const prices = raw.flatMap(d => [d.low, d.high]);
     const min = Math.floor(Math.min(...prices) - 2);
     const max = Math.ceil(Math.max(...prices) + 2);
-
     const mapped: CandleData[] = raw.map(d => {
       const bullish = d.close >= d.open;
       return {
         ...d,
-        fill: bullish ? 'hsl(142, 71%, 45%)' : 'hsl(0, 72%, 51%)',
+        fill: bullish ? 'hsl(152, 69%, 46%)' : 'hsl(0, 72%, 51%)',
         wickHigh: d.high,
         wickLow: d.low,
         bodyBottom: Math.min(d.open, d.close),
@@ -75,53 +71,55 @@ export function CandlestickChart() {
   }, [timeframe]);
 
   return (
-    <Card className="border-border bg-card">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <div className="glass-card rounded-xl overflow-hidden gradient-border">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
-          <CardTitle className="text-base font-semibold">AAPL — Apple Inc.</CardTitle>
-          <p className="text-xs text-muted-foreground">NASDAQ · Candlestick</p>
+          <h2 className="text-base font-bold text-foreground tracking-tight">AAPL — Apple Inc.</h2>
+          <p className="text-[11px] text-muted-foreground/60 mt-0.5">NASDAQ · Candlestick Chart</p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 bg-secondary/50 rounded-lg p-0.5">
           {TIMEFRAMES.map(tf => (
             <Button
               key={tf}
               variant={timeframe === tf ? 'default' : 'ghost'}
               size="sm"
-              className="h-7 px-3 text-xs"
+              className={`h-7 px-3 text-[11px] font-medium rounded-md ${
+                timeframe === tf
+                  ? 'bg-primary/20 text-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
               onClick={() => setTimeframe(tf)}
             >
               {tf}
             </Button>
           ))}
         </div>
-      </CardHeader>
-      <CardContent className="px-2 pb-2">
-        <ResponsiveContainer width="100%" height={340}>
+      </div>
+      <div className="px-2 pb-1">
+        <ResponsiveContainer width="100%" height={360}>
           <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 16%, 16%)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 15%, 10%)" vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 10, fill: 'hsl(215, 20%, 55%)' }}
+              tick={{ fontSize: 10, fill: 'hsl(220, 15%, 40%)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={v => v.slice(5)}
             />
             <YAxis
               domain={[minPrice, maxPrice]}
-              tick={{ fontSize: 10, fill: 'hsl(215, 20%, 55%)' }}
+              tick={{ fontSize: 10, fill: 'hsl(220, 15%, 40%)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={v => `$${v}`}
               width={50}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(220, 16%, 12%)' }} />
-            {/* Wicks as thin bars from low to high */}
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(225, 18%, 8%)' }} />
             <Bar dataKey="high" barSize={1} stackId="wick" fillOpacity={0}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.fill} />
               ))}
             </Bar>
-            {/* Body bars */}
             <Bar dataKey="bodyHeight" barSize={8} fillOpacity={0.9} stackId="body" yAxisId={0}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.fill} />
@@ -129,19 +127,18 @@ export function CandlestickChart() {
             </Bar>
           </ComposedChart>
         </ResponsiveContainer>
-        {/* Volume mini bar */}
-        <ResponsiveContainer width="100%" height={60}>
+        <ResponsiveContainer width="100%" height={50}>
           <ComposedChart data={chartData} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
             <XAxis dataKey="date" hide />
             <YAxis hide />
-            <Bar dataKey="volume" barSize={6} fillOpacity={0.4}>
+            <Bar dataKey="volume" barSize={6} fillOpacity={0.3}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.fill} />
               ))}
             </Bar>
           </ComposedChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
