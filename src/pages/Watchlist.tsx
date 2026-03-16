@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Eye, TrendingUp, TrendingDown, Search, Star, BarChart2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Eye, TrendingUp, TrendingDown, Search, Star, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useTickerSimulation } from '@/hooks/useTickerSimulation';
 import { watchlistAssets } from '@/data/mockStockData';
 import { Input } from '@/components/ui/input';
@@ -52,6 +52,7 @@ function MiniSparkline({ data, positive }: { data: number[]; positive: boolean }
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
+        opacity="0.7"
       />
     </svg>
   );
@@ -87,18 +88,18 @@ const Watchlist = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { label: 'Total Assets', value: totalAssets.toString(), icon: Eye, sub: 'Tracked' },
-            { label: 'Daily Gain/Loss', value: `${dailyGain >= 0 ? '+' : ''}$${Math.abs(dailyGain).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: dailyGain >= 0 ? ArrowUpRight : ArrowDownRight, color: dailyGain >= 0 ? 'text-bull' : 'text-bear' },
-            { label: 'Best Performer', value: best ? `${best.symbol} ${best.changePercent >= 0 ? '+' : ''}${best.changePercent.toFixed(2)}%` : '—', icon: TrendingUp, color: 'text-bull' },
+            { label: 'Daily Gain/Loss', value: `${dailyGain >= 0 ? '+' : ''}$${Math.abs(dailyGain).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: dailyGain >= 0 ? ArrowUpRight : ArrowDownRight, color: dailyGain >= 0 ? 'text-bull value-bull' : 'text-bear value-bear' },
+            { label: 'Best Performer', value: best ? `${best.symbol} ${best.changePercent >= 0 ? '+' : ''}${best.changePercent.toFixed(2)}%` : '—', icon: TrendingUp, color: 'text-bull value-bull' },
           ].map((c, i) => (
-            <div key={c.label} className="glass-card rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+            <div key={c.label} className="glass-card-hover rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">{c.label}</p>
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 border border-primary/10">
-                  <c.icon className="h-3.5 w-3.5 text-primary" />
+                <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{c.label}</p>
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
+                  <c.icon className="h-3.5 w-3.5 text-primary/70" />
                 </div>
               </div>
               <p className={`text-lg font-bold mt-2 tabular-nums ${c.color || 'text-foreground'}`}>{c.value}</p>
-              {c.sub && <p className="text-[10px] text-muted-foreground/40 mt-0.5">{c.sub}</p>}
+              {c.sub && <p className="text-[9px] text-muted-foreground/30 mt-0.5">{c.sub}</p>}
             </div>
           ))}
         </div>
@@ -107,12 +108,12 @@ const Watchlist = () => {
         <div className="glass-card rounded-xl p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="relative flex-1 w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/30" />
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search assets..."
-                className="pl-9 h-9 bg-secondary/40 border-border/30 text-sm"
+                className="pl-9 h-9 bg-secondary/30 border-border/20 text-sm placeholder:text-muted-foreground/25"
               />
             </div>
             <div className="flex gap-1">
@@ -120,10 +121,10 @@ const Watchlist = () => {
                 <button
                   key={t.key}
                   onClick={() => setFilter(t.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-200 ${
                     filter === t.key
-                      ? 'bg-primary/15 text-primary border border-primary/20'
-                      : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent/30 border border-transparent'
+                      ? 'bg-primary/12 text-primary border border-primary/15 shadow-[0_0_8px_-2px_hsl(var(--primary)/0.15)]'
+                      : 'text-muted-foreground/40 hover:text-foreground hover:bg-accent/30 border border-transparent'
                   }`}
                 >
                   {t.label}
@@ -135,14 +136,14 @@ const Watchlist = () => {
 
         {/* Asset List */}
         <div className="glass-card rounded-xl overflow-hidden">
-          <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border/20">
-            <Star className="h-4 w-4 text-primary" />
-            <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Active Watchlist</h2>
-            <span className="ml-auto text-[10px] text-muted-foreground/40">{filtered.length} assets</span>
+          <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border/15">
+            <Star className="h-3.5 w-3.5 text-primary/70" />
+            <h2 className="section-header text-foreground/80">Active Watchlist</h2>
+            <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums">{filtered.length} assets</span>
           </div>
 
           {/* Header Row */}
-          <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_80px_80px] gap-2 px-5 py-2.5 text-[9px] uppercase tracking-wider text-muted-foreground/40 font-semibold border-b border-border/10">
+          <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_80px_80px] gap-2 px-5 py-2.5 text-[8px] uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10">
             <span>Asset</span>
             <span className="text-right">Price</span>
             <span className="text-right">Change</span>
@@ -151,63 +152,56 @@ const Watchlist = () => {
             <span className="text-right">Action</span>
           </div>
 
-          <div className="divide-y divide-border/10">
+          <div className="divide-y divide-border/8">
             {filtered.map((a, i) => {
               const positive = a.changePercent >= 0;
               const flash = flashMap[a.symbol];
               return (
                 <div
                   key={a.symbol}
-                  className={`grid grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1fr_80px_80px] gap-2 items-center px-5 py-3 transition-all duration-200 hover:bg-accent/20 animate-fade-up ${
+                  className={`grid grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1fr_80px_80px] gap-2 items-center px-5 py-3 transition-all duration-250 hover:bg-accent/15 animate-fade-up ${
                     flash === 'bull' ? 'flash-bull' : flash === 'bear' ? 'flash-bear' : ''
                   }`}
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
-                  {/* Asset info */}
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-secondary/60 border border-border/20 flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-foreground">{a.symbol.slice(0, 2)}</span>
+                    <div className="h-9 w-9 rounded-lg bg-secondary/40 border border-border/15 flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-foreground/80">{a.symbol.slice(0, 2)}</span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{a.symbol}</p>
-                      <p className="text-[10px] text-muted-foreground/50">{a.name}</p>
+                      <p className="text-[13px] font-semibold text-foreground">{a.symbol}</p>
+                      <p className="text-[9px] text-muted-foreground/35">{a.name}</p>
                     </div>
                   </div>
 
-                  {/* Price */}
-                  <p className="text-right text-sm font-bold text-foreground tabular-nums">
+                  <p className="text-right text-[13px] font-bold text-foreground tabular-nums">
                     ${a.type === 'crypto' ? a.price.toLocaleString(undefined, { maximumFractionDigits: 2 }) : a.price.toFixed(2)}
                   </p>
 
-                  {/* Change */}
                   <div className="hidden md:flex items-center justify-end gap-1.5">
-                    {positive ? <TrendingUp className="h-3 w-3 text-bull" /> : <TrendingDown className="h-3 w-3 text-bear" />}
-                    <span className={`text-xs font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
+                    {positive ? <TrendingUp className="h-3 w-3 text-bull/60" /> : <TrendingDown className="h-3 w-3 text-bear/60" />}
+                    <span className={`text-[11px] font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
                       {positive ? '+' : ''}{a.changePercent.toFixed(2)}%
                     </span>
                   </div>
 
-                  {/* Volume / MCap */}
                   <div className="hidden md:block text-right">
-                    <p className="text-[11px] text-foreground tabular-nums">{volumeMap[a.symbol] || '—'}</p>
-                    <p className="text-[9px] text-muted-foreground/40">{mcapMap[a.symbol] || '—'}</p>
+                    <p className="text-[11px] text-foreground/80 tabular-nums">{volumeMap[a.symbol] || '—'}</p>
+                    <p className="text-[9px] text-muted-foreground/30">{mcapMap[a.symbol] || '—'}</p>
                   </div>
 
-                  {/* Sparkline */}
                   <div className="hidden md:flex justify-center">
                     {sparkData[a.symbol] && <MiniSparkline data={sparkData[a.symbol]} positive={positive} />}
                   </div>
 
-                  {/* Action */}
                   <div className="hidden md:flex justify-end">
-                    <button className="text-[10px] font-semibold text-primary/70 hover:text-primary border border-primary/15 hover:border-primary/30 rounded-md px-2.5 py-1 transition-colors">
+                    <button className="text-[9px] font-semibold text-primary/60 hover:text-primary border border-primary/12 hover:border-primary/25 hover:shadow-[0_0_8px_-2px_hsl(var(--primary)/0.15)] rounded-md px-2.5 py-1 transition-all">
                       Trade
                     </button>
                   </div>
 
-                  {/* Mobile change display */}
                   <div className="md:hidden text-right">
-                    <p className={`text-xs font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
+                    <p className={`text-[11px] font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
                       {positive ? '+' : ''}{a.changePercent.toFixed(2)}%
                     </p>
                   </div>

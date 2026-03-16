@@ -54,20 +54,22 @@ export function StatsCards() {
         <div
           key={c.label}
           className="glass-card-hover rounded-xl p-4 animate-fade-up"
-          style={{ animationDelay: `${i * 50}ms` }}
+          style={{ animationDelay: `${i * 60}ms` }}
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/10">
-              <c.icon className="h-4 w-4 text-primary/80" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
+              <c.icon className="h-4 w-4 text-primary/70" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium">{c.label}</p>
-              <p className="text-sm font-bold text-foreground truncate mt-0.5">{c.value}</p>
+              <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 font-medium">{c.label}</p>
+              <p className={`text-base font-bold text-foreground truncate mt-1 tabular-nums ${
+                c.accent && c.positive !== undefined ? (c.positive ? 'value-bull text-bull' : 'value-bear text-bear') : ''
+              }`}>{c.value}</p>
               {c.sub && (
-                <p className={`text-[11px] font-medium mt-0.5 ${
+                <p className={`text-[11px] font-medium mt-0.5 tabular-nums ${
                   c.positive !== undefined
-                    ? (c.positive ? 'text-bull' : 'text-bear')
-                    : 'text-muted-foreground/60'
+                    ? (c.positive ? 'text-bull/80' : 'text-bear/80')
+                    : 'text-muted-foreground/40'
                 }`}>
                   {c.sub}
                 </p>

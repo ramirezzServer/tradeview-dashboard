@@ -35,14 +35,24 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload as CandleData;
   return (
-    <div className="glass-card rounded-lg p-3 text-xs">
-      <p className="mb-1.5 font-semibold text-foreground">{d.date}</p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
-        <span>Open</span><span className="text-foreground font-medium">${d.open.toFixed(2)}</span>
-        <span>High</span><span className="text-foreground font-medium">${d.high.toFixed(2)}</span>
-        <span>Low</span><span className="text-foreground font-medium">${d.low.toFixed(2)}</span>
-        <span>Close</span><span className="text-foreground font-medium">${d.close.toFixed(2)}</span>
-        <span>Volume</span><span className="text-foreground font-medium">{(d.volume / 1e6).toFixed(1)}M</span>
+    <div className="glass-card rounded-lg p-3 text-xs shadow-2xl">
+      <p className="mb-2 font-bold text-foreground text-[13px]">{d.date}</p>
+      <div className="grid grid-cols-2 gap-x-5 gap-y-1.5">
+        {[
+          ['Open', d.open],
+          ['High', d.high],
+          ['Low', d.low],
+          ['Close', d.close],
+        ].map(([label, val]) => (
+          <div key={label as string} className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground/50 text-[10px] uppercase tracking-wider">{label as string}</span>
+            <span className="text-foreground font-semibold tabular-nums">${(val as number).toFixed(2)}</span>
+          </div>
+        ))}
+        <div className="col-span-2 flex items-center justify-between gap-3 pt-1 border-t border-border/20">
+          <span className="text-muted-foreground/50 text-[10px] uppercase tracking-wider">Volume</span>
+          <span className="text-foreground font-semibold tabular-nums">{((d.volume) / 1e6).toFixed(1)}M</span>
+        </div>
       </div>
     </div>
   );
@@ -75,18 +85,18 @@ export function CandlestickChart() {
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
           <h2 className="text-base font-bold text-foreground tracking-tight">AAPL — Apple Inc.</h2>
-          <p className="text-[11px] text-muted-foreground/60 mt-0.5">NASDAQ · Candlestick Chart</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-0.5 tracking-wider">NASDAQ · Candlestick Chart</p>
         </div>
-        <div className="flex gap-1 bg-secondary/50 rounded-lg p-0.5">
+        <div className="flex gap-0.5 bg-secondary/30 rounded-lg p-0.5 border border-border/20">
           {TIMEFRAMES.map(tf => (
             <Button
               key={tf}
               variant={timeframe === tf ? 'default' : 'ghost'}
               size="sm"
-              className={`h-7 px-3 text-[11px] font-medium rounded-md ${
+              className={`h-7 px-3 text-[10px] font-semibold rounded-md transition-all ${
                 timeframe === tf
-                  ? 'bg-primary/20 text-primary shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary/15 text-primary shadow-[0_0_8px_-2px_hsl(var(--primary)/0.2)]'
+                  : 'text-muted-foreground/50 hover:text-foreground'
               }`}
               onClick={() => setTimeframe(tf)}
             >
@@ -96,25 +106,25 @@ export function CandlestickChart() {
         </div>
       </div>
       <div className="px-2 pb-1">
-        <ResponsiveContainer width="100%" height={360}>
+        <ResponsiveContainer width="100%" height={380}>
           <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 15%, 10%)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(228, 14%, 8%)" vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 10, fill: 'hsl(220, 15%, 40%)' }}
+              tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={v => v.slice(5)}
             />
             <YAxis
               domain={[minPrice, maxPrice]}
-              tick={{ fontSize: 10, fill: 'hsl(220, 15%, 40%)' }}
+              tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={v => `$${v}`}
               width={50}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(225, 18%, 8%)' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(228, 18%, 6%)' }} />
             <Bar dataKey="high" barSize={1} stackId="wick" fillOpacity={0}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.fill} />
@@ -131,7 +141,7 @@ export function CandlestickChart() {
           <ComposedChart data={chartData} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
             <XAxis dataKey="date" hide />
             <YAxis hide />
-            <Bar dataKey="volume" barSize={6} fillOpacity={0.3}>
+            <Bar dataKey="volume" barSize={6} fillOpacity={0.25}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.fill} />
               ))}

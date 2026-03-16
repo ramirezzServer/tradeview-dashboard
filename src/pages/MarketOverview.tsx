@@ -34,14 +34,14 @@ const MarketOverview = () => (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {indices.map((idx, i) => (
           <div key={idx.name} className="glass-card-hover rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">{idx.name}</p>
+            <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{idx.name}</p>
             <p className="text-lg font-bold text-foreground mt-1 tabular-nums">{idx.value}</p>
             <div className="flex items-center gap-2 mt-1">
-              <div className={`flex items-center gap-1 text-xs font-semibold ${idx.positive ? 'text-bull' : 'text-bear'}`}>
+              <div className={`flex items-center gap-1 text-[11px] font-semibold ${idx.positive ? 'text-bull' : 'text-bear'}`}>
                 {idx.positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 {idx.change}
               </div>
-              <span className={`text-[10px] tabular-nums ${idx.positive ? 'text-bull/60' : 'text-bear/60'}`}>{idx.points}</span>
+              <span className={`text-[9px] tabular-nums ${idx.positive ? 'text-bull/50' : 'text-bear/50'}`}>{idx.points}</span>
             </div>
           </div>
         ))}
@@ -52,26 +52,26 @@ const MarketOverview = () => (
           {/* Sector Performance */}
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Sector Performance</h2>
+              <BarChart3 className="h-3.5 w-3.5 text-primary/70" />
+              <h2 className="section-header text-foreground/80">Sector Performance</h2>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {sectors.map((s, i) => {
                 const positive = s.change >= 0;
                 const barWidth = Math.min(Math.abs(s.change) * 30, 100);
                 return (
-                  <div key={s.name} className="flex items-center gap-3 py-1.5 animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
-                    <span className="text-xs text-foreground w-28 shrink-0">{s.name}</span>
-                    <div className="flex-1 h-5 bg-secondary/30 rounded-full overflow-hidden relative">
+                  <div key={s.name} className="flex items-center gap-3 py-1.5 rounded-lg hover:bg-accent/10 px-1 transition-colors animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
+                    <span className="text-[11px] text-foreground/70 w-28 shrink-0">{s.name}</span>
+                    <div className="flex-1 h-4 bg-secondary/20 rounded-full overflow-hidden relative">
                       <div
-                        className={`h-full rounded-full transition-all duration-700 ${positive ? 'bg-bull/30' : 'bg-bear/30'}`}
+                        className={`h-full rounded-full transition-all duration-700 ${positive ? 'bg-bull/25' : 'bg-bear/25'}`}
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
-                    <span className={`text-xs font-semibold tabular-nums w-14 text-right ${positive ? 'text-bull' : 'text-bear'}`}>
+                    <span className={`text-[11px] font-semibold tabular-nums w-14 text-right ${positive ? 'text-bull' : 'text-bear'}`}>
                       {positive ? '+' : ''}{s.change.toFixed(2)}%
                     </span>
-                    <span className="text-[10px] text-muted-foreground/40 w-12 text-right tabular-nums">{s.weight}</span>
+                    <span className="text-[9px] text-muted-foreground/30 w-12 text-right tabular-nums">{s.weight}</span>
                   </div>
                 );
               })}
@@ -82,19 +82,19 @@ const MarketOverview = () => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="glass-card rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Flame className="h-4 w-4 text-bull" />
-                <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Top Gainers</h2>
+                <Flame className="h-3.5 w-3.5 text-bull/70" />
+                <h2 className="section-header text-foreground/80">Top Gainers</h2>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {topGainers.map(m => (
-                  <div key={m.symbol} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/20 transition-colors">
+                  <div key={m.symbol} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/15 transition-colors">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{m.symbol}</p>
-                      <p className="text-[9px] text-muted-foreground/50">{m.name}</p>
+                      <p className="text-[13px] font-semibold text-foreground">{m.symbol}</p>
+                      <p className="text-[9px] text-muted-foreground/35">{m.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-semibold text-foreground tabular-nums">${m.price.toFixed(2)}</p>
-                      <p className="text-[11px] font-semibold text-bull tabular-nums">+{m.changePercent.toFixed(2)}%</p>
+                      <p className="text-[11px] font-bold text-foreground tabular-nums">${m.price.toFixed(2)}</p>
+                      <p className="text-[10px] font-semibold text-bull tabular-nums">+{m.changePercent.toFixed(2)}%</p>
                     </div>
                   </div>
                 ))}
@@ -102,19 +102,19 @@ const MarketOverview = () => (
             </div>
             <div className="glass-card rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <TrendingDown className="h-4 w-4 text-bear" />
-                <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Top Losers</h2>
+                <TrendingDown className="h-3.5 w-3.5 text-bear/70" />
+                <h2 className="section-header text-foreground/80">Top Losers</h2>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {topLosers.map(m => (
-                  <div key={m.symbol} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/20 transition-colors">
+                  <div key={m.symbol} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/15 transition-colors">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{m.symbol}</p>
-                      <p className="text-[9px] text-muted-foreground/50">{m.name}</p>
+                      <p className="text-[13px] font-semibold text-foreground">{m.symbol}</p>
+                      <p className="text-[9px] text-muted-foreground/35">{m.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-semibold text-foreground tabular-nums">${m.price.toFixed(2)}</p>
-                      <p className="text-[11px] font-semibold text-bear tabular-nums">{m.changePercent.toFixed(2)}%</p>
+                      <p className="text-[11px] font-bold text-foreground tabular-nums">${m.price.toFixed(2)}</p>
+                      <p className="text-[10px] font-semibold text-bear tabular-nums">{m.changePercent.toFixed(2)}%</p>
                     </div>
                   </div>
                 ))}
@@ -127,15 +127,15 @@ const MarketOverview = () => (
         <div className="space-y-4">
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Gauge className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Market Sentiment</h2>
+              <Gauge className="h-3.5 w-3.5 text-primary/70" />
+              <h2 className="section-header text-foreground/80">Market Sentiment</h2>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {sentimentIndicators.map((s, i) => (
                 <div key={s.label} className="glass-card rounded-lg p-3 animate-fade-up" style={{ animationDelay: `${i * 50}ms` }}>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">{s.label}</span>
-                    <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${s.color} ${s.color === 'text-bull' ? 'bg-bull/10' : 'bg-bear/10'}`}>
+                    <span className="text-[9px] text-muted-foreground/40 uppercase tracking-[0.12em]">{s.label}</span>
+                    <span className={`text-[8px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-md ${s.color} ${s.color === 'text-bull' ? 'bg-bull/8' : 'bg-bear/8'}`}>
                       {s.status}
                     </span>
                   </div>
@@ -147,31 +147,23 @@ const MarketOverview = () => (
 
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Activity className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Market Status</h2>
+              <Activity className="h-3.5 w-3.5 text-primary/70" />
+              <h2 className="section-header text-foreground/80">Market Status</h2>
             </div>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground/60">NYSE</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-bull animate-pulse" />
-                  <span className="text-[10px] font-semibold text-bull">Open</span>
+              {[
+                { name: 'NYSE', status: 'Open' },
+                { name: 'NASDAQ', status: 'Open' },
+                { name: 'Crypto', status: '24/7' },
+              ].map(m => (
+                <div key={m.name} className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground/50">{m.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-bull animate-pulse-glow" />
+                    <span className="text-[9px] font-semibold text-bull/80">{m.status}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground/60">NASDAQ</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-bull animate-pulse" />
-                  <span className="text-[10px] font-semibold text-bull">Open</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground/60">Crypto</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-bull animate-pulse" />
-                  <span className="text-[10px] font-semibold text-bull">24/7</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>

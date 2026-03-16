@@ -11,43 +11,52 @@ export function DailyRangeCard() {
 
   return (
     <div className="glass-card rounded-xl p-4 space-y-4">
-      <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Price Range</h3>
+      <h3 className="section-header text-foreground/80">Price Range</h3>
 
       <div className="space-y-2">
-        <div className="flex justify-between text-[10px] text-muted-foreground/70">
+        <div className="flex justify-between text-[9px] text-muted-foreground/50 tabular-nums">
           <span>Day Range</span>
           <span>${dayLow.toFixed(2)} — ${dayHigh.toFixed(2)}</span>
         </div>
-        <div className="h-1.5 rounded-full bg-secondary/60 overflow-hidden">
+        <div className="relative h-1.5 rounded-full bg-secondary/40 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-bear/60 via-chart-accent to-bull/60 transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-bear/50 via-chart-accent/60 to-bull/50 transition-all duration-700"
             style={{ width: `${dayPos}%` }}
+          />
+          {/* Current price marker */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 h-3 w-0.5 bg-foreground/70 rounded-full"
+            style={{ left: `${dayPos}%` }}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <div className="flex justify-between text-[10px] text-muted-foreground/70">
+        <div className="flex justify-between text-[9px] text-muted-foreground/50 tabular-nums">
           <span>52W Range</span>
           <span>${fiftyTwoWeekLow.toFixed(2)} — ${fiftyTwoWeekHigh.toFixed(2)}</span>
         </div>
-        <div className="h-1.5 rounded-full bg-secondary/60 overflow-hidden">
+        <div className="relative h-1.5 rounded-full bg-secondary/40 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-bear/60 via-chart-accent to-bull/60 transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-bear/50 via-chart-accent/60 to-bull/50 transition-all duration-700"
             style={{ width: `${yearPos}%` }}
+          />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 h-3 w-0.5 bg-foreground/70 rounded-full"
+            style={{ left: `${yearPos}%` }}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 pt-1">
+      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/15">
         {[
           { label: 'Open', value: `$${(currentPrice - 0.56).toFixed(2)}` },
           { label: 'Prev Close', value: `$${(currentPrice - 2.34).toFixed(2)}` },
           { label: 'Avg Volume', value: '58.2M' },
         ].map(item => (
           <div key={item.label} className="text-center">
-            <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">{item.label}</p>
-            <p className="text-xs font-semibold text-foreground mt-0.5">{item.value}</p>
+            <p className="text-[8px] text-muted-foreground/35 uppercase tracking-[0.12em]">{item.label}</p>
+            <p className="text-[11px] font-bold text-foreground mt-0.5 tabular-nums">{item.value}</p>
           </div>
         ))}
       </div>
