@@ -48,17 +48,17 @@ const TechnicalAnalysis = () => (
       {/* Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Overall Signal', value: 'Strong Buy', icon: TrendingUp, color: 'text-bull' },
+          { label: 'Overall Signal', value: 'Strong Buy', icon: TrendingUp, color: 'text-bull value-bull' },
           { label: 'Trend', value: 'Bullish', icon: Zap, color: 'text-bull' },
           { label: 'Support', value: '$184.20', icon: Shield, color: 'text-chart-accent' },
           { label: 'Resistance', value: '$195.60', icon: Target, color: 'text-chart-accent' },
         ].map((c, i) => (
-          <div key={c.label} className="glass-card rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+          <div key={c.label} className="glass-card-hover rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">{c.label}</p>
-              <c.icon className={`h-3.5 w-3.5 ${c.color}`} />
+              <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{c.label}</p>
+              <c.icon className={`h-3.5 w-3.5 ${c.color.split(' ')[0]}/70`} />
             </div>
-            <p className={`text-sm font-bold mt-2 ${c.color}`}>{c.value}</p>
+            <p className={`text-[15px] font-bold mt-2 ${c.color}`}>{c.value}</p>
           </div>
         ))}
       </div>
@@ -66,27 +66,25 @@ const TechnicalAnalysis = () => (
       {/* Signal Summary */}
       <div className="glass-card rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart2 className="h-4 w-4 text-primary" />
-          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Signal Summary — AAPL</h2>
+          <BarChart2 className="h-3.5 w-3.5 text-primary/70" />
+          <h2 className="section-header text-foreground/80">Signal Summary — AAPL</h2>
         </div>
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
-            { label: 'Buy', count: summary.buy, color: 'text-bull', bg: 'bg-bull/10' },
-            { label: 'Neutral', count: summary.neutral, color: 'text-chart-accent', bg: 'bg-chart-accent/10' },
-            { label: 'Sell', count: summary.sell, color: 'text-bear', bg: 'bg-bear/10' },
+            { label: 'Buy', count: summary.buy, color: 'text-bull', bg: 'bg-bull/8' },
+            { label: 'Neutral', count: summary.neutral, color: 'text-chart-accent', bg: 'bg-chart-accent/8' },
+            { label: 'Sell', count: summary.sell, color: 'text-bear', bg: 'bg-bear/8' },
           ].map(s => (
-            <div key={s.label} className="text-center p-3 rounded-lg bg-secondary/20">
+            <div key={s.label} className="text-center p-3 rounded-lg bg-secondary/15 border border-border/10">
               <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mt-1">{s.label}</p>
-              <div className={`h-1 w-10 mx-auto mt-2 rounded-full ${s.bg}`} />
+              <p className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground/35 mt-1">{s.label}</p>
             </div>
           ))}
         </div>
-        {/* Ratio bar */}
-        <div className="flex h-2 rounded-full overflow-hidden">
-          <div className="bg-bull transition-all" style={{ width: `${(summary.buy / 20) * 100}%` }} />
-          <div className="bg-chart-accent transition-all" style={{ width: `${(summary.neutral / 20) * 100}%` }} />
-          <div className="bg-bear transition-all" style={{ width: `${(summary.sell / 20) * 100}%` }} />
+        <div className="flex h-1.5 rounded-full overflow-hidden">
+          <div className="bg-bull/70 transition-all" style={{ width: `${(summary.buy / 20) * 100}%` }} />
+          <div className="bg-chart-accent/50 transition-all" style={{ width: `${(summary.neutral / 20) * 100}%` }} />
+          <div className="bg-bear/70 transition-all" style={{ width: `${(summary.sell / 20) * 100}%` }} />
         </div>
       </div>
 
@@ -95,22 +93,22 @@ const TechnicalAnalysis = () => (
           {/* Trend Chart */}
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Activity className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Price & Moving Averages</h2>
+              <Activity className="h-3.5 w-3.5 text-primary/70" />
+              <h2 className="section-header text-foreground/80">Price & Moving Averages</h2>
             </div>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendData}>
                   <defs>
                     <linearGradient id="taPriceGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
                       <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="day" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
+                  <XAxis dataKey="day" tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
                   <Tooltip
-                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 11 }}
+                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 11, boxShadow: '0 8px 32px -8px hsl(0 0% 0% / 0.5)' }}
                     labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                   />
                   <Area type="monotone" dataKey="price" stroke="hsl(var(--primary))" fill="url(#taPriceGrad)" strokeWidth={2} dot={false} />
@@ -119,30 +117,30 @@ const TechnicalAnalysis = () => (
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex items-center gap-4 mt-2 justify-center">
-              <div className="flex items-center gap-1.5"><div className="h-0.5 w-4 bg-primary rounded" /><span className="text-[9px] text-muted-foreground/50">Price</span></div>
-              <div className="flex items-center gap-1.5"><div className="h-0.5 w-4 bg-bull rounded border-dashed" /><span className="text-[9px] text-muted-foreground/50">MA20</span></div>
-              <div className="flex items-center gap-1.5"><div className="h-0.5 w-4 bg-bear rounded" /><span className="text-[9px] text-muted-foreground/50">MA50</span></div>
+            <div className="flex items-center gap-5 mt-3 justify-center">
+              <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-primary rounded" /><span className="text-[8px] text-muted-foreground/35 uppercase tracking-wider">Price</span></div>
+              <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-bull rounded border-dashed" /><span className="text-[8px] text-muted-foreground/35 uppercase tracking-wider">MA20</span></div>
+              <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-bear rounded" /><span className="text-[8px] text-muted-foreground/35 uppercase tracking-wider">MA50</span></div>
             </div>
           </div>
 
           {/* Oscillators */}
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Activity className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Oscillators & Indicators</h2>
+              <Activity className="h-3.5 w-3.5 text-primary/70" />
+              <h2 className="section-header text-foreground/80">Oscillators & Indicators</h2>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {indicators.map((ind, i) => (
-                <div key={ind.name} className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-accent/20 transition-colors animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
+                <div key={ind.name} className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-accent/10 transition-colors animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
                   <div>
-                    <span className="text-sm text-foreground">{ind.name}</span>
-                    <p className="text-[9px] text-muted-foreground/40">{ind.desc}</p>
+                    <span className="text-[13px] text-foreground">{ind.name}</span>
+                    <p className="text-[8px] text-muted-foreground/30 tracking-wider">{ind.desc}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-semibold text-foreground tabular-nums">{ind.value}</span>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${ind.color} ${
-                      ind.color === 'text-bull' ? 'bg-bull/10' : ind.color === 'text-bear' ? 'bg-bear/10' : 'bg-chart-accent/10'
+                    <span className="text-[13px] font-bold text-foreground tabular-nums">{ind.value}</span>
+                    <span className={`text-[8px] font-semibold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md ${ind.color} ${
+                      ind.color === 'text-bull' ? 'bg-bull/8' : ind.color === 'text-bear' ? 'bg-bear/8' : 'bg-chart-accent/8'
                     }`}>{ind.signal}</span>
                   </div>
                 </div>
@@ -153,15 +151,15 @@ const TechnicalAnalysis = () => (
           {/* Moving Averages */}
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Moving Averages</h2>
+              <TrendingUp className="h-3.5 w-3.5 text-primary/70" />
+              <h2 className="section-header text-foreground/80">Moving Averages</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-              {movingAverages.map((ma, i) => (
-                <div key={ma.name} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/20 transition-colors">
-                  <span className="text-xs text-foreground">{ma.name}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0.5">
+              {movingAverages.map(ma => (
+                <div key={ma.name} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/10 transition-colors">
+                  <span className="text-[11px] text-foreground/70">{ma.name}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-foreground tabular-nums">{ma.value}</span>
+                    <span className="text-[11px] font-bold text-foreground tabular-nums">{ma.value}</span>
                     <span className={`text-[9px] font-semibold flex items-center gap-0.5 ${ma.positive ? 'text-bull' : 'text-bear'}`}>
                       {ma.positive ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
                       {ma.signal}
@@ -176,21 +174,21 @@ const TechnicalAnalysis = () => (
         {/* Pivot Points */}
         <div className="glass-card rounded-xl p-5 h-fit">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="h-4 w-4 text-primary" />
-            <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Pivot Points</h2>
+            <Target className="h-3.5 w-3.5 text-primary/70" />
+            <h2 className="section-header text-foreground/80">Pivot Points</h2>
           </div>
           <div className="space-y-1">
             {pivots.map(p => (
               <div
                 key={p.label}
                 className={`flex items-center justify-between py-2.5 px-3 rounded-lg transition-colors ${
-                  p.highlight ? 'bg-primary/10 border border-primary/20' : 'hover:bg-accent/20'
+                  p.highlight ? 'bg-primary/8 border border-primary/15 shadow-[0_0_12px_-4px_hsl(var(--primary)/0.15)]' : 'hover:bg-accent/10'
                 }`}
               >
-                <span className={`text-xs font-semibold ${
-                  p.label.startsWith('R') ? 'text-bear' : p.label.startsWith('S') ? 'text-bull' : 'text-primary'
+                <span className={`text-[11px] font-semibold ${
+                  p.label.startsWith('R') ? 'text-bear/80' : p.label.startsWith('S') ? 'text-bull/80' : 'text-primary'
                 }`}>{p.label}</span>
-                <span className="text-sm font-bold text-foreground tabular-nums">{p.value}</span>
+                <span className="text-[13px] font-bold text-foreground tabular-nums">{p.value}</span>
               </div>
             ))}
           </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Settings as SettingsIcon, Monitor, Bell, Eye, Clock, Palette, BarChart2, Layout } from 'lucide-react';
+import { Settings as SettingsIcon, Monitor, Bell, Eye, Clock, Palette, Layout } from 'lucide-react';
 
 interface ToggleProps { label: string; desc: string; defaultOn?: boolean }
 
@@ -9,14 +9,14 @@ function Toggle({ label, desc, defaultOn = false }: ToggleProps) {
   return (
     <div className="flex items-center justify-between py-3">
       <div>
-        <p className="text-sm text-foreground">{label}</p>
-        <p className="text-[10px] text-muted-foreground/50">{desc}</p>
+        <p className="text-[13px] text-foreground">{label}</p>
+        <p className="text-[9px] text-muted-foreground/35">{desc}</p>
       </div>
       <button
         onClick={() => setOn(!on)}
-        className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${on ? 'bg-primary' : 'bg-secondary/60'}`}
+        className={`relative h-5 w-9 rounded-full transition-all duration-250 ${on ? 'bg-primary shadow-[0_0_8px_-2px_hsl(var(--primary)/0.3)]' : 'bg-secondary/40'}`}
       >
-        <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-foreground transition-transform duration-200 ${on ? 'translate-x-5' : ''}`} />
+        <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-foreground transition-transform duration-250 ${on ? 'translate-x-4' : ''}`} />
       </button>
     </div>
   );
@@ -29,18 +29,18 @@ function SelectOption({ label, desc, options, defaultValue }: SelectProps) {
   return (
     <div className="flex items-center justify-between py-3">
       <div>
-        <p className="text-sm text-foreground">{label}</p>
-        <p className="text-[10px] text-muted-foreground/50">{desc}</p>
+        <p className="text-[13px] text-foreground">{label}</p>
+        <p className="text-[9px] text-muted-foreground/35">{desc}</p>
       </div>
-      <div className="flex gap-1">
+      <div className="flex gap-0.5">
         {options.map(opt => (
           <button
             key={opt}
             onClick={() => setValue(opt)}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${
+            className={`px-2.5 py-1 rounded-md text-[9px] font-semibold transition-all ${
               value === opt
-                ? 'bg-primary/15 text-primary border border-primary/20'
-                : 'text-muted-foreground/50 hover:text-foreground bg-secondary/30 border border-transparent'
+                ? 'bg-primary/12 text-primary border border-primary/15 shadow-[0_0_8px_-2px_hsl(var(--primary)/0.15)]'
+                : 'text-muted-foreground/40 hover:text-foreground bg-secondary/20 border border-transparent'
             }`}
           >
             {opt}
@@ -120,12 +120,14 @@ const sections = [
 const Settings = () => (
   <DashboardLayout title="Settings">
     <div className="p-4 lg:p-6 space-y-4">
-      <div className="glass-card rounded-xl p-5 mb-2">
-        <div className="flex items-center gap-2">
-          <SettingsIcon className="h-4 w-4 text-primary" />
+      <div className="glass-card rounded-xl p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
+            <SettingsIcon className="h-4 w-4 text-primary/70" />
+          </div>
           <div>
-            <h2 className="text-sm font-bold text-foreground">Preferences</h2>
-            <p className="text-[10px] text-muted-foreground/50">Customize your trading terminal experience</p>
+            <h2 className="text-[15px] font-bold text-foreground">Preferences</h2>
+            <p className="text-[9px] text-muted-foreground/35 tracking-wider">Customize your trading terminal experience</p>
           </div>
         </div>
       </div>
@@ -137,13 +139,13 @@ const Settings = () => (
             className="glass-card rounded-xl p-5 animate-fade-up"
             style={{ animationDelay: `${i * 50}ms` }}
           >
-            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/20">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/10">
-                <s.icon className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
+                <s.icon className="h-3.5 w-3.5 text-primary/70" />
               </div>
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">{s.title}</h3>
+              <h3 className="section-header text-foreground/80">{s.title}</h3>
             </div>
-            <div className="divide-y divide-border/10">
+            <div className="divide-y divide-border/8">
               {s.content}
             </div>
           </div>

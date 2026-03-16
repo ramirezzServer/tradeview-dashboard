@@ -33,19 +33,19 @@ const Portfolio = () => (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: 'Total Value', value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: Wallet },
-          { label: 'Daily P/L', value: `+$${dailyPnL.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-bull' },
-          { label: 'Total P/L', value: `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: totalPnL >= 0 ? TrendingUp : TrendingDown, color: totalPnL >= 0 ? 'text-bull' : 'text-bear', sub: `${totalPnLPct >= 0 ? '+' : ''}${totalPnLPct.toFixed(2)}%` },
+          { label: 'Daily P/L', value: `+$${dailyPnL.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-bull value-bull' },
+          { label: 'Total P/L', value: `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: totalPnL >= 0 ? TrendingUp : TrendingDown, color: totalPnL >= 0 ? 'text-bull value-bull' : 'text-bear value-bear', sub: `${totalPnLPct >= 0 ? '+' : ''}${totalPnLPct.toFixed(2)}%` },
           { label: 'Total Holdings', value: holdings.length.toString(), icon: Briefcase, sub: 'Active positions' },
         ].map((c, i) => (
-          <div key={c.label} className="glass-card rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+          <div key={c.label} className="glass-card-hover rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">{c.label}</p>
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 border border-primary/10">
-                <c.icon className="h-3.5 w-3.5 text-primary" />
+              <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{c.label}</p>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
+                <c.icon className="h-3.5 w-3.5 text-primary/70" />
               </div>
             </div>
             <p className={`text-lg font-bold mt-2 tabular-nums ${c.color || 'text-foreground'}`}>{c.value}</p>
-            {c.sub && <p className="text-[10px] text-muted-foreground/40 mt-0.5">{c.sub}</p>}
+            {c.sub && <p className="text-[9px] text-muted-foreground/30 mt-0.5">{c.sub}</p>}
           </div>
         ))}
       </div>
@@ -53,17 +53,17 @@ const Portfolio = () => (
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
         {/* Holdings Table */}
         <div className="glass-card rounded-xl overflow-hidden">
-          <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border/20">
-            <Briefcase className="h-4 w-4 text-primary" />
-            <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Holdings</h2>
+          <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border/15">
+            <Briefcase className="h-3.5 w-3.5 text-primary/70" />
+            <h2 className="section-header text-foreground/80">Holdings</h2>
           </div>
 
-          <div className="hidden md:grid grid-cols-7 gap-2 px-5 py-2.5 text-[9px] uppercase tracking-wider text-muted-foreground/40 font-semibold border-b border-border/10">
+          <div className="hidden md:grid grid-cols-7 gap-2 px-5 py-2.5 text-[8px] uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10">
             <span>Asset</span><span className="text-right">Shares</span><span className="text-right">Avg Cost</span>
             <span className="text-right">Current</span><span className="text-right">Value</span><span className="text-right">P&L</span><span className="text-right">Alloc</span>
           </div>
 
-          <div className="divide-y divide-border/10">
+          <div className="divide-y divide-border/8">
             {holdings.map((h, i) => {
               const pnl = (h.current - h.avgCost) * h.shares;
               const pnlPct = ((h.current - h.avgCost) / h.avgCost) * 100;
@@ -72,24 +72,24 @@ const Portfolio = () => (
               return (
                 <div
                   key={h.symbol}
-                  className="grid grid-cols-3 md:grid-cols-7 gap-2 items-center px-5 py-3 hover:bg-accent/20 transition-colors animate-fade-up"
+                  className="grid grid-cols-3 md:grid-cols-7 gap-2 items-center px-5 py-3 hover:bg-accent/15 transition-colors animate-fade-up"
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{h.symbol}</p>
-                    <p className="text-[9px] text-muted-foreground/50">{h.name}</p>
+                    <p className="text-[13px] font-semibold text-foreground">{h.symbol}</p>
+                    <p className="text-[9px] text-muted-foreground/35">{h.name}</p>
                   </div>
-                  <p className="hidden md:block text-right text-xs text-foreground tabular-nums">{h.shares}</p>
-                  <p className="hidden md:block text-right text-xs text-muted-foreground tabular-nums">${h.avgCost.toLocaleString()}</p>
-                  <p className="text-right text-xs font-semibold text-foreground tabular-nums">${h.current.toLocaleString()}</p>
-                  <p className="hidden md:block text-right text-xs text-foreground tabular-nums">${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                  <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">{h.shares}</p>
+                  <p className="hidden md:block text-right text-[11px] text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
+                  <p className="text-right text-[11px] font-semibold text-foreground tabular-nums">${h.current.toLocaleString()}</p>
+                  <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                   <div className="text-right flex items-center justify-end gap-1">
-                    {positive ? <TrendingUp className="h-3 w-3 text-bull" /> : <TrendingDown className="h-3 w-3 text-bear" />}
-                    <span className={`text-xs font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
+                    {positive ? <TrendingUp className="h-3 w-3 text-bull/60" /> : <TrendingDown className="h-3 w-3 text-bear/60" />}
+                    <span className={`text-[11px] font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
                       {positive ? '+' : ''}{pnlPct.toFixed(1)}%
                     </span>
                   </div>
-                  <p className="hidden md:block text-right text-xs text-muted-foreground tabular-nums">{h.allocation}%</p>
+                  <p className="hidden md:block text-right text-[11px] text-muted-foreground/40 tabular-nums">{h.allocation}%</p>
                 </div>
               );
             })}
@@ -101,11 +101,10 @@ const Portfolio = () => (
           {/* Allocation */}
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <PieChart className="h-4 w-4 text-primary" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Allocation</h2>
+              <PieChart className="h-3.5 w-3.5 text-primary/70" />
+              <h2 className="section-header text-foreground/80">Allocation</h2>
             </div>
-            {/* Bar visualization */}
-            <div className="flex h-3 rounded-full overflow-hidden mb-4">
+            <div className="flex h-2.5 rounded-full overflow-hidden mb-4">
               {holdings.map((h, i) => (
                 <div
                   key={h.symbol}
@@ -115,11 +114,11 @@ const Portfolio = () => (
                 />
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               {holdings.map((h, i) => (
-                <div key={h.symbol} className="flex items-center gap-2">
+                <div key={h.symbol} className="flex items-center gap-2 py-0.5">
                   <div className={`h-2 w-2 rounded-full ${allocationColors[i]}`} />
-                  <span className="text-[10px] text-muted-foreground/60">{h.symbol}</span>
+                  <span className="text-[9px] text-muted-foreground/40">{h.symbol}</span>
                   <span className="text-[10px] font-semibold text-foreground ml-auto tabular-nums">{h.allocation}%</span>
                 </div>
               ))}
@@ -129,15 +128,15 @@ const Portfolio = () => (
           {/* Best & Worst */}
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Award className="h-4 w-4 text-bull" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Best Performer</h2>
+              <Award className="h-3.5 w-3.5 text-bull/70" />
+              <h2 className="section-header text-foreground/80">Best Performer</h2>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-foreground">{best.symbol}</p>
-                <p className="text-[10px] text-muted-foreground/50">{best.name}</p>
+                <p className="text-[13px] font-bold text-foreground">{best.symbol}</p>
+                <p className="text-[9px] text-muted-foreground/35">{best.name}</p>
               </div>
-              <span className="text-sm font-bold text-bull tabular-nums">
+              <span className="text-[15px] font-bold text-bull tabular-nums value-bull">
                 +{(((best.current - best.avgCost) / best.avgCost) * 100).toFixed(1)}%
               </span>
             </div>
@@ -145,15 +144,15 @@ const Portfolio = () => (
 
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="h-4 w-4 text-bear" />
-              <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Weakest Position</h2>
+              <AlertTriangle className="h-3.5 w-3.5 text-bear/70" />
+              <h2 className="section-header text-foreground/80">Weakest Position</h2>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-foreground">{worst.symbol}</p>
-                <p className="text-[10px] text-muted-foreground/50">{worst.name}</p>
+                <p className="text-[13px] font-bold text-foreground">{worst.symbol}</p>
+                <p className="text-[9px] text-muted-foreground/35">{worst.name}</p>
               </div>
-              <span className={`text-sm font-bold tabular-nums ${((worst.current - worst.avgCost) / worst.avgCost) >= 0 ? 'text-bull' : 'text-bear'}`}>
+              <span className={`text-[15px] font-bold tabular-nums ${((worst.current - worst.avgCost) / worst.avgCost) >= 0 ? 'text-bull value-bull' : 'text-bear value-bear'}`}>
                 {((worst.current - worst.avgCost) / worst.avgCost) >= 0 ? '+' : ''}{(((worst.current - worst.avgCost) / worst.avgCost) * 100).toFixed(1)}%
               </span>
             </div>
