@@ -13,8 +13,11 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     <div className="dark">
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
+          {/* Ambient background glow */}
+          <div className="ambient-glow" />
+          
           <AppSidebar />
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 relative z-[1]">
             <Header title={title} />
             <main className="flex-1 overflow-auto">
               {children}
