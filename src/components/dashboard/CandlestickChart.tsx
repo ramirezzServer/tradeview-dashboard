@@ -12,11 +12,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { ohlcvData } from '@/data/mockStockData';
 import { OHLCVData } from '@/types/stock';
+import { useFinnhubCandles } from '@/hooks/useFinnhubCandles';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Wifi, WifiOff } from 'lucide-react';
 
 type Timeframe = '1W' | '1M' | '3M';
 const TIMEFRAMES: Timeframe[] = ['1W', '1M', '3M'];
 
-const sliceData = (tf: Timeframe): OHLCVData[] => {
+const sliceMockData = (tf: Timeframe): OHLCVData[] => {
   const len = ohlcvData.length;
   if (tf === '1W') return ohlcvData.slice(Math.max(0, len - 5));
   if (tf === '1M') return ohlcvData.slice(Math.max(0, len - 22));
@@ -60,9 +63,12 @@ function CustomTooltip({ active, payload }: any) {
 
 export function CandlestickChart() {
   const [timeframe, setTimeframe] = useState<Timeframe>('3M');
+  const { data: liveData, loading, isLive } = useFinnhubCandles('AAPL', timeframe);
+
+  const sourceData = isLive && liveData.length > 0 ? liveData : sliceMockData(timeframe);
 
   const { chartData, minPrice, maxPrice } = useMemo(() => {
-    const raw = sliceData(timeframe);
+    const raw = sourceData;
     const prices = raw.flatMap(d => [d.low, d.high]);
     const min = Math.floor(Math.min(...prices) - 2);
     const max = Math.ceil(Math.max(...prices) + 2);
@@ -78,13 +84,24 @@ export function CandlestickChart() {
       };
     });
     return { chartData: mapped, minPrice: min, maxPrice: max };
-  }, [timeframe]);
+  }, [sourceData]);
 
   return (
     <div className="glass-card rounded-xl overflow-hidden gradient-border">
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
-          <h2 className="text-base font-bold text-foreground tracking-tight">AAPL — Apple Inc.</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-foreground tracking-tight">AAPL — Apple Inc.</h2>
+            {isLive ? (
+              <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+                <Wifi className="h-2.5 w-2.5" /> Live
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">
+                <WifiOff className="h-2.5 w-2.5" /> Mock
+              </span>
+            )}
+          </div>
           <p className="text-[10px] text-muted-foreground/40 mt-0.5 tracking-wider">NASDAQ · Candlestick Chart</p>
         </div>
         <div className="flex gap-0.5 bg-secondary/30 rounded-lg p-0.5 border border-border/20">
@@ -106,48 +123,56 @@ export function CandlestickChart() {
         </div>
       </div>
       <div className="px-2 pb-1">
-        <ResponsiveContainer width="100%" height={380}>
-          <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(228, 14%, 8%)" vertical={false} />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={v => v.slice(5)}
-            />
-            <YAxis
-              domain={[minPrice, maxPrice]}
-              tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={v => `$${v}`}
-              width={50}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(228, 18%, 6%)' }} />
-            <Bar dataKey="high" barSize={1} stackId="wick" fillOpacity={0}>
-              {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.fill} />
-              ))}
-            </Bar>
-            <Bar dataKey="bodyHeight" barSize={8} fillOpacity={0.9} stackId="body" yAxisId={0}>
-              {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.fill} />
-              ))}
-            </Bar>
-          </ComposedChart>
-        </ResponsiveContainer>
-        <ResponsiveContainer width="100%" height={50}>
-          <ComposedChart data={chartData} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
-            <XAxis dataKey="date" hide />
-            <YAxis hide />
-            <Bar dataKey="volume" barSize={6} fillOpacity={0.25}>
-              {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.fill} />
-              ))}
-            </Bar>
-          </ComposedChart>
-        </ResponsiveContainer>
+        {loading && chartData.length === 0 ? (
+          <div className="flex items-center justify-center h-[380px]">
+            <Skeleton className="h-[360px] w-full bg-secondary/20 rounded-lg" />
+          </div>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={380}>
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(228, 14%, 8%)" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={v => v.slice(5)}
+                />
+                <YAxis
+                  domain={[minPrice, maxPrice]}
+                  tick={{ fontSize: 9, fill: 'hsl(220, 15%, 35%)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={v => `$${v}`}
+                  width={50}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(228, 18%, 6%)' }} />
+                <Bar dataKey="high" barSize={1} stackId="wick" fillOpacity={0}>
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
+                  ))}
+                </Bar>
+                <Bar dataKey="bodyHeight" barSize={8} fillOpacity={0.9} stackId="body" yAxisId={0}>
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </ComposedChart>
+            </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={50}>
+              <ComposedChart data={chartData} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
+                <XAxis dataKey="date" hide />
+                <YAxis hide />
+                <Bar dataKey="volume" barSize={6} fillOpacity={0.25}>
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </>
+        )}
       </div>
     </div>
   );

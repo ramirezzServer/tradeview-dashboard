@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Eye, TrendingUp, TrendingDown, Search, Star, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Eye, TrendingUp, TrendingDown, Search, Star, ArrowUpRight, ArrowDownRight, Wifi, WifiOff } from 'lucide-react';
 import { useTickerSimulation } from '@/hooks/useTickerSimulation';
 import { watchlistAssets } from '@/data/mockStockData';
 import { Input } from '@/components/ui/input';
@@ -61,7 +61,7 @@ function MiniSparkline({ data, positive }: { data: number[]; positive: boolean }
 type FilterTab = 'all' | 'stocks' | 'crypto';
 
 const Watchlist = () => {
-  const { assets, flashMap } = useTickerSimulation(extendedAssets);
+  const { assets, flashMap, isLive } = useTickerSimulation(extendedAssets);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
 
@@ -137,9 +137,16 @@ const Watchlist = () => {
         {/* Asset List */}
         <div className="glass-card rounded-xl overflow-hidden">
           <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border/15">
-            <Star className="h-3.5 w-3.5 text-primary/70" />
+           <Star className="h-3.5 w-3.5 text-primary/70" />
             <h2 className="section-header text-foreground/80">Active Watchlist</h2>
-            <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums">{filtered.length} assets</span>
+            <div className="ml-auto flex items-center gap-2">
+              {isLive ? (
+                <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium"><Wifi className="h-2.5 w-2.5" /> Live</span>
+              ) : (
+                <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium"><WifiOff className="h-2.5 w-2.5" /> Mock</span>
+              )}
+              <span className="text-[9px] text-muted-foreground/30 tabular-nums">{filtered.length} assets</span>
+            </div>
           </div>
 
           {/* Header Row */}
