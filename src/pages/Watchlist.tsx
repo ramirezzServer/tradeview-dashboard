@@ -61,7 +61,7 @@ function MiniSparkline({ data, positive }: { data: number[]; positive: boolean }
 type FilterTab = 'all' | 'stocks' | 'crypto';
 
 const Watchlist = () => {
-  const { assets, flashMap } = useTickerSimulation(extendedAssets);
+  const { assets, flashMap, isLive } = useTickerSimulation(extendedAssets);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
 
