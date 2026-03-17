@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Eye, TrendingUp, TrendingDown, Search, Star, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Eye, TrendingUp, TrendingDown, Search, Star, ArrowUpRight, ArrowDownRight, Wifi, WifiOff } from 'lucide-react';
 import { useTickerSimulation } from '@/hooks/useTickerSimulation';
 import { watchlistAssets } from '@/data/mockStockData';
 import { Input } from '@/components/ui/input';
