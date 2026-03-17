@@ -1,15 +1,26 @@
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wifi, WifiOff } from 'lucide-react';
 import { useTickerSimulation } from '@/hooks/useTickerSimulation';
 import { watchlistAssets } from '@/data/mockStockData';
 
 export function WatchlistPanel() {
-  const { assets, flashMap } = useTickerSimulation(watchlistAssets);
+  const { assets, flashMap, isLive } = useTickerSimulation(watchlistAssets);
 
   return (
     <div className="glass-card rounded-xl overflow-hidden">
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <h3 className="section-header text-foreground/80">Watchlist</h3>
-        <span className="text-[9px] text-muted-foreground/30 tabular-nums">{assets.length} assets</span>
+        <div className="flex items-center gap-2">
+          {isLive ? (
+            <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+              <Wifi className="h-2.5 w-2.5" />
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">
+              <WifiOff className="h-2.5 w-2.5" />
+            </span>
+          )}
+          <span className="text-[9px] text-muted-foreground/30 tabular-nums">{assets.length} assets</span>
+        </div>
       </div>
       <div className="px-2 pb-2 space-y-0.5">
         {assets.map(a => {
