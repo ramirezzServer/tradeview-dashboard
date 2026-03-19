@@ -95,9 +95,9 @@ export function AppSidebar() {
             </div>
             <div>
               <span className="text-[15px] font-bold tracking-tight text-foreground glow-text">
-                StockPulse
+                PersonalProject
               </span>
-              <p className="text-[9px] text-muted-foreground/40 leading-none tracking-wider uppercase">Trading Terminal</p>
+              <p className="text-[9px] text-muted-foreground/40 leading-none tracking-wider uppercase">PERSONAL DASHBOARD</p>
             </div>
           </div>
         ) : (
