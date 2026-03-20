@@ -1,38 +1,32 @@
-const API_KEY = (import.meta.env.VITE_FINNHUB_API_KEY ?? "").trim();
-const BASE_URL = "https://finnhub.io/api/v1";
+// ─── Backend Proxy Service ────────────────────────────────────────────────────
+// All market data now goes through the Laravel backend at VITE_API_BASE_URL.
+// The Finnhub API key is never present in the frontend — the backend holds it.
+//
+// Function signatures and return types are intentionally unchanged so that all
+// existing hooks, pages, and components continue to work without modification.
+// ─────────────────────────────────────────────────────────────────────────────
 
-function buildUrl(
-  path: string,
-  params: Record<string, string | number | undefined> = {}
-): string {
-  const url = new URL(`${BASE_URL}${path}`);
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '');
 
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, String(value));
-    }
-  });
-
-  if (API_KEY) {
-    url.searchParams.set("token", API_KEY);
-  }
-
-  return url.toString();
-}
-
+/**
+ * True when the backend URL is configured in the environment.
+ * Replaces the old Finnhub key check — hooks use this guard unchanged.
+ */
 export function isFinnhubConfigured(): boolean {
-  return API_KEY.length > 0;
+  return API_BASE.length > 0;
 }
+
+// ─── Types (unchanged — hooks and pages depend on these shapes) ───────────────
 
 export interface FinnhubQuote {
-  c: number;
-  d: number;
-  dp: number;
-  h: number;
-  l: number;
-  o: number;
-  pc: number;
-  t: number;
+  c: number;   // current price
+  d: number;   // change
+  dp: number;  // change %
+  h: number;   // high
+  l: number;   // low
+  o: number;   // open
+  pc: number;  // previous close
+  t: number;   // timestamp
 }
 
 export interface FinnhubCandle {
@@ -78,133 +72,120 @@ export interface FinnhubBasicFinancials {
   symbol: string;
 }
 
-type FetchJsonOptions = {
-  timeoutMs?: number;
-};
+// ─── Internal HTTP helper ─────────────────────────────────────────────────────
 
-async function fetchJson<T>(
-  endpoint: string,
-  params: Record<string, string | number | undefined> = {},
-  options: FetchJsonOptions = {}
+/**
+ * GET a Laravel backend endpoint and unwrap the standard
+ * { success, message, data } response envelope.
+ */
+async function fetchFromBackend<T>(
+  path: string,
+  params: Record<string, string | number> = {}
 ): Promise<T> {
-  if (!API_KEY) {
-    throw new Error("FINNHUB_KEY_MISSING");
+  if (!API_BASE) {
+    throw new Error('BACKEND_NOT_CONFIGURED');
   }
 
-  const { timeoutMs = 15000 } = options;
+  const url = new URL(`${API_BASE}${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const requestUrl = buildUrl(endpoint, params);
-    const response = await fetch(requestUrl, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
       signal: controller.signal,
     });
 
-    if (response.status === 401) {
-      throw new Error("FINNHUB_UNAUTHORIZED");
+    if (response.status === 429) throw new Error('RATE_LIMITED');
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (response.status === 403) throw new Error('PLAN_RESTRICTION');
+    if (!response.ok) throw new Error(`HTTP_${response.status}`);
+
+    // Unwrap Laravel envelope: { success, message, data, meta? }
+    const json = (await response.json()) as {
+      success: boolean;
+      message: string;
+      data: T;
+    };
+
+    if (!json.success) {
+      throw new Error(json.message ?? 'BACKEND_ERROR');
     }
 
-    if (response.status === 403) {
-      throw new Error("FINNHUB_FORBIDDEN");
-    }
+    return json.data;
 
-    if (response.status === 429) {
-      throw new Error("FINNHUB_RATE_LIMITED");
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('REQUEST_TIMEOUT');
     }
-
-    if (!response.ok) {
-      throw new Error(`FINNHUB_HTTP_${response.status}`);
-    }
-
-    return (await response.json()) as T;
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("FINNHUB_TIMEOUT");
-    }
-    throw error;
+    throw e;
   } finally {
     clearTimeout(timeout);
   }
 }
 
+// ─── Public API functions (same signatures as before) ────────────────────────
+
+/** Live stock quote via Laravel → Finnhub /quote */
 export async function getQuote(symbol: string): Promise<FinnhubQuote> {
-  return fetchJson<FinnhubQuote>("/quote", { symbol });
+  return fetchFromBackend<FinnhubQuote>(`/api/market/quote/${encodeURIComponent(symbol)}`);
 }
 
+/**
+ * OHLCV candle data via Laravel → Finnhub /stock/candle
+ *
+ * NOTE: This endpoint requires a paid Finnhub plan.
+ * With a free key the backend returns 403, which this function re-throws as
+ * PLAN_RESTRICTION. useFinnhubCandles catches that and falls back to mock data.
+ */
 export async function getCandles(
   symbol: string,
   resolution: string,
   from: number,
   to: number
 ): Promise<FinnhubCandle> {
-  const data = await fetchJson<FinnhubCandle>("/stock/candle", {
-    symbol,
-    resolution,
-    from,
-    to,
-  });
-
-  if (!data || data.s !== "ok") {
-    throw new Error(`FINNHUB_CANDLE_${data?.s ?? "INVALID"}`);
-  }
-
-  const hasValidArrays =
-    Array.isArray(data.c) &&
-    Array.isArray(data.h) &&
-    Array.isArray(data.l) &&
-    Array.isArray(data.o) &&
-    Array.isArray(data.v) &&
-    Array.isArray(data.t);
-
-  if (!hasValidArrays) {
-    throw new Error("FINNHUB_CANDLE_INVALID_SHAPE");
-  }
-
-  if (data.t.length === 0) {
-    throw new Error("FINNHUB_CANDLE_EMPTY");
-  }
-
-  return data;
+  return fetchFromBackend<FinnhubCandle>(
+    `/api/market/candles/${encodeURIComponent(symbol)}`,
+    { resolution, from, to }
+  );
 }
 
+/** General market news via Laravel → Finnhub /news */
 export async function getMarketNews(
-  category: string = "general",
-  minId: number = 0
+  category = 'general',
+  minId = 0
 ): Promise<FinnhubNewsItem[]> {
-  return fetchJson<FinnhubNewsItem[]>("/news", {
-    category,
-    minId,
-  });
+  return fetchFromBackend<FinnhubNewsItem[]>('/api/market/news', { category, minId });
 }
 
+/**
+ * Company-specific news.
+ * No backend proxy endpoint exists yet — callers will receive an error and
+ * should fall back to mock data.
+ */
 export async function getCompanyNews(
-  symbol: string,
-  from: string,
-  to: string
+  _symbol: string,
+  _from: string,
+  _to: string
 ): Promise<FinnhubNewsItem[]> {
-  return fetchJson<FinnhubNewsItem[]>("/company-news", {
-    symbol,
-    from,
-    to,
-  });
+  throw new Error('ENDPOINT_NOT_PROXIED');
 }
 
-export async function getCompanyProfile(
-  symbol: string
-): Promise<FinnhubProfile> {
-  return fetchJson<FinnhubProfile>("/stock/profile2", { symbol });
+/** Company profile via Laravel → Finnhub /stock/profile2 */
+export async function getCompanyProfile(symbol: string): Promise<FinnhubProfile> {
+  return fetchFromBackend<FinnhubProfile>(`/api/market/profile/${encodeURIComponent(symbol)}`);
 }
 
-export async function getBasicFinancials(
-  symbol: string
-): Promise<FinnhubBasicFinancials> {
-  return fetchJson<FinnhubBasicFinancials>("/stock/metric", {
-    symbol,
-    metric: "all",
-  });
+/** Basic financial metrics via Laravel → Finnhub /stock/metric */
+export async function getBasicFinancials(symbol: string): Promise<FinnhubBasicFinancials> {
+  return fetchFromBackend<FinnhubBasicFinancials>(
+    `/api/market/financials/${encodeURIComponent(symbol)}`
+  );
 }
