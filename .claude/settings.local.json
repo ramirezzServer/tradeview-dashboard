@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composer create-project:*)",
+      "Bash(php artisan:*)",
+      "Bash(php \"c:/KULIAH/PROJECT CODE/tradeview-dashboard/backend/artisan\" migrate:status --no-ansi)",
+      "Bash(php -r \":*)"
+    ]
+  }
+}
