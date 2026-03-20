@@ -34,16 +34,15 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // Return JSON 401 instead of a redirect when a token is missing or invalid.
-        // Without this, Laravel would redirect to a login page (which doesn't exist
-        // in an API-only project).
+        // This project has no web login page, so ALL AuthenticationException instances
+        // must return JSON regardless of Accept header or route pattern.
+        // NOTE: do NOT rename $e — Laravel's container injects it by key 'e'.
         $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthenticated. Please provide a valid Bearer token.',
-                    'data'    => null,
-                ], 401);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+                'data'    => null,
+            ], 401);
         });
 
     })->create();

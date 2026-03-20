@@ -3,12 +3,18 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
   title?: string;
 }
 
 export function Header({ title = 'Dashboard' }: HeaderProps) {
+  const { user } = useAuth();
+  const initials = user?.name
+    ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : '??';
+
   return (
     <header className="flex h-12 items-center gap-4 border-b border-border/20 bg-card/30 backdrop-blur-2xl px-4 lg:px-6 relative">
       {/* Subtle bottom edge highlight */}
@@ -35,7 +41,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
           <Bell className="h-3.5 w-3.5" />
         </Button>
         <div className="h-7 w-7 rounded-full bg-primary/10 border border-primary/15 flex items-center justify-center">
-          <span className="text-[10px] font-bold text-primary/80">SP</span>
+          <span className="text-[10px] font-bold text-primary/80">{initials}</span>
         </div>
       </div>
     </header>
