@@ -5,7 +5,9 @@
       "Bash(php artisan:*)",
       "Bash(php \"c:/KULIAH/PROJECT CODE/tradeview-dashboard/backend/artisan\" migrate:status --no-ansi)",
       "Bash(php -r \":*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(php -r \"echo json_encode\\(json_decode\\(file_get_contents\\(''composer.json''\\)\\)->require, JSON_PRETTY_PRINT\\);\")",
+      "Bash(composer require:*)"
     ]
   }
 }
