@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CryptoController;
 use App\Http\Controllers\Api\MarketController;
 use App\Http\Controllers\Api\PortfolioController;
 use App\Http\Controllers\Api\PortfolioItemController;
@@ -44,6 +45,11 @@ Route::prefix('market')->group(function () {
 
     // Company-specific news — query params: from (YYYY-MM-DD), to (YYYY-MM-DD)
     Route::get('/company-news/{symbol}', [MarketController::class, 'companyNews']);
+
+    // Crypto spot prices via CoinGecko (free plan, no key needed)
+    // query param: symbols=BTC,ETH,SOL
+    Route::get('/crypto/prices',    [CryptoController::class, 'prices']);
+    Route::get('/crypto/supported', [CryptoController::class, 'supported']);
 
 });
 
