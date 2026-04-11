@@ -31,8 +31,8 @@ export function useFinnhubQuote(symbol: string, refreshMs = 15000): QuoteState {
             setState({ data, loading: false, error: null, isLive: true });
           }
         }
-      } catch (e: any) {
-        if (!cancelled) setState(s => ({ ...s, loading: false, error: e.message, isLive: false }));
+      } catch (e: unknown) {
+        if (!cancelled) setState(s => ({ ...s, loading: false, error: e instanceof Error ? e.message : String(e), isLive: false }));
       }
     };
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CandleRequest;
+use App\Http\Requests\CompanyNewsRequest;
 use App\Http\Requests\MarketNewsRequest;
 use App\Http\Traits\ApiResponse;
 use App\Services\FinnhubService;
@@ -139,6 +140,34 @@ class MarketController extends Controller
             $data = $this->finnhub->getFinancials($symbol);
 
             return $this->success($data, 'Financials fetched successfully.');
+
+        } catch (RuntimeException $e) {
+            return $this->handleFinnhubException($e);
+        }
+    }
+
+    /**
+     * GET /api/market/company-news/{symbol}?from=YYYY-MM-DD&to=YYYY-MM-DD
+     */
+    public function companyNews(CompanyNewsRequest $request, string $symbol): JsonResponse
+    {
+        $symbol = strtoupper(trim($symbol));
+
+        if (! preg_match('/^[A-Z0-9.:\-]{1,20}$/', $symbol)) {
+            return $this->error('Invalid symbol format.', 422);
+        }
+
+        try {
+            $data = $this->finnhub->getCompanyNews(
+                $symbol,
+                $request->validated('from'),
+                $request->validated('to'),
+            );
+
+            return $this->success($data, 'Company news fetched successfully.', 200, [
+                'symbol' => $symbol,
+                'count'  => \count($data),
+            ]);
 
         } catch (RuntimeException $e) {
             return $this->handleFinnhubException($e);

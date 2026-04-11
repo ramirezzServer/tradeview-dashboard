@@ -39,8 +39,8 @@ export function useFinnhubProfile(symbol: string): ProfileState {
           isLive: true,
         });
       })
-      .catch((e: any) => {
-        if (!cancelled) setState(s => ({ ...s, loading: false, error: e.message, isLive: false }));
+      .catch((e: unknown) => {
+        if (!cancelled) setState(s => ({ ...s, loading: false, error: e instanceof Error ? e.message : String(e), isLive: false }));
       });
 
     return () => { cancelled = true; };

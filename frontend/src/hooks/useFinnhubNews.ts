@@ -28,8 +28,8 @@ export function useFinnhubNews(): NewsState {
           setState({ data: items.slice(0, 20), loading: false, error: null, isLive: true });
         }
       })
-      .catch((e: any) => {
-        if (!cancelled) setState({ data: [], loading: false, error: e.message, isLive: false });
+      .catch((e: unknown) => {
+        if (!cancelled) setState({ data: [], loading: false, error: e instanceof Error ? e.message : String(e), isLive: false });
       });
 
     return () => { cancelled = true; };

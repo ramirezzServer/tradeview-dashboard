@@ -1,0 +1,23 @@
+# ─── OS / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Claude Code local settings (developer-specific, never commit) ────────────
+.claude/settings.local.json
+
+# ─── Frontend ─────────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# ─── Backend ──────────────────────────────────────────────────────────────────
+# backend/.gitignore already covers vendor/, .env, storage/logs, etc.
+# Add only repo-root overrides here.
+backend/public/build/
+backend/public/hot/

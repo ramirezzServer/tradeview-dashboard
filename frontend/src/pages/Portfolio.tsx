@@ -1,22 +1,12 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Briefcase, TrendingUp, TrendingDown, Wallet, PieChart, Award, AlertTriangle, Plus, X, Loader2 } from 'lucide-react';
+import {
+  Briefcase, TrendingUp, TrendingDown, Wallet,
+  PieChart, Award, AlertTriangle, Plus, X, Loader2, RefreshCw,
+} from 'lucide-react';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { Input } from '@/components/ui/input';
-
-// ─── Static lookup for current market prices (simulation seed values) ─────────
-// The backend stores shares + avg_cost. Current price comes from these defaults
-// until a live quote integration is added to the portfolio page.
-
-const currentPriceMap: Record<string, number> = {
-  AAPL: 189.84, NVDA: 881.86, TSLA: 248.42, MSFT: 425.52,
-  META: 502.30, AMZN: 182.15, GOOGL: 172.63, BTC: 97432.50,
-  ETH: 3842.15, SOL: 148.62,
-};
-
-function currentPrice(symbol: string, avgCost: number): number {
-  return currentPriceMap[symbol.toUpperCase()] ?? avgCost;
-}
+import { getQuote, isFinnhubConfigured } from '@/services/finnhub';
 
 const allocationColors = [
   'bg-primary', 'bg-chart-accent', 'bg-bull', 'bg-primary/70',
@@ -124,25 +114,68 @@ const Portfolio = () => {
   const { items, isLoading, addHolding, removeHolding, isAdding, addError } = usePortfolio();
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // Live quote prices fetched from backend for each symbol.
+  // null  = not yet fetched / fetch failed → fall back to avgCost and mark as estimated.
+  const [livePrices, setLivePrices] = useState<Record<string, number | null>>({});
+  const [quotesLoading, setQuotesLoading] = useState(false);
+  const [quotesLive, setQuotesLive] = useState(false);
+
+  const fetchQuotes = () => {
+    if (!isFinnhubConfigured() || items.length === 0) return;
+    setQuotesLoading(true);
+
+    const symbols = [...new Set(items.map(i => i.symbol))];
+
+    Promise.allSettled(symbols.map(s => getQuote(s))).then(results => {
+      const map: Record<string, number | null> = {};
+      let liveCount = 0;
+      symbols.forEach((sym, idx) => {
+        const r = results[idx];
+        if (r.status === 'fulfilled' && r.value.c > 0) {
+          map[sym] = r.value.c;
+          liveCount++;
+        } else {
+          map[sym] = null;
+        }
+      });
+      setLivePrices(map);
+      setQuotesLive(liveCount > 0);
+      setQuotesLoading(false);
+    });
+  };
+
+  // Fetch quotes whenever the holdings list changes
+  useEffect(() => {
+    fetchQuotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   // Map backend items to display shape
-  const holdings = items.map(item => ({
-    id: item.id,
-    symbol: item.symbol,
-    name: item.notes ?? item.symbol,
-    shares: item.quantity,
-    avgCost: Number(item.average_cost),
-    current: currentPrice(item.symbol, Number(item.average_cost)),
-  }));
+  const holdings = items.map(item => {
+    const live = livePrices[item.symbol];
+    const avgCost = Number(item.average_cost);
+    // live === null means the quote failed; fall back to avgCost so P/L shows 0
+    const current = live ?? avgCost;
+    const isEstimated = live === null || live === undefined;
+    return {
+      id: item.id,
+      symbol: item.symbol,
+      name: item.notes ?? item.symbol,
+      shares: item.quantity,
+      avgCost,
+      current,
+      isEstimated,
+    };
+  });
 
-  const totalValue = holdings.reduce((s, h) => s + h.shares * h.current, 0);
-  const totalCost  = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
-  const totalPnL   = totalValue - totalCost;
-  const totalPnLPct = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
+  const totalValue    = holdings.reduce((s, h) => s + h.shares * h.current, 0);
+  const totalCost     = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
+  const totalPnL      = totalValue - totalCost;
+  const totalPnLPct   = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
 
-  // Compute allocation % from value
   const holdingsWithAlloc = holdings.map(h => ({
     ...h,
-    value: h.shares * h.current,
+    value:      h.shares * h.current,
     allocation: totalValue > 0 ? Math.round((h.shares * h.current / totalValue) * 100) : 0,
   }));
 
@@ -157,6 +190,8 @@ const Portfolio = () => {
     await addHolding({ symbol, quantity, average_cost: avgCost, notes: symbol });
     setShowAddForm(false);
   };
+
+  const anyEstimated = holdings.some(h => h.isEstimated);
 
   return (
     <DashboardLayout title="Portfolio">
@@ -188,7 +223,30 @@ const Portfolio = () => {
             <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border/15">
               <Briefcase className="h-3.5 w-3.5 text-primary/70" />
               <h2 className="section-header text-foreground/80">Holdings</h2>
-              <div className="ml-auto">
+
+              {/* Live/estimated price badge */}
+              <div className="flex items-center gap-1 ml-1">
+                {quotesLoading ? (
+                  <span className="flex items-center gap-1 text-[8px] text-muted-foreground/40">
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" /> Fetching prices…
+                  </span>
+                ) : quotesLive ? (
+                  <span className="text-[8px] text-bull/60 font-medium">● Live prices</span>
+                ) : items.length > 0 ? (
+                  <span className="text-[8px] text-muted-foreground/40 font-medium">● Prices unavailable — showing cost basis</span>
+                ) : null}
+              </div>
+
+              <div className="ml-auto flex items-center gap-2">
+                {!quotesLoading && items.length > 0 && (
+                  <button
+                    onClick={fetchQuotes}
+                    className="text-muted-foreground/30 hover:text-primary transition-colors"
+                    title="Refresh prices"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </button>
+                )}
                 <button
                   onClick={() => setShowAddForm(v => !v)}
                   className="flex items-center gap-1 text-[9px] font-semibold text-primary/60 hover:text-primary border border-primary/12 hover:border-primary/25 rounded-md px-2 py-1 transition-all"
@@ -198,6 +256,15 @@ const Portfolio = () => {
                 </button>
               </div>
             </div>
+
+            {/* Disclaimer when any price is estimated */}
+            {anyEstimated && !quotesLoading && (
+              <div className="px-5 py-2 border-b border-border/10 bg-bear/5">
+                <p className="text-[9px] text-bear/60">
+                  Some prices could not be fetched (marked ~). Current value and P/L are based on your average cost for those positions.
+                </p>
+              </div>
+            )}
 
             {showAddForm && (
               <AddHoldingForm
@@ -234,8 +301,8 @@ const Portfolio = () => {
 
             <div className="divide-y divide-border/8">
               {holdingsWithAlloc.map((h, i) => {
-                const pnl     = (h.current - h.avgCost) * h.shares;
-                const pnlPct  = h.avgCost > 0 ? ((h.current - h.avgCost) / h.avgCost) * 100 : 0;
+                const pnl      = (h.current - h.avgCost) * h.shares;
+                const pnlPct   = h.avgCost > 0 ? ((h.current - h.avgCost) / h.avgCost) * 100 : 0;
                 const positive = pnl >= 0;
                 return (
                   <div
@@ -251,13 +318,25 @@ const Portfolio = () => {
                     </div>
                     <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">{h.shares}</p>
                     <p className="hidden md:block text-right text-[11px] text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
-                    <p className="text-right text-[11px] font-semibold text-foreground tabular-nums">${h.current.toLocaleString()}</p>
+                    <p className="text-right text-[11px] font-semibold text-foreground tabular-nums">
+                      {h.isEstimated ? (
+                        <span className="text-muted-foreground/40" title="Live price unavailable — showing cost basis">~${h.current.toLocaleString()}</span>
+                      ) : (
+                        `$${h.current.toLocaleString()}`
+                      )}
+                    </p>
                     <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">${h.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                     <div className="text-right flex items-center justify-end gap-1">
-                      {positive ? <TrendingUp className="h-3 w-3 text-bull/60" /> : <TrendingDown className="h-3 w-3 text-bear/60" />}
-                      <span className={`text-[11px] font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
-                        {positive ? '+' : ''}{pnlPct.toFixed(1)}%
-                      </span>
+                      {h.isEstimated ? (
+                        <span className="text-[11px] text-muted-foreground/30 tabular-nums">—</span>
+                      ) : (
+                        <>
+                          {positive ? <TrendingUp className="h-3 w-3 text-bull/60" /> : <TrendingDown className="h-3 w-3 text-bear/60" />}
+                          <span className={`text-[11px] font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
+                            {positive ? '+' : ''}{pnlPct.toFixed(1)}%
+                          </span>
+                        </>
+                      )}
                     </div>
                     <div className="hidden md:flex items-center justify-end gap-1.5">
                       <span className="text-[11px] text-muted-foreground/40 tabular-nums">{h.allocation}%</span>
@@ -310,8 +389,8 @@ const Portfolio = () => {
               )}
             </div>
 
-            {/* Best & Worst */}
-            {best && (
+            {/* Best & Worst — only show when we have live prices */}
+            {best && !best.isEstimated && (
               <div className="glass-card rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Award className="h-3.5 w-3.5 text-bull/70" />
@@ -329,7 +408,7 @@ const Portfolio = () => {
               </div>
             )}
 
-            {worst && worst.symbol !== best?.symbol && (
+            {worst && worst.symbol !== best?.symbol && !worst.isEstimated && (
               <div className="glass-card rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="h-3.5 w-3.5 text-bear/70" />

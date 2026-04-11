@@ -66,7 +66,19 @@ async function request<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  const json: LaravelResponse<T> = await res.json();
+  // 204 No Content (typical DELETE response) — nothing to parse
+  if (res.status === 204) {
+    if (!res.ok) throw new ApiError(res.status, 'Request failed');
+    return undefined as unknown as T;
+  }
+
+  // Safely parse JSON — guard against HTML error pages (502, nginx errors, etc.)
+  let json: LaravelResponse<T>;
+  try {
+    json = await res.json();
+  } catch {
+    throw new ApiError(res.status, `Server returned a non-JSON response (HTTP ${res.status})`);
+  }
 
   if (!res.ok) {
     throw new ApiError(res.status, json.message ?? 'Request failed', json.errors);

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/services/api';
 
@@ -61,13 +62,13 @@ export function useWatchlist() {
     },
   });
 
-  // Auto-create if lists loaded and empty
-  const listsLoaded = !listsQuery.isLoading;
-  const hasNoLists = listsLoaded && listsQuery.data?.length === 0;
-
-  if (hasNoLists && !createDefault.isPending && !createDefault.isSuccess) {
-    createDefault.mutate();
-  }
+  // Auto-create if lists loaded and empty — must be in useEffect, never during render
+  const { mutate: createDefaultMutate, isPending: isCreating, isSuccess: wasCreated } = createDefault;
+  useEffect(() => {
+    if (!listsQuery.isLoading && listsQuery.data?.length === 0 && !isCreating && !wasCreated) {
+      createDefaultMutate();
+    }
+  }, [listsQuery.isLoading, listsQuery.data, isCreating, wasCreated, createDefaultMutate]);
 
   // ── Add symbol ────────────────────────────────────────────────────────────
   const addSymbol = useMutation({

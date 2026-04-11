@@ -34,7 +34,8 @@ interface CandleData extends OHLCVData {
   bodyHeight: number;
 }
 
-function CustomTooltip({ active, payload }: any) {
+interface TooltipProps { active?: boolean; payload?: { payload: CandleData }[] }
+function CustomTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload as CandleData;
   return (

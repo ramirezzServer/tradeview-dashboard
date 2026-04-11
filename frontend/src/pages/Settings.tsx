@@ -1,21 +1,27 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Settings as SettingsIcon, Monitor, Bell, Eye, Clock, Palette, Layout, User, LogOut, Loader2 } from 'lucide-react';
+import {
+  Settings as SettingsIcon, Monitor, Bell, Eye, Clock, Palette,
+  Layout, User, LogOut, Loader2, AlertCircle, CheckCircle2,
+} from 'lucide-react';
 import { useSettings, PartialSettings } from '@/hooks/useSettings';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-// ─── Local-only Toggle (no backend) ──────────────────────────────────────────
+// ─── Local-only Toggle (state lives in component, not persisted) ──────────────
 
-interface ToggleProps { label: string; desc: string; defaultOn?: boolean }
+interface ToggleProps { label: string; desc: string; defaultOn?: boolean; localOnly?: boolean }
 
-function Toggle({ label, desc, defaultOn = false }: ToggleProps) {
+function Toggle({ label, desc, defaultOn = false, localOnly = false }: ToggleProps) {
   const [on, setOn] = useState(defaultOn);
   return (
     <div className="flex items-center justify-between py-3">
       <div>
         <p className="text-[13px] text-foreground">{label}</p>
-        <p className="text-[9px] text-muted-foreground/35">{desc}</p>
+        <p className="text-[9px] text-muted-foreground/35">
+          {desc}
+          {localOnly && <span className="ml-1 text-muted-foreground/25">(session only)</span>}
+        </p>
       </div>
       <button
         onClick={() => setOn(!on)}
@@ -74,12 +80,19 @@ function LocalSelectOption({ label, desc, options, defaultValue }: LocalSelectPr
   return <SelectOption label={label} desc={desc} options={options} value={value} onChange={setValue} />;
 }
 
+// ─── Save status banner ───────────────────────────────────────────────────────
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 // ─── Settings page ─────────────────────────────────────────────────────────────
 
 const Settings = () => {
   const { settings, isLoading, updateSettings, isSaving } = useSettings();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Backend-driven state — initialised from API response
   const [theme, setTheme] = useState<'Dark' | 'Light'>('Dark');
@@ -95,9 +108,19 @@ const Settings = () => {
     setNewsCategory(settings.preferred_news_category ?? 'general');
   }, [settings]);
 
-  // Map display values → backend values and save
-  const save = (updates: PartialSettings) => {
-    updateSettings(updates).catch(() => {}); // fire-and-forget; errors are silent for now
+  // Persist a settings change and surface the result to the user
+  const save = async (updates: PartialSettings) => {
+    setSaveStatus('saving');
+    setSaveError(null);
+    try {
+      await updateSettings(updates);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save settings.';
+      setSaveError(msg);
+      setSaveStatus('error');
+    }
   };
 
   const handleThemeChange = (v: string) => {
@@ -138,6 +161,20 @@ const Settings = () => {
             </div>
             {isLoading && <Loader2 className="h-4 w-4 animate-spin text-primary/40" />}
           </div>
+
+          {/* Save status feedback */}
+          {saveStatus === 'saved' && (
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-bull/70">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Settings saved.
+            </div>
+          )}
+          {saveStatus === 'error' && saveError && (
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-bear/70">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {saveError}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -185,12 +222,12 @@ const Settings = () => {
                 onChange={handleThemeChange}
                 isSaving={isSaving}
               />
-              <LocalSelectOption label="Density"   desc="UI element spacing"  options={['Compact', 'Normal', 'Relaxed']} defaultValue="Normal" />
-              <LocalSelectOption label="Font Size"  desc="Base text size"      options={['Small', 'Medium', 'Large']}    defaultValue="Medium" />
+              <LocalSelectOption label="Density"   desc="UI element spacing (session only)"  options={['Compact', 'Normal', 'Relaxed']} defaultValue="Normal" />
+              <LocalSelectOption label="Font Size"  desc="Base text size (session only)"      options={['Small', 'Medium', 'Large']}    defaultValue="Medium" />
             </div>
           </div>
 
-          {/* Notifications */}
+          {/* Notifications — local-only, not persisted */}
           <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '100ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
@@ -199,14 +236,14 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Notifications</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <Toggle label="Price Alerts"       desc="Get notified when assets hit target prices"   defaultOn />
-              <Toggle label="News Updates"        desc="Breaking market news notifications"            defaultOn />
-              <Toggle label="Portfolio Changes"   desc="Significant P&L movement alerts"              defaultOn />
-              <Toggle label="Earnings Reminders"  desc="Upcoming earnings date alerts" />
+              <Toggle label="Price Alerts"       desc="Get notified when assets hit target prices"    localOnly defaultOn />
+              <Toggle label="News Updates"        desc="Breaking market news notifications"             localOnly defaultOn />
+              <Toggle label="Portfolio Changes"   desc="Significant P&L movement alerts"               localOnly defaultOn />
+              <Toggle label="Earnings Reminders"  desc="Upcoming earnings date alerts"                 localOnly />
             </div>
           </div>
 
-          {/* Watchlist */}
+          {/* Watchlist — local-only */}
           <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '150ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
@@ -215,10 +252,10 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Watchlist</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <Toggle label="Live Price Updates"   desc="Real-time ticker simulation"       defaultOn />
-              <Toggle label="Flash Animations"     desc="Price change flash effects"        defaultOn />
-              <Toggle label="Show Sparklines"      desc="Mini trend charts in watchlist"    defaultOn />
-              <LocalSelectOption label="Sort By" desc="Default watchlist sort order" options={['Symbol', 'Change', 'Volume']} defaultValue="Change" />
+              <Toggle label="Live Price Updates"   desc="Real-time ticker simulation"        localOnly defaultOn />
+              <Toggle label="Flash Animations"     desc="Price change flash effects"         localOnly defaultOn />
+              <Toggle label="Show Sparklines"      desc="Mini trend charts in watchlist"     localOnly defaultOn />
+              <LocalSelectOption label="Sort By" desc="Default sort order (session only)" options={['Symbol', 'Change', 'Volume']} defaultValue="Change" />
             </div>
           </div>
 
@@ -231,7 +268,7 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Default Timeframe</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <LocalSelectOption label="Chart Timeframe" desc="Default chart period"   options={['1D', '1W', '1M', '3M']} defaultValue="1M" />
+              <LocalSelectOption label="Chart Timeframe" desc="Default chart period (session only)"   options={['1D', '1W', '1M', '3M']} defaultValue="1M" />
               <SelectOption
                 label="Candle Interval"
                 desc="Default candle interval"
@@ -243,7 +280,7 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Dashboard */}
+          {/* Dashboard — local-only */}
           <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '250ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
@@ -252,14 +289,14 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Dashboard</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <Toggle label="AI Predictions"  desc="Show AI forecast card"          defaultOn />
-              <Toggle label="Market Movers"   desc="Show top gainers/losers"         defaultOn />
-              <Toggle label="Daily Range"     desc="Show daily range indicator"      defaultOn />
-              <Toggle label="Volume Bars"     desc="Show volume on chart"            defaultOn />
+              <Toggle label="AI Predictions"  desc="Show AI forecast card (session only)"          localOnly defaultOn />
+              <Toggle label="Market Movers"   desc="Show top gainers/losers (session only)"         localOnly defaultOn />
+              <Toggle label="Daily Range"     desc="Show daily range indicator (session only)"      localOnly defaultOn />
+              <Toggle label="Volume Bars"     desc="Show volume on chart (session only)"            localOnly defaultOn />
             </div>
           </div>
 
-          {/* Appearance + News Category (backend-backed) */}
+          {/* Appearance + News Category (news category is backend-backed) */}
           <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '300ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
@@ -268,10 +305,10 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Appearance</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <LocalSelectOption label="Accent Color" desc="Primary accent color"    options={['Blue', 'Cyan', 'Green', 'Purple']} defaultValue="Blue" />
-              <LocalSelectOption label="Chart Style"  desc="Chart rendering style"   options={['Candles', 'Line', 'Area']}         defaultValue="Candles" />
-              <Toggle label="Glow Effects"   desc="Card glow on hover"              defaultOn />
-              <Toggle label="Animations"     desc="Entrance and transition effects"  defaultOn />
+              <LocalSelectOption label="Accent Color" desc="Primary accent color (session only)"    options={['Blue', 'Cyan', 'Green', 'Purple']} defaultValue="Blue" />
+              <LocalSelectOption label="Chart Style"  desc="Chart rendering style (session only)"   options={['Candles', 'Line', 'Area']}         defaultValue="Candles" />
+              <Toggle label="Glow Effects"   desc="Card glow on hover (session only)"              localOnly defaultOn />
+              <Toggle label="Animations"     desc="Entrance and transition effects (session only)"  localOnly defaultOn />
               <SelectOption
                 label="News Category"
                 desc="Default news feed category"

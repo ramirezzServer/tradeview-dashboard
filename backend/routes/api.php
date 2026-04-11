@@ -42,6 +42,9 @@ Route::prefix('market')->group(function () {
     // Basic financial metrics
     Route::get('/financials/{symbol}', [MarketController::class, 'financials']);
 
+    // Company-specific news — query params: from (YYYY-MM-DD), to (YYYY-MM-DD)
+    Route::get('/company-news/{symbol}', [MarketController::class, 'companyNews']);
+
 });
 
 // ═══════════════════════════════════════════════════════════════════════

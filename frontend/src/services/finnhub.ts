@@ -165,17 +165,16 @@ export async function getMarketNews(
   return fetchFromBackend<FinnhubNewsItem[]>('/api/market/news', { category, minId });
 }
 
-/**
- * Company-specific news.
- * No backend proxy endpoint exists yet — callers will receive an error and
- * should fall back to mock data.
- */
+/** Company-specific news via Laravel → Finnhub /company-news */
 export async function getCompanyNews(
-  _symbol: string,
-  _from: string,
-  _to: string
+  symbol: string,
+  from: string,
+  to: string
 ): Promise<FinnhubNewsItem[]> {
-  throw new Error('ENDPOINT_NOT_PROXIED');
+  return fetchFromBackend<FinnhubNewsItem[]>(
+    `/api/market/company-news/${encodeURIComponent(symbol)}`,
+    { from, to }
+  );
 }
 
 /** Company profile via Laravel → Finnhub /stock/profile2 */
