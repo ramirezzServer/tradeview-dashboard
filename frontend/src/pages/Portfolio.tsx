@@ -1,12 +1,14 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useMemo, FormEvent } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Briefcase, TrendingUp, TrendingDown, Wallet,
   PieChart, Award, AlertTriangle, Plus, X, Loader2, RefreshCw,
 } from 'lucide-react';
 import { usePortfolio } from '@/hooks/usePortfolio';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import { isCryptoSymbol } from '@/services/coingecko';
+import { useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
-import { getQuote, isFinnhubConfigured } from '@/services/finnhub';
 
 const allocationColors = [
   'bg-primary', 'bg-chart-accent', 'bg-bull', 'bg-primary/70',
@@ -16,22 +18,22 @@ const allocationColors = [
 // ─── Add Holding Form ─────────────────────────────────────────────────────────
 
 interface AddFormProps {
-  onAdd: (symbol: string, quantity: number, avgCost: number) => Promise<void>;
+  onAdd:    (symbol: string, quantity: number, avgCost: number) => Promise<void>;
   isAdding: boolean;
-  error: string | null;
+  error:    string | null;
   onCancel: () => void;
 }
 
 function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
-  const [symbol, setSymbol] = useState('');
+  const [symbol,   setSymbol]   = useState('');
   const [quantity, setQuantity] = useState('');
-  const [avgCost, setAvgCost] = useState('');
+  const [avgCost,  setAvgCost]  = useState('');
   const [localError, setLocalError] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLocalError('');
-    const qty = parseFloat(quantity);
+    const qty  = parseFloat(quantity);
     const cost = parseFloat(avgCost);
     if (!symbol.trim() || isNaN(qty) || qty <= 0 || isNaN(cost) || cost <= 0) {
       setLocalError('Please fill in all fields with valid values.');
@@ -113,71 +115,57 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
 const Portfolio = () => {
   const { items, isLoading, addHolding, removeHolding, isAdding, addError } = usePortfolio();
   const [showAddForm, setShowAddForm] = useState(false);
+  const qc = useQueryClient();
 
-  // Live quote prices fetched from backend for each symbol.
-  // null  = not yet fetched / fetch failed → fall back to avgCost and mark as estimated.
-  const [livePrices, setLivePrices] = useState<Record<string, number | null>>({});
-  const [quotesLoading, setQuotesLoading] = useState(false);
-  const [quotesLive, setQuotesLive] = useState(false);
+  // ── Unified live quotes (stocks via Finnhub, crypto via CoinGecko) ─────────
+  // Deduplicates with watchlist panel and dashboard widgets automatically.
+  const symbols = useMemo(
+    () => [...new Set(items.map(i => i.symbol))],
+    [items]
+  );
+  const { quotes, isLoading: quotesLoading, liveCount } = useMarketQuotes(symbols);
 
-  const fetchQuotes = () => {
-    if (!isFinnhubConfigured() || items.length === 0) return;
-    setQuotesLoading(true);
-
-    const symbols = [...new Set(items.map(i => i.symbol))];
-
-    Promise.allSettled(symbols.map(s => getQuote(s))).then(results => {
-      const map: Record<string, number | null> = {};
-      let liveCount = 0;
-      symbols.forEach((sym, idx) => {
-        const r = results[idx];
-        if (r.status === 'fulfilled' && r.value.c > 0) {
-          map[sym] = r.value.c;
-          liveCount++;
-        } else {
-          map[sym] = null;
-        }
-      });
-      setLivePrices(map);
-      setQuotesLive(liveCount > 0);
-      setQuotesLoading(false);
+  // Force-invalidate all quote caches so React Query re-fetches immediately
+  const refreshPrices = () => {
+    symbols.forEach(sym => {
+      qc.invalidateQueries({ queryKey: ['quote', sym] });
     });
+    if (symbols.some(isCryptoSymbol)) {
+      qc.invalidateQueries({ queryKey: ['crypto-prices'] });
+    }
   };
 
-  // Fetch quotes whenever the holdings list changes
-  useEffect(() => {
-    fetchQuotes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
-
-  // Map backend items to display shape
-  const holdings = items.map(item => {
-    const live = livePrices[item.symbol];
-    const avgCost = Number(item.average_cost);
-    // live === null means the quote failed; fall back to avgCost so P/L shows 0
-    const current = live ?? avgCost;
-    const isEstimated = live === null || live === undefined;
+  // ── Build display-ready holdings ──────────────────────────────────────────
+  const holdings = useMemo(() => items.map(item => {
+    const q        = quotes[item.symbol];
+    const avgCost  = Number(item.average_cost);
+    const livePrice = q?.status === 'live' ? q.price : null;
+    const current   = livePrice ?? avgCost;
     return {
-      id: item.id,
-      symbol: item.symbol,
-      name: item.notes ?? item.symbol,
-      shares: item.quantity,
+      id:          item.id,
+      symbol:      item.symbol,
+      name:        item.notes ?? item.symbol,
+      shares:      item.quantity,
       avgCost,
       current,
-      isEstimated,
+      isEstimated: livePrice === null,
     };
-  });
+  }), [items, quotes]);
 
-  const totalValue    = holdings.reduce((s, h) => s + h.shares * h.current, 0);
-  const totalCost     = holdings.reduce((s, h) => s + h.shares * h.avgCost, 0);
-  const totalPnL      = totalValue - totalCost;
-  const totalPnLPct   = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
+  const totalValue  = holdings.reduce((s, h) => s + h.shares * h.current, 0);
+  const totalCost   = holdings.reduce((s, h) => s + h.shares * h.avgCost,  0);
+  const totalPnL    = totalValue - totalCost;
+  const totalPnLPct = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
 
-  const holdingsWithAlloc = holdings.map(h => ({
+  const holdingsWithAlloc = useMemo(() => holdings.map(h => ({
     ...h,
     value:      h.shares * h.current,
-    allocation: totalValue > 0 ? Math.round((h.shares * h.current / totalValue) * 100) : 0,
-  }));
+    allocation: totalValue > 0
+      ? Math.round((h.shares * h.current / totalValue) * 100)
+      : 0,
+  })), [holdings, totalValue]);
+
+  const quotesLive = liveCount > 0;
 
   const best  = [...holdingsWithAlloc].sort((a, b) =>
     ((b.current - b.avgCost) / b.avgCost) - ((a.current - a.avgCost) / a.avgCost)
@@ -199,10 +187,29 @@ const Portfolio = () => {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'Total Value',    value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: Wallet },
-            { label: 'Total P/L',      value: `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: totalPnL >= 0 ? TrendingUp : TrendingDown, color: totalPnL >= 0 ? 'text-bull value-bull' : 'text-bear value-bear', sub: `${totalPnLPct >= 0 ? '+' : ''}${totalPnLPct.toFixed(2)}%` },
-            { label: 'Total Holdings', value: holdings.length.toString(), icon: Briefcase, sub: 'Active positions' },
-            { label: 'Total Cost',     value: `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: Wallet },
+            {
+              label: 'Total Value',
+              value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              icon: Wallet,
+            },
+            {
+              label: 'Total P/L',
+              value: `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              icon: totalPnL >= 0 ? TrendingUp : TrendingDown,
+              color: totalPnL >= 0 ? 'text-bull value-bull' : 'text-bear value-bear',
+              sub: `${totalPnLPct >= 0 ? '+' : ''}${totalPnLPct.toFixed(2)}%`,
+            },
+            {
+              label: 'Total Holdings',
+              value: holdings.length.toString(),
+              icon: Briefcase,
+              sub: 'Active positions',
+            },
+            {
+              label: 'Total Cost',
+              value: `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              icon: Wallet,
+            },
           ].map((c, i) => (
             <div key={c.label} className="glass-card-hover rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
               <div className="flex items-center justify-between">
@@ -240,7 +247,7 @@ const Portfolio = () => {
               <div className="ml-auto flex items-center gap-2">
                 {!quotesLoading && items.length > 0 && (
                   <button
-                    onClick={fetchQuotes}
+                    onClick={refreshPrices}
                     className="text-muted-foreground/30 hover:text-primary transition-colors"
                     title="Refresh prices"
                   >
@@ -261,7 +268,7 @@ const Portfolio = () => {
             {anyEstimated && !quotesLoading && (
               <div className="px-5 py-2 border-b border-border/10 bg-bear/5">
                 <p className="text-[9px] text-bear/60">
-                  Some prices could not be fetched (marked ~). Current value and P/L are based on your average cost for those positions.
+                  Some prices could not be fetched (marked ~). Current value and P/L use your average cost for those positions.
                 </p>
               </div>
             )}
@@ -320,18 +327,29 @@ const Portfolio = () => {
                     <p className="hidden md:block text-right text-[11px] text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
                     <p className="text-right text-[11px] font-semibold text-foreground tabular-nums">
                       {h.isEstimated ? (
-                        <span className="text-muted-foreground/40" title="Live price unavailable — showing cost basis">~${h.current.toLocaleString()}</span>
+                        <span className="text-muted-foreground/40" title="Live price unavailable — showing cost basis">
+                          ~${isCryptoSymbol(h.symbol)
+                            ? h.current.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                            : h.current.toLocaleString()}
+                        </span>
                       ) : (
-                        `$${h.current.toLocaleString()}`
+                        isCryptoSymbol(h.symbol)
+                          ? `$${h.current.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                          : `$${h.current.toLocaleString()}`
                       )}
                     </p>
-                    <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">${h.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">
+                      ${h.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </p>
                     <div className="text-right flex items-center justify-end gap-1">
                       {h.isEstimated ? (
                         <span className="text-[11px] text-muted-foreground/30 tabular-nums">—</span>
                       ) : (
                         <>
-                          {positive ? <TrendingUp className="h-3 w-3 text-bull/60" /> : <TrendingDown className="h-3 w-3 text-bear/60" />}
+                          {positive
+                            ? <TrendingUp   className="h-3 w-3 text-bull/60" />
+                            : <TrendingDown className="h-3 w-3 text-bear/60" />
+                          }
                           <span className={`text-[11px] font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
                             {positive ? '+' : ''}{pnlPct.toFixed(1)}%
                           </span>

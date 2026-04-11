@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { FileBarChart, DollarSign, BarChart2, Activity, Wifi, WifiOff } from 'lucide-react';
+import { FileBarChart, DollarSign, BarChart2, Activity, Wifi, WifiOff, FlaskConical } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { useFinnhubProfile } from '@/hooks/useFinnhubProfile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,12 +90,20 @@ const FinancialSnapshot = () => {
     <DashboardLayout title="Financial Snapshot">
       <div className="p-4 lg:p-6 space-y-4">
         {/* Live indicator */}
-        <div className="flex items-center gap-2 px-1">
+        <div className="flex items-center gap-3 px-1 flex-wrap">
           {isLive ? (
-            <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium"><Wifi className="h-2.5 w-2.5" /> Finnhub</span>
+            <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+              <Wifi className="h-2.5 w-2.5" /> Finnhub · Live fundamentals
+            </span>
           ) : (
-            <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium"><WifiOff className="h-2.5 w-2.5" /> Mock Data</span>
+            <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+              <WifiOff className="h-2.5 w-2.5" /> Fundamentals unavailable
+            </span>
           )}
+          {/* Revenue / earnings data is always illustrative */}
+          <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+            <FlaskConical className="h-2.5 w-2.5" /> Revenue &amp; earnings figures are illustrative
+          </span>
         </div>
 
         {/* Key Metrics */}
@@ -189,6 +197,9 @@ const FinancialSnapshot = () => {
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Analyst Consensus</h2>
+                <span className="ml-auto flex items-center gap-1 text-[8px] text-muted-foreground/25 font-medium">
+                  <FlaskConical className="h-2.5 w-2.5" /> Demo
+                </span>
               </div>
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {[

@@ -26,6 +26,8 @@ export interface NormalizedQuote {
   changePercent: number;   // 24h / daily % change
   source:        QuoteSource;
   status:        QuoteStatus;
+  /** Epoch ms when this quote was last successfully fetched (React Query dataUpdatedAt) */
+  fetchedAt:     number;
   error?:        string;
 }
 
@@ -75,6 +77,7 @@ export function useMarketQuotes(symbols: string[]) {
         changePercent: q.data.dp,
         source:        'finnhub',
         status:        'live',
+        fetchedAt:     q.dataUpdatedAt || Date.now(),
       };
     } else if (q.isError || (q.data && q.data.c === 0)) {
       quotes[sym] = {
@@ -84,6 +87,7 @@ export function useMarketQuotes(symbols: string[]) {
         changePercent: 0,
         source:        'unavailable',
         status:        'unavailable',
+        fetchedAt:     q.dataUpdatedAt || Date.now(),
         error:         q.error instanceof Error ? q.error.message : 'No data',
       };
     }
@@ -99,6 +103,7 @@ export function useMarketQuotes(symbols: string[]) {
           changePercent: cq.dp,
           source:        'coingecko',
           status:        'live',
+          fetchedAt:     cryptoQuery.dataUpdatedAt || Date.now(),
         };
       }
     }
@@ -114,6 +119,7 @@ export function useMarketQuotes(symbols: string[]) {
         changePercent: 0,
         source:        'unavailable',
         status:        'unavailable',
+        fetchedAt:     cryptoQuery.dataUpdatedAt || Date.now(),
         error:         'Crypto price unavailable',
       };
     }

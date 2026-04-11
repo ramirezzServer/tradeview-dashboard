@@ -7,6 +7,7 @@ use App\Http\Requests\CandleRequest;
 use App\Http\Requests\CompanyNewsRequest;
 use App\Http\Requests\MarketNewsRequest;
 use App\Http\Traits\ApiResponse;
+use App\Services\AlphaVantageService;
 use App\Services\FinnhubService;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
@@ -171,6 +172,59 @@ class MarketController extends Controller
 
         } catch (RuntimeException $e) {
             return $this->handleFinnhubException($e);
+        }
+    }
+
+    /**
+     * GET /api/market/candles-alt/{symbol}?from=&to=
+     *
+     * Alpha Vantage fallback for daily candle data.  Accepts the same from/to
+     * Unix-timestamp params as the primary candles endpoint so the frontend hook
+     * can call both with identical logic.  Resolution is always daily (D).
+     */
+    public function alternativeCandles(CandleRequest $request, string $symbol): JsonResponse
+    {
+        $symbol = strtoupper(trim($symbol));
+
+        if (! preg_match('/^[A-Z0-9.:\-]{1,20}$/', $symbol)) {
+            return $this->error('Invalid symbol format.', 422);
+        }
+
+        $av = new AlphaVantageService();
+
+        try {
+            $data = $av->getDailyCandles(
+                $symbol,
+                (int) $request->validated('from'),
+                (int) $request->validated('to'),
+            );
+
+            if (($data['s'] ?? 'no_data') !== 'ok') {
+                return $this->error('No candle data available from alternative provider.', 404);
+            }
+
+            return $this->success($data, 'Candles fetched from alternative provider.', 200, [
+                'symbol'   => $symbol,
+                'provider' => 'alphavantage',
+                'count'    => count($data['t'] ?? []),
+            ]);
+
+        } catch (RuntimeException $e) {
+            return match ($e->getMessage()) {
+                'AV_NOT_CONFIGURED' => $this->error(
+                    'Alternative candle provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
+                    503
+                ),
+                'AV_RATE_LIMITED' => $this->error(
+                    'Alpha Vantage rate limit reached (25 req/day on free tier). Try again tomorrow.',
+                    429
+                ),
+                'AV_INVALID_SYMBOL' => $this->error(
+                    "Symbol '{$symbol}' was not recognised by the alternative provider.",
+                    404
+                ),
+                default => $this->error('Alternative candle provider request failed.', 503),
+            };
         }
     }
 

@@ -32,7 +32,11 @@ Route::prefix('market')->group(function () {
     Route::get('/quote/{symbol}', [MarketController::class, 'quote']);
 
     // OHLCV chart data — query params: resolution, from, to (Unix timestamps)
-    Route::get('/candles/{symbol}', [MarketController::class, 'candles']);
+    Route::get('/candles/{symbol}',     [MarketController::class, 'candles']);
+
+    // Alternative OHLCV provider (Alpha Vantage fallback) — query params: from, to
+    // Used automatically when Finnhub plan blocks the primary candles endpoint.
+    Route::get('/candles-alt/{symbol}', [MarketController::class, 'alternativeCandles']);
 
     // General market news — query params: category, minId
     Route::get('/news', [MarketController::class, 'news']);

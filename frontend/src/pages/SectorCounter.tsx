@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { PieChart, TrendingUp, TrendingDown, Flame, Snowflake, BarChart3 } from 'lucide-react';
+import { PieChart, TrendingUp, TrendingDown, Flame, Snowflake, BarChart3, FlaskConical } from 'lucide-react';
 
 const sectors = [
   { name: 'Technology', weight: 28.5, change: 1.42, weekChange: 3.18, stocks: 82, topStock: 'NVDA +1.64%', color: 'bg-primary' },
@@ -23,6 +23,14 @@ const bottomSector = [...sectors].sort((a, b) => a.change - b.change)[0];
 const SectorCounter = () => (
   <DashboardLayout title="Sector Counter">
     <div className="p-4 lg:p-6 space-y-4">
+      {/* Demo data notice */}
+      <div className="flex items-center gap-2 px-1">
+        <span className="flex items-center gap-1.5 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-2 py-1">
+          <FlaskConical className="h-2.5 w-2.5" />
+          Demo Data — Sector weights and performance figures are illustrative
+        </span>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[

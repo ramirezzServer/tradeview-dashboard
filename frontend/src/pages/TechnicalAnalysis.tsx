@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Activity, TrendingUp, TrendingDown, Target, Shield, Zap, BarChart2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Target, Shield, Zap, BarChart2, ArrowUp, ArrowDown, FlaskConical } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 
 const trendData = Array.from({ length: 30 }, (_, i) => ({
@@ -45,6 +45,14 @@ const pivots = [
 const TechnicalAnalysis = () => (
   <DashboardLayout title="Technical Analysis">
     <div className="p-4 lg:p-6 space-y-4">
+      {/* Demo data notice */}
+      <div className="flex items-center gap-2 px-1">
+        <span className="flex items-center gap-1.5 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-2 py-1">
+          <FlaskConical className="h-2.5 w-2.5" />
+          Demo Data — All indicators and signals are illustrative only
+        </span>
+      </div>
+
       {/* Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

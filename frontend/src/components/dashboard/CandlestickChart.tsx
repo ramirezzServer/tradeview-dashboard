@@ -85,15 +85,16 @@ export function CandlestickChart() {
   const [timeframe, setTimeframe] = useState<Timeframe>('3M');
   const [retryKey, setRetryKey]   = useState(0);
 
-  const { data: liveData, loading, error, isLive } = useFinnhubCandles('AAPL', timeframe);
+  const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles('AAPL', timeframe);
 
   // Retry by changing the key so the parent re-mounts the hook's effect
   const retry = () => setRetryKey(k => k + 1);
 
   // ── Error routing ──────────────────────────────────────────────────────────
   const isPlanRestriction = error === 'PLAN_RESTRICTION' || error === 'ACCESS_FORBIDDEN';
+  const isAvRateLimited   = error === 'AV_RATE_LIMITED';
   const isNoData          = error === 'NO_DATA';
-  const isOtherError      = !!error && !isPlanRestriction && !isNoData;
+  const isOtherError      = !!error && !isPlanRestriction && !isNoData && !isAvRateLimited;
 
   const { chartData, minPrice, maxPrice } = useMemo(() => {
     const raw    = liveData;
@@ -126,11 +127,16 @@ export function CandlestickChart() {
               <span className="text-[8px] text-muted-foreground/30 font-medium">Loading…</span>
             ) : isLive ? (
               <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
-                <Wifi className="h-2.5 w-2.5" /> Live
+                <Wifi className="h-2.5 w-2.5" />
+                {provider === 'alphavantage' ? 'Alpha Vantage' : 'Live'}
               </span>
             ) : isPlanRestriction ? (
               <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">
                 <Lock className="h-2.5 w-2.5" /> Paid plan required
+              </span>
+            ) : isAvRateLimited ? (
+              <span className="flex items-center gap-1 text-[8px] text-bear/40 font-medium">
+                <AlertCircle className="h-2.5 w-2.5" /> Rate limited
               </span>
             ) : isOtherError ? (
               <span className="flex items-center gap-1 text-[8px] text-bear/40 font-medium">
@@ -187,6 +193,16 @@ export function CandlestickChart() {
             icon={AlertCircle}
             title="No candle data available"
             body="Finnhub returned no candle data for this symbol and timeframe. Try a different timeframe or check that the market is open."
+            onRetry={retry}
+          />
+        )}
+
+        {/* Alpha Vantage rate limit */}
+        {!loading && isAvRateLimited && (
+          <ChartPlaceholder
+            icon={AlertCircle}
+            title="Alternative provider rate-limited"
+            body="Alpha Vantage free tier allows 25 requests/day. Quota reached — chart data will be available again tomorrow."
             onRetry={retry}
           />
         )}

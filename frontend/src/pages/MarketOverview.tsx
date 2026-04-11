@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Globe, TrendingUp, TrendingDown, Activity, Gauge, BarChart3, Flame } from 'lucide-react';
+import { Globe, TrendingUp, TrendingDown, Activity, Gauge, BarChart3, Flame, FlaskConical } from 'lucide-react';
 import { topGainers, topLosers } from '@/data/mockStockData';
 
 const indices = [
@@ -30,6 +30,14 @@ const sentimentIndicators = [
 const MarketOverview = () => (
   <DashboardLayout title="Market Overview">
     <div className="p-4 lg:p-6 space-y-4">
+      {/* Demo data notice */}
+      <div className="flex items-center gap-2 px-1">
+        <span className="flex items-center gap-1.5 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-2 py-1">
+          <FlaskConical className="h-2.5 w-2.5" />
+          Demo Data — Index values, sector weights, and sentiment indicators are illustrative
+        </span>
+      </div>
+
       {/* Indices */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {indices.map((idx, i) => (

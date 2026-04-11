@@ -157,6 +157,24 @@ export async function getCandles(
   );
 }
 
+/**
+ * OHLCV candle data via Laravel → Alpha Vantage (daily resolution only).
+ *
+ * Called automatically by useFinnhubCandles when the primary Finnhub candle
+ * endpoint returns PLAN_RESTRICTION.  Returns the same FinnhubCandle shape so
+ * no changes are needed in the chart hook or component.
+ */
+export async function getAlternativeCandles(
+  symbol: string,
+  from: number,
+  to: number
+): Promise<FinnhubCandle> {
+  return fetchFromBackend<FinnhubCandle>(
+    `/api/market/candles-alt/${encodeURIComponent(symbol)}`,
+    { from, to }
+  );
+}
+
 /** General market news via Laravel → Finnhub /news */
 export async function getMarketNews(
   category = 'general',

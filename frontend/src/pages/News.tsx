@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Newspaper, Clock, ExternalLink, TrendingUp, TrendingDown, Flame, Wifi, WifiOff } from 'lucide-react';
+import { Newspaper, Clock, ExternalLink, TrendingUp, TrendingDown, Flame, Wifi, WifiOff, FlaskConical } from 'lucide-react';
 import { useFinnhubNews } from '@/hooks/useFinnhubNews';
 import { FinnhubNewsItem } from '@/services/finnhub';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,10 +76,14 @@ const News = () => {
               </button>
             ))}
             <div className="ml-auto">
-              {isLive ? (
-                <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium"><Wifi className="h-2.5 w-2.5" /> Live</span>
+              {loading ? null : isLive ? (
+                <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+                  <Wifi className="h-2.5 w-2.5" /> Live · Finnhub
+                </span>
               ) : (
-                <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium"><WifiOff className="h-2.5 w-2.5" /> Mock</span>
+                <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+                  <FlaskConical className="h-2.5 w-2.5" /> Demo
+                </span>
               )}
             </div>
           </div>
@@ -135,6 +139,9 @@ const News = () => {
                   <h2 className="section-header text-foreground/80">
                     {activeCategory === 'All' ? 'All Headlines' : `${activeCategory} News`}
                   </h2>
+                  {!isLive && (
+                    <span className="text-[8px] text-muted-foreground/25 ml-1 font-medium">(Illustrative demo headlines)</span>
+                  )}
                   <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums">{filtered.length} articles</span>
                 </div>
                 <div className="divide-y divide-border/8">
