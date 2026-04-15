@@ -176,6 +176,61 @@ class MarketController extends Controller
     }
 
     /**
+     * GET /api/market/movers
+     *
+     * Top gainers, top losers, and most actively traded US tickers via Alpha Vantage.
+     * Available on AV free plan (25 req/day). Results cached 15 min backend-side.
+     */
+    public function movers(): JsonResponse
+    {
+        $av = new AlphaVantageService();
+
+        try {
+            $data = $av->getTopMovers();
+            return $this->success($data, 'Market movers fetched successfully.', 200, [
+                'provider' => 'alphavantage',
+            ]);
+        } catch (RuntimeException $e) {
+            return match ($e->getMessage()) {
+                'AV_NOT_CONFIGURED' => $this->error(
+                    'Market movers provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
+                    503
+                ),
+                'AV_RATE_LIMITED' => $this->error(
+                    'Alpha Vantage rate limit reached. Market movers will be available again soon.',
+                    429
+                ),
+                'AV_INVALID_RESPONSE' => $this->error('Unexpected response from market movers provider.', 502),
+                default => $this->error('Could not fetch market movers.', 503),
+            };
+        }
+    }
+
+    /**
+     * GET /api/market/earnings/{symbol}
+     *
+     * Quarterly EPS history (actual vs estimate) from Finnhub — available on free plan.
+     */
+    public function earnings(string $symbol): JsonResponse
+    {
+        $symbol = strtoupper(trim($symbol));
+
+        if (! preg_match('/^[A-Z0-9.:\-]{1,20}$/', $symbol)) {
+            return $this->error('Invalid symbol format.', 422);
+        }
+
+        try {
+            $data = $this->finnhub->getEarnings($symbol);
+            return $this->success($data, 'Earnings fetched successfully.', 200, [
+                'symbol' => $symbol,
+                'count'  => count($data),
+            ]);
+        } catch (RuntimeException $e) {
+            return $this->handleFinnhubException($e);
+        }
+    }
+
+    /**
      * GET /api/market/candles-alt/{symbol}?from=&to=
      *
      * Alpha Vantage fallback for daily candle data.  Accepts the same from/to

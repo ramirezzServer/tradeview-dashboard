@@ -50,6 +50,12 @@ Route::prefix('market')->group(function () {
     // Company-specific news — query params: from (YYYY-MM-DD), to (YYYY-MM-DD)
     Route::get('/company-news/{symbol}', [MarketController::class, 'companyNews']);
 
+    // Market movers — top gainers, losers, most active (Alpha Vantage, free plan)
+    Route::get('/movers', [MarketController::class, 'movers']);
+
+    // Quarterly earnings history — EPS actual vs estimate (Finnhub, free plan)
+    Route::get('/earnings/{symbol}', [MarketController::class, 'earnings']);
+
     // Crypto spot prices via CoinGecko (free plan, no key needed)
     // query param: symbols=BTC,ETH,SOL
     Route::get('/crypto/prices',    [CryptoController::class, 'prices']);

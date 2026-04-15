@@ -21,6 +21,8 @@ return [
     'cache_ttl' => [
         // Daily candles — AV free data refreshes once per trading day; cache for 30 min.
         'daily_candles' => (int) env('AV_CACHE_CANDLES', 1800),
+        // Market movers — refreshes intraday; cache for 15 min.
+        'movers' => (int) env('AV_CACHE_MOVERS', 900),
     ],
 
 ];

@@ -22,4 +22,28 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ["react", "react-dom", "@tanstack/react-query"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React runtime
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Data layer
+          'vendor-query': ['@tanstack/react-query'],
+          // UI / charting
+          'vendor-recharts': ['recharts'],
+          // Radix UI primitives (large — split from main)
+          'vendor-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+          ],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
 }));

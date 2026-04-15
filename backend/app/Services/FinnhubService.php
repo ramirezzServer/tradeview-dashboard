@@ -113,6 +113,26 @@ class FinnhubService
         ]));
     }
 
+    /**
+     * GET /stock/earnings?symbol={symbol}
+     *
+     * Returns quarterly EPS history (actual vs estimate) — available on free plan.
+     * Typical response: last 4–8 quarters sorted newest-first.
+     */
+    public function getEarnings(string $symbol): array
+    {
+        $ttl = config('finnhub.cache.financials'); // same TTL as financials (1h)
+        $key = "finnhub.earnings.{$symbol}";
+
+        $data = Cache::remember($key, $ttl, fn () => $this->get('/stock/earnings', ['symbol' => $symbol]));
+
+        if (! is_array($data)) {
+            throw new RuntimeException('INVALID_RESPONSE');
+        }
+
+        return $data;
+    }
+
     // ─── Internal HTTP ────────────────────────────────────────────────────────
 
     private function get(string $endpoint, array $params = []): array

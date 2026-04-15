@@ -93,7 +93,81 @@ class AlphaVantageService
         return $this->mapTimeSeries($raw['Time Series (Daily)'], $from, $to);
     }
 
+    /**
+     * Fetch top gainers, top losers, and most actively traded US tickers.
+     *
+     * Uses the TOP_GAINERS_LOSERS function — available on AV free plan.
+     * Results are cached for 15 minutes (market data refreshes intraday).
+     *
+     * @return array{top_gainers:array, top_losers:array, most_actively_traded:array, last_updated:string}
+     * @throws RuntimeException  AV_NOT_CONFIGURED | AV_RATE_LIMITED | AV_REQUEST_FAILED
+     */
+    public function getTopMovers(): array
+    {
+        if (! $this->isConfigured()) {
+            throw new RuntimeException('AV_NOT_CONFIGURED');
+        }
+
+        $cacheKey = 'av:top_movers';
+        $cacheTtl = (int) config('alphavantage.cache_ttl.movers', 900); // 15 min
+
+        $raw = Cache::remember($cacheKey, $cacheTtl, function () {
+            $response = Http::timeout(20)->get(config('alphavantage.base_url'), [
+                'function' => 'TOP_GAINERS_LOSERS',
+                'apikey'   => config('alphavantage.key'),
+            ]);
+
+            if (! $response->ok()) {
+                Log::warning('AlphaVantage TOP_GAINERS_LOSERS HTTP error', ['status' => $response->status()]);
+                return null;
+            }
+
+            return $response->json();
+        });
+
+        if ($raw === null) {
+            throw new RuntimeException('AV_REQUEST_FAILED');
+        }
+
+        // Rate-limit messages from AV free tier
+        if (isset($raw['Note']) || isset($raw['Information'])) {
+            Log::warning('AlphaVantage rate limit hit on TOP_GAINERS_LOSERS');
+            Cache::forget('av:top_movers');
+            throw new RuntimeException('AV_RATE_LIMITED');
+        }
+
+        if (! isset($raw['top_gainers'])) {
+            throw new RuntimeException('AV_INVALID_RESPONSE');
+        }
+
+        return [
+            'top_gainers'          => $this->normalizeMoverList($raw['top_gainers'] ?? []),
+            'top_losers'           => $this->normalizeMoverList($raw['top_losers'] ?? []),
+            'most_actively_traded' => $this->normalizeMoverList($raw['most_actively_traded'] ?? []),
+            'last_updated'         => $raw['last_updated'] ?? null,
+        ];
+    }
+
     // ─── Internal Helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Normalise a raw AV mover array into a consistent shape.
+     * Input:  [{"ticker":"X","price":"1.0","change_amount":"0.1","change_percentage":"10%","volume":"1000"}]
+     * Output: [{"symbol":"X","price":1.0,"change":0.1,"changePercent":10.0,"volume":1000}]
+     */
+    private function normalizeMoverList(array $items): array
+    {
+        return array_map(function (array $item) {
+            $pct = str_replace('%', '', $item['change_percentage'] ?? '0');
+            return [
+                'symbol'        => $item['ticker']        ?? '',
+                'price'         => (float) ($item['price']         ?? 0),
+                'change'        => (float) ($item['change_amount'] ?? 0),
+                'changePercent' => (float) $pct,
+                'volume'        => (int)   ($item['volume']        ?? 0),
+            ];
+        }, $items);
+    }
 
     /**
      * Map the AV "Time Series (Daily)" object into Finnhub's array-of-parallel-arrays
