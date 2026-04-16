@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "TradeView",
+    "slug": "tradeview-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "tradeview",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tradeview.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#07080B"
+      },
+      "package": "com.tradeview.mobile"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      "expo-font",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
