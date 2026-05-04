@@ -14,7 +14,7 @@ import { ApiError, type LaravelResponse } from '../types/api';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-export const API_BASE_URL = 'http://10.20.225.124:8000/api';
+export const API_BASE_URL = 'http://192.168.18.13:8000/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -7,6 +7,9 @@
     "userInterfaceStyle": "dark",
     "scheme": "tradeview",
     "newArchEnabled": true,
+    "extra": {
+      "apiBaseUrl": "http://192.168.18.13:8000"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.tradeview.mobile"

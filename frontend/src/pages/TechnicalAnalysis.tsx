@@ -159,7 +159,7 @@ const TechnicalAnalysis = () => {
             [
               { label: 'Overall Signal', value: overallSignal.label, icon: TrendingUp, color: overallSignal.color },
               {
-                label: 'RSI (14)', value: indicators?.rsiValue !== null ? indicators!.rsiValue!.toFixed(1) : '—',
+                label: 'RSI (14)', value: indicators?.rsiValue != null ? indicators!.rsiValue!.toFixed(1) : '—',
                 icon: Activity, color: indicators?.rsiSignal.color ?? 'text-muted-foreground',
               },
               {
