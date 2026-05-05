@@ -1,4 +1,4 @@
-# ─── OS / editor ──────────────────────────────────────────────────────────────
+# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
@@ -6,18 +6,36 @@ Thumbs.db
 *.swp
 *.swo
 
-# ─── Claude Code local settings (developer-specific, never commit) ────────────
+# Claude / AI tooling
+.claude/
+.agents/
+docs/
+skills-lock.json
+CLAUDE.md
+
+# Local settings (developer-specific)
 .claude/settings.local.json
 
-# ─── Frontend ─────────────────────────────────────────────────────────────────
+.gitnexus/
+
+# ENV
+.env
+.env.local
+.env.*.local
+
+# Frontend
 frontend/node_modules/
 frontend/dist/
 frontend/.env
 frontend/.env.local
 frontend/.env.*.local
 
-# ─── Backend ──────────────────────────────────────────────────────────────────
-# backend/.gitignore already covers vendor/, .env, storage/logs, etc.
-# Add only repo-root overrides here.
+# Backend
 backend/public/build/
 backend/public/hot/
+
+# Logs & misc
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
