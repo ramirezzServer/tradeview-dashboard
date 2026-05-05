@@ -1,32 +1,9 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/services/api';
+import type { Portfolio, PortfolioItem, AddHoldingInput } from '@shared/schemas/portfolio';
 
-// ─── Backend types ────────────────────────────────────────────────────────────
-
-export interface PortfolioItem {
-  id: number;
-  portfolio_id: number;
-  symbol: string;
-  quantity: number;       // number of shares (supports decimals)
-  average_cost: number;   // cost per share
-  notes: string | null;
-}
-
-export interface Portfolio {
-  id: number;
-  user_id: number;
-  name: string;
-  items?: PortfolioItem[];
-  items_count?: number;
-}
-
-export interface AddHoldingInput {
-  symbol: string;
-  quantity: number;
-  average_cost: number;
-  notes?: string;
-}
+export type { Portfolio, PortfolioItem, AddHoldingInput };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 

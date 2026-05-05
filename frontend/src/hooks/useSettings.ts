@@ -1,20 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import type { UserSettings, PartialSettings } from '@shared/schemas/settings';
 
-// ─── Backend settings shape ───────────────────────────────────────────────────
-
-export interface UserSettings {
-  id?: number;
-  user_id?: number;
-  theme: 'dark' | 'light';
-  currency: string;
-  default_resolution: '1' | '5' | '15' | '30' | '60' | 'D' | 'W' | 'M';
-  default_symbol: string;
-  preferred_news_category: 'general' | 'forex' | 'crypto' | 'merger';
-  dashboard_layout?: Record<string, unknown> | null;
-}
-
-export type PartialSettings = Partial<Omit<UserSettings, 'id' | 'user_id'>>;
+export type { UserSettings, PartialSettings };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 

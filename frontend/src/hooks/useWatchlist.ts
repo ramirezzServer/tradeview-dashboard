@@ -1,24 +1,9 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/services/api';
+import type { Watchlist, WatchlistItem } from '@shared/schemas/watchlist';
 
-// ─── Backend types ────────────────────────────────────────────────────────────
-
-export interface WatchlistItem {
-  id: number;
-  watchlist_id: number;
-  symbol: string;
-  notes: string | null;
-  sort_order: number;
-}
-
-export interface Watchlist {
-  id: number;
-  user_id: number;
-  name: string;
-  items?: WatchlistItem[];
-  items_count?: number;
-}
+export type { Watchlist, WatchlistItem };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
