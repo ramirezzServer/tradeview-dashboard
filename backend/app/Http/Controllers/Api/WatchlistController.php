@@ -13,10 +13,6 @@ class WatchlistController extends Controller
 {
     use ApiResponse;
 
-    /**
-     * GET /api/watchlists
-     * List all watchlists belonging to the authenticated user.
-     */
     public function index(Request $request): JsonResponse
     {
         $watchlists = $request->user()
@@ -30,10 +26,6 @@ class WatchlistController extends Controller
         ]);
     }
 
-    /**
-     * POST /api/watchlists
-     * Create a new watchlist for the authenticated user.
-     */
     public function store(WatchlistRequest $request): JsonResponse
     {
         $watchlist = $request->user()->watchlists()->create([
@@ -43,46 +35,27 @@ class WatchlistController extends Controller
         return $this->success($watchlist, 'Watchlist created successfully.', 201);
     }
 
-    /**
-     * GET /api/watchlists/{watchlist}
-     * Return a single watchlist with all its items.
-     * Only the owner may access it.
-     */
-    public function show(Request $request, Watchlist $watchlist): JsonResponse
+    public function show(Watchlist $watchlist): JsonResponse
     {
-        if ($watchlist->user_id !== $request->user()->id) {
-            return $this->error('Watchlist not found.', 404);
-        }
+        $this->authorize('view', $watchlist);
 
         $watchlist->load('items');
 
         return $this->success($watchlist, 'Watchlist fetched successfully.');
     }
 
-    /**
-     * PUT /api/watchlists/{watchlist}
-     * Rename a watchlist.
-     */
     public function update(WatchlistRequest $request, Watchlist $watchlist): JsonResponse
     {
-        if ($watchlist->user_id !== $request->user()->id) {
-            return $this->error('Watchlist not found.', 404);
-        }
+        $this->authorize('update', $watchlist);
 
         $watchlist->update(['name' => $request->validated('name')]);
 
         return $this->success($watchlist, 'Watchlist updated successfully.');
     }
 
-    /**
-     * DELETE /api/watchlists/{watchlist}
-     * Delete a watchlist and all its items (cascade handled by migration).
-     */
-    public function destroy(Request $request, Watchlist $watchlist): JsonResponse
+    public function destroy(Watchlist $watchlist): JsonResponse
     {
-        if ($watchlist->user_id !== $request->user()->id) {
-            return $this->error('Watchlist not found.', 404);
-        }
+        $this->authorize('delete', $watchlist);
 
         $watchlist->delete();
 

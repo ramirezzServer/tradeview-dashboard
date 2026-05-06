@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -30,6 +31,18 @@ return Application::configure(basePath: dirname(__DIR__))
                     'data'    => null,
                     'errors'  => $e->errors(),
                 ], 422);
+            }
+        });
+
+        // Ownership checks use policies that throw AuthorizationException.
+        // On API routes, surface this as 404 to avoid leaking resource existence.
+        $exceptions->render(function (AuthorizationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Not found.',
+                    'data'    => null,
+                ], 404);
             }
         });
 
