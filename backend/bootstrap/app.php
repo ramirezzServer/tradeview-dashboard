@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -34,9 +34,10 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // Ownership checks use policies that throw AuthorizationException.
-        // On API routes, surface this as 404 to avoid leaking resource existence.
-        $exceptions->render(function (AuthorizationException $e, Request $request) {
+        // Ownership checks use policies. Laravel converts AuthorizationException to
+        // AccessDeniedHttpException before render callbacks run, so we catch that here.
+        // Surface as 404 on API routes to avoid leaking whether a resource exists.
+        $exceptions->render(function (AccessDeniedHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'success' => false,
