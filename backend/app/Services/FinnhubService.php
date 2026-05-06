@@ -2,10 +2,18 @@
 
 namespace App\Services;
 
+use App\Exceptions\Finnhub\ApiKeyMissingException;
+use App\Exceptions\Finnhub\CandleNoDataException;
+use App\Exceptions\Finnhub\ForbiddenException;
+use App\Exceptions\Finnhub\HttpException;
+use App\Exceptions\Finnhub\InvalidResponseException;
+use App\Exceptions\Finnhub\ProfileNotFoundException;
+use App\Exceptions\Finnhub\RateLimitedException;
+use App\Exceptions\Finnhub\RequestFailedException;
+use App\Exceptions\Finnhub\UnauthorizedException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
 
 class FinnhubService
 {
@@ -20,9 +28,6 @@ class FinnhubService
 
     // ─── Public API Methods ───────────────────────────────────────────────────
 
-    /**
-     * GET /quote?symbol={symbol}
-     */
     public function getQuote(string $symbol): array
     {
         $ttl = config('finnhub.cache.quote');
@@ -31,9 +36,6 @@ class FinnhubService
         return Cache::remember($key, $ttl, fn () => $this->get('/quote', ['symbol' => $symbol]));
     }
 
-    /**
-     * GET /stock/candle?symbol={symbol}&resolution={resolution}&from={from}&to={to}
-     */
     public function getCandles(string $symbol, string $resolution, int $from, int $to): array
     {
         $ttl = config('finnhub.cache.candles');
@@ -47,15 +49,12 @@ class FinnhubService
         ]));
 
         if (($data['s'] ?? null) !== 'ok') {
-            throw new RuntimeException('CANDLE_NO_DATA');
+            throw new CandleNoDataException();
         }
 
         return $data;
     }
 
-    /**
-     * GET /news?category={category}&minId={minId}
-     */
     public function getMarketNews(string $category = 'general', int $minId = 0): array
     {
         $ttl = config('finnhub.cache.news');
@@ -67,9 +66,6 @@ class FinnhubService
         ]));
     }
 
-    /**
-     * GET /company-news?symbol={symbol}&from={from}&to={to}
-     */
     public function getCompanyNews(string $symbol, string $from, string $to): array
     {
         $ttl = config('finnhub.cache.news');
@@ -82,9 +78,6 @@ class FinnhubService
         ]));
     }
 
-    /**
-     * GET /stock/profile2?symbol={symbol}
-     */
     public function getProfile(string $symbol): array
     {
         $ttl = config('finnhub.cache.profile');
@@ -93,15 +86,12 @@ class FinnhubService
         $data = Cache::remember($key, $ttl, fn () => $this->get('/stock/profile2', ['symbol' => $symbol]));
 
         if (empty($data) || ! isset($data['ticker'])) {
-            throw new RuntimeException('PROFILE_NOT_FOUND');
+            throw new ProfileNotFoundException();
         }
 
         return $data;
     }
 
-    /**
-     * GET /stock/metric?symbol={symbol}&metric=all
-     */
     public function getFinancials(string $symbol): array
     {
         $ttl = config('finnhub.cache.financials');
@@ -113,21 +103,15 @@ class FinnhubService
         ]));
     }
 
-    /**
-     * GET /stock/earnings?symbol={symbol}
-     *
-     * Returns quarterly EPS history (actual vs estimate) — available on free plan.
-     * Typical response: last 4–8 quarters sorted newest-first.
-     */
     public function getEarnings(string $symbol): array
     {
-        $ttl = config('finnhub.cache.financials'); // same TTL as financials (1h)
+        $ttl = config('finnhub.cache.financials');
         $key = "finnhub.earnings.{$symbol}";
 
         $data = Cache::remember($key, $ttl, fn () => $this->get('/stock/earnings', ['symbol' => $symbol]));
 
         if (! is_array($data)) {
-            throw new RuntimeException('INVALID_RESPONSE');
+            throw new InvalidResponseException();
         }
 
         return $data;
@@ -138,7 +122,7 @@ class FinnhubService
     private function get(string $endpoint, array $params = []): array
     {
         if (empty($this->apiKey)) {
-            throw new RuntimeException('FINNHUB_API_KEY_MISSING');
+            throw new ApiKeyMissingException();
         }
 
         $params['token'] = $this->apiKey;
@@ -150,39 +134,34 @@ class FinnhubService
 
             $status = $response->status();
 
-            // 429 — Finnhub rate limit
             if ($status === 429) {
                 Log::warning('Finnhub rate limit hit', ['endpoint' => $endpoint]);
-                throw new RuntimeException('RATE_LIMITED');
+                throw new RateLimitedException();
             }
 
-            // 401 — API key rejected (invalid or expired)
             if ($status === 401) {
                 Log::error('Finnhub returned 401 — API key invalid', ['endpoint' => $endpoint]);
-                throw new RuntimeException('UNAUTHORIZED');
+                throw new UnauthorizedException();
             }
 
-            // 403 — Access denied for this endpoint (plan restriction, IP block, etc.)
-            // This is intentionally separate from 401: the key IS valid but lacks access.
+            // Key is valid but this endpoint requires a higher plan or is IP-blocked.
             if ($status === 403) {
                 Log::warning('Finnhub returned 403 — access forbidden', [
                     'endpoint' => $endpoint,
                     'body'     => $response->body(),
                 ]);
-                throw new RuntimeException('ACCESS_FORBIDDEN');
+                throw new ForbiddenException();
             }
 
-            // Any other non-2xx response
             if ($response->failed()) {
                 Log::error('Finnhub HTTP error', [
                     'endpoint' => $endpoint,
                     'status'   => $status,
                     'body'     => substr($response->body(), 0, 500),
                 ]);
-                throw new RuntimeException("HTTP_{$status}");
+                throw new HttpException($status);
             }
 
-            // Parse JSON — returns null if response body is not valid JSON
             $data = $response->json();
 
             if ($data === null) {
@@ -190,25 +169,20 @@ class FinnhubService
                     'endpoint' => $endpoint,
                     'body'     => substr($response->body(), 0, 500),
                 ]);
-                throw new RuntimeException('INVALID_RESPONSE');
+                throw new InvalidResponseException();
             }
 
             return $data;
 
-        } catch (RuntimeException $e) {
-            // Re-throw our own coded exceptions unchanged so the controller
-            // can map them to the correct HTTP response.
+        } catch (RateLimitedException|UnauthorizedException|ForbiddenException|HttpException|InvalidResponseException|ApiKeyMissingException $e) {
             throw $e;
         } catch (\Exception $e) {
-            // Catches connection failures, SSL errors, timeouts, and any other
-            // non-RuntimeException thrown by the HTTP client.
-            // Log the full exception class so the log is actually actionable.
             Log::error('FinnhubService unexpected exception', [
-                'endpoint'  => $endpoint,
-                'class'     => get_class($e),
-                'message'   => $e->getMessage(),
+                'endpoint' => $endpoint,
+                'class'    => get_class($e),
+                'message'  => $e->getMessage(),
             ]);
-            throw new RuntimeException('FINNHUB_REQUEST_FAILED');
+            throw new RequestFailedException(previous: $e);
         }
     }
 }

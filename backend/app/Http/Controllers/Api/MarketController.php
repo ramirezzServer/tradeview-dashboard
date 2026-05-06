@@ -2,6 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\AlphaVantage\InvalidSymbolException as AvInvalidSymbolException;
+use App\Exceptions\AlphaVantage\NotConfiguredException as AvNotConfiguredException;
+use App\Exceptions\AlphaVantage\RateLimitedException as AvRateLimitedException;
+use App\Exceptions\AlphaVantage\RequestFailedException as AvRequestFailedException;
+use App\Exceptions\AlphaVantage\InvalidResponseException as AvInvalidResponseException;
+use App\Exceptions\Finnhub\CandleNoDataException;
+use App\Exceptions\Finnhub\ForbiddenException as FinnhubForbiddenException;
+use App\Exceptions\Finnhub\ProfileNotFoundException;
+use App\Exceptions\Finnhub\RateLimitedException as FinnhubRateLimitedException;
+use App\Exceptions\Finnhub\UnauthorizedException as FinnhubUnauthorizedException;
+use App\Exceptions\Finnhub\ApiKeyMissingException;
+use App\Exceptions\Finnhub\RequestFailedException as FinnhubRequestFailedException;
+use App\Exceptions\Finnhub\InvalidResponseException as FinnhubInvalidResponseException;
+use App\Exceptions\Finnhub\HttpException as FinnhubHttpException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CandleRequest;
 use App\Http\Requests\CompanyNewsRequest;
@@ -10,7 +24,6 @@ use App\Http\Traits\ApiResponse;
 use App\Services\AlphaVantageService;
 use App\Services\FinnhubService;
 use Illuminate\Http\JsonResponse;
-use RuntimeException;
 
 class MarketController extends Controller
 {
@@ -18,9 +31,6 @@ class MarketController extends Controller
 
     public function __construct(private readonly FinnhubService $finnhub) {}
 
-    /**
-     * GET /api/market/quote/{symbol}
-     */
     public function quote(string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -32,23 +42,17 @@ class MarketController extends Controller
         try {
             $data = $this->finnhub->getQuote($symbol);
 
-            // Finnhub returns c=0 for unknown symbols
             if (($data['c'] ?? 0) == 0 && ($data['t'] ?? 0) == 0) {
                 return $this->error("Symbol '{$symbol}' not found or has no data.", 404);
             }
 
-            return $this->success($data, 'Quote fetched successfully.', 200, [
-                'symbol' => $symbol,
-            ]);
+            return $this->success($data, 'Quote fetched successfully.', 200, ['symbol' => $symbol]);
 
-        } catch (RuntimeException $e) {
-            return $this->handleFinnhubException($e);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 
-    /**
-     * GET /api/market/candles/{symbol}?resolution=D&from=1234567890&to=1234567890
-     */
     public function candles(CandleRequest $request, string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -71,18 +75,13 @@ class MarketController extends Controller
                 'count'      => count($data['t'] ?? []),
             ]);
 
-        } catch (RuntimeException $e) {
-            if ($e->getMessage() === 'CANDLE_NO_DATA') {
-                return $this->error('No candle data available for the given range.', 404);
-            }
-
-            return $this->handleFinnhubException($e);
+        } catch (CandleNoDataException) {
+            return $this->error('No candle data available for the given range.', 404);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 
-    /**
-     * GET /api/market/news?category=general&minId=0
-     */
     public function news(MarketNewsRequest $request): JsonResponse
     {
         try {
@@ -96,14 +95,11 @@ class MarketController extends Controller
                 'count'    => count($data),
             ]);
 
-        } catch (RuntimeException $e) {
-            return $this->handleFinnhubException($e);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 
-    /**
-     * GET /api/market/profile/{symbol}
-     */
     public function profile(string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -117,18 +113,13 @@ class MarketController extends Controller
 
             return $this->success($data, 'Company profile fetched successfully.');
 
-        } catch (RuntimeException $e) {
-            if ($e->getMessage() === 'PROFILE_NOT_FOUND') {
-                return $this->error("No profile found for symbol '{$symbol}'.", 404);
-            }
-
-            return $this->handleFinnhubException($e);
+        } catch (ProfileNotFoundException) {
+            return $this->error("No profile found for symbol '{$symbol}'.", 404);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 
-    /**
-     * GET /api/market/financials/{symbol}
-     */
     public function financials(string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -142,14 +133,11 @@ class MarketController extends Controller
 
             return $this->success($data, 'Financials fetched successfully.');
 
-        } catch (RuntimeException $e) {
-            return $this->handleFinnhubException($e);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 
-    /**
-     * GET /api/market/company-news/{symbol}?from=YYYY-MM-DD&to=YYYY-MM-DD
-     */
     public function companyNews(CompanyNewsRequest $request, string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -167,50 +155,40 @@ class MarketController extends Controller
 
             return $this->success($data, 'Company news fetched successfully.', 200, [
                 'symbol' => $symbol,
-                'count'  => \count($data),
+                'count'  => count($data),
             ]);
 
-        } catch (RuntimeException $e) {
-            return $this->handleFinnhubException($e);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 
-    /**
-     * GET /api/market/movers
-     *
-     * Top gainers, top losers, and most actively traded US tickers via Alpha Vantage.
-     * Available on AV free plan (25 req/day). Results cached 15 min backend-side.
-     */
     public function movers(): JsonResponse
     {
         $av = new AlphaVantageService();
 
         try {
             $data = $av->getTopMovers();
+
             return $this->success($data, 'Market movers fetched successfully.', 200, [
                 'provider' => 'alphavantage',
             ]);
-        } catch (RuntimeException $e) {
-            return match ($e->getMessage()) {
-                'AV_NOT_CONFIGURED' => $this->error(
-                    'Market movers provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
-                    503
-                ),
-                'AV_RATE_LIMITED' => $this->error(
-                    'Alpha Vantage rate limit reached. Market movers will be available again soon.',
-                    429
-                ),
-                'AV_INVALID_RESPONSE' => $this->error('Unexpected response from market movers provider.', 502),
-                default => $this->error('Could not fetch market movers.', 503),
-            };
+
+        } catch (AvNotConfiguredException) {
+            return $this->error(
+                'Market movers provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
+                503
+            );
+        } catch (AvRateLimitedException) {
+            return $this->error(
+                'Alpha Vantage rate limit reached. Market movers will be available again soon.',
+                429
+            );
+        } catch (AvInvalidResponseException|AvRequestFailedException) {
+            return $this->error('Could not fetch market movers.', 503);
         }
     }
 
-    /**
-     * GET /api/market/earnings/{symbol}
-     *
-     * Quarterly EPS history (actual vs estimate) from Finnhub — available on free plan.
-     */
     public function earnings(string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -221,22 +199,17 @@ class MarketController extends Controller
 
         try {
             $data = $this->finnhub->getEarnings($symbol);
+
             return $this->success($data, 'Earnings fetched successfully.', 200, [
                 'symbol' => $symbol,
                 'count'  => count($data),
             ]);
-        } catch (RuntimeException $e) {
-            return $this->handleFinnhubException($e);
+
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 
-    /**
-     * GET /api/market/candles-alt/{symbol}?from=&to=
-     *
-     * Alpha Vantage fallback for daily candle data.  Accepts the same from/to
-     * Unix-timestamp params as the primary candles endpoint so the frontend hook
-     * can call both with identical logic.  Resolution is always daily (D).
-     */
     public function alternativeCandles(CandleRequest $request, string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -264,74 +237,39 @@ class MarketController extends Controller
                 'count'    => count($data['t'] ?? []),
             ]);
 
-        } catch (RuntimeException $e) {
-            return match ($e->getMessage()) {
-                'AV_NOT_CONFIGURED' => $this->error(
-                    'Alternative candle provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
-                    503
-                ),
-                'AV_RATE_LIMITED' => $this->error(
-                    'Alpha Vantage rate limit reached (25 req/day on free tier). Try again tomorrow.',
-                    429
-                ),
-                'AV_INVALID_SYMBOL' => $this->error(
-                    "Symbol '{$symbol}' was not recognised by the alternative provider.",
-                    404
-                ),
-                default => $this->error('Alternative candle provider request failed.', 503),
-            };
+        } catch (AvNotConfiguredException) {
+            return $this->error(
+                'Alternative candle provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
+                503
+            );
+        } catch (AvRateLimitedException) {
+            return $this->error(
+                'Alpha Vantage rate limit reached (25 req/day on free tier). Try again tomorrow.',
+                429
+            );
+        } catch (AvInvalidSymbolException) {
+            return $this->error(
+                "Symbol '{$symbol}' was not recognised by the alternative provider.",
+                404
+            );
+        } catch (AvRequestFailedException) {
+            return $this->error('Alternative candle provider request failed.', 503);
         }
     }
 
     // ─── Error Handling ───────────────────────────────────────────────────────
 
-    private function handleFinnhubException(RuntimeException $e): JsonResponse
+    private function finnhubError(\RuntimeException $e): JsonResponse
     {
-        $code = $e->getMessage();
-
-        // Handle HTTP_* codes generically (e.g. HTTP_500, HTTP_503)
-        if (str_starts_with($code, 'HTTP_')) {
-            return $this->error('Finnhub returned an unexpected error. Please try again.', 502);
-        }
-
-        return match ($code) {
-            // 429 — Finnhub rate limit
-            'RATE_LIMITED' => $this->error(
-                'Finnhub rate limit reached. Please wait a moment and try again.',
-                429
-            ),
-
-            // 401 — API key is wrong or expired
-            'UNAUTHORIZED' => $this->error(
-                'The Finnhub API key is invalid or expired. Check FINNHUB_API_KEY in .env.',
-                503
-            ),
-
-            // 403 — Key is valid but this endpoint/data requires a higher plan
-            'ACCESS_FORBIDDEN' => $this->error(
-                'Your Finnhub plan does not include access to this data. A paid plan may be required.',
-                403
-            ),
-
-            // Key is missing from .env entirely
-            'FINNHUB_API_KEY_MISSING' => $this->error(
-                'Finnhub API key is not configured on the server.',
-                503
-            ),
-
-            // Connection failure, SSL error, or timeout
-            'FINNHUB_REQUEST_FAILED' => $this->error(
-                'Could not connect to Finnhub. Check server logs for the exception class and message.',
-                503
-            ),
-
-            // Finnhub returned non-JSON or empty body
-            'INVALID_RESPONSE' => $this->error(
-                'Finnhub returned an unexpected response format.',
-                502
-            ),
-
-            default => $this->error('An unexpected error occurred.', 500),
+        return match (true) {
+            $e instanceof FinnhubRateLimitedException    => $this->error('Finnhub rate limit reached. Please wait a moment and try again.', 429),
+            $e instanceof FinnhubUnauthorizedException   => $this->error('The Finnhub API key is invalid or expired. Check FINNHUB_API_KEY in .env.', 503),
+            $e instanceof FinnhubForbiddenException      => $this->error('Your Finnhub plan does not include access to this data. A paid plan may be required.', 403),
+            $e instanceof ApiKeyMissingException         => $this->error('Finnhub API key is not configured on the server.', 503),
+            $e instanceof FinnhubRequestFailedException  => $this->error('Could not connect to Finnhub. Check server logs for the exception class and message.', 503),
+            $e instanceof FinnhubInvalidResponseException => $this->error('Finnhub returned an unexpected response format.', 502),
+            $e instanceof FinnhubHttpException           => $this->error('Finnhub returned an unexpected error. Please try again.', 502),
+            default                                      => $this->error('An unexpected error occurred.', 500),
         };
     }
 }
