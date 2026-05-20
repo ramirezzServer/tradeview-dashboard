@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useFinnhubCandles } from './useFinnhubCandles';
+import { useFinnhubCandles, type Timeframe } from './useFinnhubCandles';
 import {
   smaLast, emaLast, rsi, macd, bollingerBands,
   maBias, rsiSignal, macdSignal, pivotPoints,
@@ -139,8 +139,12 @@ function calcIndicators(candles: OHLCVData[]): IndicatorSummary {
  *
  * Returns null indicators when insufficient candle data is available.
  */
-export function useIndicators(symbol: string, timeframe: '1W' | '1M' | '3M' = '3M') {
-  const { data: candles, loading, error, provider } = useFinnhubCandles(symbol, timeframe);
+export function useIndicators(
+  symbol: string,
+  timeframe: Timeframe = '3M',
+  resolutionOverride?: string
+) {
+  const { data: candles, loading, error, provider } = useFinnhubCandles(symbol, timeframe, resolutionOverride);
 
   const indicators = useMemo<IndicatorSummary | null>(() => {
     if (!candles || candles.length < 14) return null;

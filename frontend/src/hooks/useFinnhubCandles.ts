@@ -20,7 +20,11 @@ interface CandleState {
 
 const defaultDeps = { getCandles, getAlternativeCandles };
 
-export function useFinnhubCandles(symbol: string, timeframe: Timeframe): CandleState {
+export function useFinnhubCandles(
+  symbol: string,
+  timeframe: Timeframe,
+  resolutionOverride?: string
+): CandleState {
   const [state, setState] = useState<CandleState>({
     data: [], loading: true, error: null, isLive: false, provider: null,
   });
@@ -35,8 +39,9 @@ export function useFinnhubCandles(symbol: string, timeframe: Timeframe): CandleS
     setState(s => ({ ...s, loading: true, error: null }));
 
     const { from, to, resolution } = getRange(timeframe);
+    const selectedResolution = resolutionOverride ?? resolution;
 
-    fetchCandlesWithFallback(symbol, resolution, from, to, defaultDeps)
+    fetchCandlesWithFallback(symbol, selectedResolution, from, to, defaultDeps)
       .then(({ data, provider }) => {
         if (cancelled) return;
         setState({ data, loading: false, error: null, isLive: true, provider });
@@ -50,7 +55,7 @@ export function useFinnhubCandles(symbol: string, timeframe: Timeframe): CandleS
       });
 
     return () => { cancelled = true; };
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, resolutionOverride]);
 
   return state;
 }

@@ -1,16 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ComposedChart, Bar, XAxis, YAxis, Tooltip,
+  ComposedChart, Bar, XAxis, YAxis, Tooltip, Line, Area,
   ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { OHLCVData } from '@/types/stock';
-import { useFinnhubCandles } from '@/hooks/useFinnhubCandles';
+import { useFinnhubCandles, type Timeframe } from '@/hooks/useFinnhubCandles';
+import { useDashboardPrefs } from '@/context/DashboardPrefsContext';
+import { useSettings } from '@/hooks/useSettings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Wifi, WifiOff, Lock, AlertCircle, RefreshCw } from 'lucide-react';
 
-type Timeframe = '1W' | '1M' | '3M';
-const TIMEFRAMES: Timeframe[] = ['1W', '1M', '3M'];
+const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M'];
+type ChartStyle = 'Candles' | 'Line' | 'Area';
 
 interface CandleData extends OHLCVData {
   fill:        string;
@@ -82,10 +84,23 @@ function ChartPlaceholder({
 // ─── Main chart ───────────────────────────────────────────────────────────────
 
 export function CandlestickChart() {
+  const { settings } = useSettings();
+  const { volumeBars } = useDashboardPrefs();
   const [timeframe, setTimeframe] = useState<Timeframe>('3M');
+  const [resolution, setResolution] = useState('D');
+  const [seriesType, setSeriesType] = useState<ChartStyle>('Candles');
   const [retryKey, setRetryKey]   = useState(0);
+  const initializedFromSettings = useRef(false);
 
-  const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles('AAPL', timeframe);
+  useEffect(() => {
+    if (initializedFromSettings.current || !settings) return;
+    setTimeframe(settings.chart_timeframe ?? '3M');
+    setResolution(settings.default_resolution ?? 'D');
+    setSeriesType((settings.appearance_prefs?.chart_style as ChartStyle | undefined) ?? 'Candles');
+    initializedFromSettings.current = true;
+  }, [settings]);
+
+  const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles('AAPL', timeframe, resolution);
 
   // Retry by changing the key so the parent re-mounts the hook's effect
   const retry = () => setRetryKey(k => k + 1);
@@ -148,7 +163,7 @@ export function CandlestickChart() {
               </span>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground/40 mt-0.5 tracking-wider">NASDAQ · Candlestick</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-0.5 tracking-wider">NASDAQ · {seriesType}</p>
         </div>
         <div className="flex gap-0.5 bg-secondary/30 rounded-lg p-0.5 border border-border/20">
           {TIMEFRAMES.map(tf => (
@@ -239,23 +254,35 @@ export function CandlestickChart() {
                   width={50}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(228, 18%, 6%)' }} />
-                <Bar dataKey="wickHigh" barSize={1} fillOpacity={0.6}>
-                  {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                </Bar>
-                <Bar dataKey="bodyHeight" barSize={8} fillOpacity={0.9}>
-                  {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                </Bar>
+                {seriesType === 'Candles' && (
+                  <>
+                    <Bar dataKey="wickHigh" barSize={1} fillOpacity={0.6}>
+                      {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                    <Bar dataKey="bodyHeight" barSize={8} fillOpacity={0.9}>
+                      {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                  </>
+                )}
+                {seriesType === 'Line' && (
+                  <Line type="monotone" dataKey="close" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                )}
+                {seriesType === 'Area' && (
+                  <Area type="monotone" dataKey="close" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.16)" strokeWidth={2} dot={false} />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
-            <ResponsiveContainer width="100%" height={50}>
-              <ComposedChart data={chartData} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
-                <XAxis dataKey="date" hide />
-                <YAxis hide />
-                <Bar dataKey="volume" barSize={6} fillOpacity={0.25}>
-                  {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                </Bar>
-              </ComposedChart>
-            </ResponsiveContainer>
+            {volumeBars && (
+              <ResponsiveContainer width="100%" height={50}>
+                <ComposedChart data={chartData} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
+                  <XAxis dataKey="date" hide />
+                  <YAxis hide />
+                  <Bar dataKey="volume" barSize={6} fillOpacity={0.25}>
+                    {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Bar>
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
           </>
         )}
       </div>

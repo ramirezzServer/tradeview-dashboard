@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Newspaper, Clock, ExternalLink, TrendingUp, TrendingDown, Flame, Wifi, FlaskConical,
@@ -9,6 +9,7 @@ import { FinnhubNewsItem } from '@/services/finnhub';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FreshnessBadge } from '@/components/ui/FreshnessBadge';
 import { useSavedNews } from '@/hooks/useSavedNews';
+import { useSettings } from '@/hooks/useSettings';
 
 type Category = 'All' | 'Earnings' | 'Market' | 'Macro' | 'Tech' | 'Crypto' | 'Company';
 
@@ -109,6 +110,12 @@ const mockNews = [
 ];
 
 const categories: Category[] = ['All', 'Earnings', 'Market', 'Macro', 'Tech', 'Crypto', 'Company'];
+const preferredCategoryMap: Record<string, Category> = {
+  general: 'All',
+  forex:   'Macro',
+  crypto:  'Crypto',
+  merger:  'Company',
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -119,12 +126,21 @@ function getArticleUrl(n: { url?: string }): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const News = () => {
+  const { settings } = useSettings();
+  const preferredNewsCategory = settings?.preferred_news_category ?? 'general';
   const [activeCategory, setActiveCategory] = useState<Category>('All');
-  const { data: liveNews, loading, isLive } = useFinnhubNews();
+  const initializedFromSettings = useRef(false);
+  const { data: liveNews, loading, isLive } = useFinnhubNews(preferredNewsCategory);
   const { savedNews, isSaved, saveArticle, updateNotes, removeArticle, isSaving } = useSavedNews();
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
+
+  useEffect(() => {
+    if (initializedFromSettings.current || !settings?.preferred_news_category) return;
+    setActiveCategory(preferredCategoryMap[settings.preferred_news_category] ?? 'All');
+    initializedFromSettings.current = true;
+  }, [settings?.preferred_news_category]);
 
   const newsItems = useMemo(() => {
     if (isLive && liveNews.length > 0) return mapFinnhubNews(liveNews);

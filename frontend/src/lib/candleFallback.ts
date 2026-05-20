@@ -1,7 +1,7 @@
 import type { FinnhubCandle } from '@/services/finnhub'
 import type { OHLCVData } from '@/types/stock'
 
-export type Timeframe = '1W' | '1M' | '3M'
+export type Timeframe = '1D' | '1W' | '1M' | '3M'
 export type CandleProvider = 'finnhub' | 'alphavantage'
 export type CandleResult = { data: OHLCVData[]; provider: CandleProvider }
 
@@ -26,6 +26,7 @@ export function getRange(tf: Timeframe): { from: number; to: number; resolution:
   const to  = Math.floor(Date.now() / 1000)
   const day = 86400
   switch (tf) {
+    case '1D': return { from: to - 1  * day, to, resolution: '60' }
     case '1W': return { from: to - 7  * day, to, resolution: '60' }
     case '1M': return { from: to - 30 * day, to, resolution: 'D'  }
     case '3M': return { from: to - 90 * day, to, resolution: 'D'  }

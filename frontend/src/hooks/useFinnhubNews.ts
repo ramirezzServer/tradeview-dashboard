@@ -8,7 +8,7 @@ interface NewsState {
   isLive: boolean;
 }
 
-export function useFinnhubNews(): NewsState {
+export function useFinnhubNews(category = 'general'): NewsState {
   const [state, setState] = useState<NewsState>({ data: [], loading: true, error: null, isLive: false });
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function useFinnhubNews(): NewsState {
 
     let cancelled = false;
 
-    getMarketNews('general')
+    getMarketNews(category)
       .then(items => {
         if (cancelled) return;
         if (!items?.length) {
@@ -33,7 +33,7 @@ export function useFinnhubNews(): NewsState {
       });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [category]);
 
   return state;
 }

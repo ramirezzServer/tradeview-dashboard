@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Activity, TrendingUp, TrendingDown, Target, Shield, Zap,
   BarChart2, ArrowUp, ArrowDown, Wifi, WifiOff, RefreshCw,
 } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { ComposedChart, Area, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIndicators } from '@/hooks/useIndicators';
+import { useSettings } from '@/hooks/useSettings';
 import { FreshnessBadge } from '@/components/ui/FreshnessBadge';
+import type { Timeframe } from '@/hooks/useFinnhubCandles';
 
-type Timeframe = '1W' | '1M' | '3M';
+type ChartStyle = 'Candles' | 'Line' | 'Area';
 const SYMBOL = 'AAPL';
 
 // ─── Provider error messages ──────────────────────────────────────────────────
@@ -32,8 +34,20 @@ function ProviderNotice({ error }: { error: string | null }) {
 }
 
 const TechnicalAnalysis = () => {
+  const { settings } = useSettings();
   const [timeframe, setTimeframe] = useState<Timeframe>('3M');
-  const { indicators, loading, error, provider, isLive } = useIndicators(SYMBOL, timeframe);
+  const [resolution, setResolution] = useState('D');
+  const [seriesType, setSeriesType] = useState<ChartStyle>('Area');
+  const initializedFromSettings = useRef(false);
+  const { indicators, loading, error, provider, isLive } = useIndicators(SYMBOL, timeframe, resolution);
+
+  useEffect(() => {
+    if (initializedFromSettings.current || !settings) return;
+    setTimeframe(settings.chart_timeframe ?? '3M');
+    setResolution(settings.default_resolution ?? 'D');
+    setSeriesType((settings.appearance_prefs?.chart_style as ChartStyle | undefined) ?? 'Area');
+    initializedFromSettings.current = true;
+  }, [settings]);
 
   const p = indicators?.currentPrice ?? 0;
   const fmt = (v: number | null) => v !== null ? `$${v.toFixed(2)}` : '—';
@@ -132,7 +146,7 @@ const TechnicalAnalysis = () => {
           )}
 
           <div className="flex items-center gap-1 ml-auto">
-            {(['1W', '1M', '3M'] as Timeframe[]).map(tf => (
+            {(['1D', '1W', '1M', '3M'] as Timeframe[]).map(tf => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
@@ -229,7 +243,7 @@ const TechnicalAnalysis = () => {
               ) : indicators?.chartData.length ? (
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={indicators.chartData}>
+                    <ComposedChart data={indicators.chartData}>
                       <defs>
                         <linearGradient id="taPriceGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
@@ -245,10 +259,14 @@ const TechnicalAnalysis = () => {
                         labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                         formatter={(v: number, name: string) => [`$${v.toFixed(2)}`, name === 'price' ? 'Price' : name === 'ma20' ? 'SMA 20' : 'SMA 50']}
                       />
-                      <Area type="monotone" dataKey="price" stroke="hsl(var(--primary))" fill="url(#taPriceGrad)" strokeWidth={2} dot={false} />
+                      {seriesType === 'Line' ? (
+                        <Line type="monotone" dataKey="price" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                      ) : (
+                        <Area type="monotone" dataKey="price" stroke="hsl(var(--primary))" fill="url(#taPriceGrad)" strokeWidth={2} dot={false} />
+                      )}
                       <Area type="monotone" dataKey="ma20" stroke="hsl(var(--bull))" fill="none" strokeWidth={1} strokeDasharray="4 4" dot={false} connectNulls />
                       <Area type="monotone" dataKey="ma50" stroke="hsl(var(--bear))" fill="none" strokeWidth={1} strokeDasharray="4 4" dot={false} connectNulls />
-                    </AreaChart>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
