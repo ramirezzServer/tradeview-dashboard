@@ -20,6 +20,14 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+function handleUnauthorized(): void {
+  removeToken();
+
+  if (window.location.pathname !== '/login') {
+    window.location.assign('/login');
+  }
+}
+
 // ─── Error class ─────────────────────────────────────────────────────────────
 
 export class ApiError extends Error {
@@ -65,6 +73,10 @@ async function request<T>(
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
+  if (auth && res.status === 401) {
+    handleUnauthorized();
+  }
 
   // 204 No Content (typical DELETE response) — nothing to parse
   if (res.status === 204) {
