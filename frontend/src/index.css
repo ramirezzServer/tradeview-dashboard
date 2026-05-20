@@ -245,6 +245,59 @@
 }
 .animate-fade-up { animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* ─── Density ────────────────────────────────────────────────────────────── */
+
+:root[data-density="compact"] .p-4    { padding: 0.5rem !important; }
+:root[data-density="compact"] .p-5    { padding: 0.75rem !important; }
+:root[data-density="compact"] .lg\:p-6 { padding: 0.75rem !important; }
+:root[data-density="compact"] .gap-4  { gap: 0.5rem !important; }
+:root[data-density="compact"] .gap-3  { gap: 0.375rem !important; }
+:root[data-density="compact"] .space-y-4 > * + * { margin-top: 0.5rem !important; }
+:root[data-density="compact"] .space-y-3 > * + * { margin-top: 0.375rem !important; }
+:root[data-density="compact"] .py-3   { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+
+:root[data-density="relaxed"] .p-4    { padding: 1.5rem !important; }
+:root[data-density="relaxed"] .p-5    { padding: 1.75rem !important; }
+:root[data-density="relaxed"] .lg\:p-6 { padding: 2rem !important; }
+:root[data-density="relaxed"] .gap-4  { gap: 1.25rem !important; }
+:root[data-density="relaxed"] .gap-3  { gap: 1rem !important; }
+:root[data-density="relaxed"] .space-y-4 > * + * { margin-top: 1.25rem !important; }
+:root[data-density="relaxed"] .space-y-3 > * + * { margin-top: 1rem !important; }
+:root[data-density="relaxed"] .py-3   { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+
+/* ─── Font size ──────────────────────────────────────────────────────────── */
+
+:root[data-font-size="small"]  { font-size: 14px; }
+:root[data-font-size="medium"] { font-size: 16px; }
+:root[data-font-size="large"]  { font-size: 18px; }
+
+/* ─── No glow ────────────────────────────────────────────────────────────── */
+
+:root.no-glow .glass-card,
+:root.no-glow .glass-card-hover {
+  box-shadow: 0 1px 3px hsl(0 0% 0% / 0.12) !important;
+}
+:root.no-glow .glass-card-hover:hover {
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.16) !important;
+  transform: none !important;
+}
+:root.no-glow .glow-text  { text-shadow: none !important; }
+:root.no-glow .glow-border { box-shadow: none !important; }
+:root.no-glow .value-bull,
+:root.no-glow .value-bear  { text-shadow: none !important; }
+:root.no-glow [class*="shadow-[0_0_"] { box-shadow: none !important; }
+
+/* ─── No animations ──────────────────────────────────────────────────────── */
+
+:root.no-animations *,
+:root.no-animations *::before,
+:root.no-animations *::after {
+  animation-duration:        0s !important;
+  animation-delay:           0s !important;
+  transition-duration:       0s !important;
+  transition-delay:          0s !important;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

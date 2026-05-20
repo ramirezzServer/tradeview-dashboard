@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { DashboardPrefsProvider } from "@/context/DashboardPrefsContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Eager-loaded (critical path) ────────────────────────────────────────────
@@ -94,6 +96,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <ThemeProvider>
+          <DashboardPrefsProvider>
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
               {/* Public auth routes */}
@@ -117,6 +121,8 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </DashboardPrefsProvider>
+          </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

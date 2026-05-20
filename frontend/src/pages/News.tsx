@@ -1,10 +1,14 @@
 import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Newspaper, Clock, ExternalLink, TrendingUp, TrendingDown, Flame, Wifi, FlaskConical } from 'lucide-react';
+import {
+  Newspaper, Clock, ExternalLink, TrendingUp, TrendingDown, Flame, Wifi, FlaskConical,
+  Bookmark, BookmarkCheck, Pencil, Check, X, Trash2,
+} from 'lucide-react';
 import { useFinnhubNews } from '@/hooks/useFinnhubNews';
 import { FinnhubNewsItem } from '@/services/finnhub';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FreshnessBadge } from '@/components/ui/FreshnessBadge';
+import { useSavedNews } from '@/hooks/useSavedNews';
 
 type Category = 'All' | 'Earnings' | 'Market' | 'Macro' | 'Tech' | 'Crypto' | 'Company';
 
@@ -106,11 +110,21 @@ const mockNews = [
 
 const categories: Category[] = ['All', 'Earnings', 'Market', 'Macro', 'Tech', 'Crypto', 'Company'];
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getArticleUrl(n: { url?: string }): string {
+  return n.url ?? '';
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const News = () => {
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const { data: liveNews, loading, isLive } = useFinnhubNews();
+  const { savedNews, isSaved, saveArticle, updateNotes, removeArticle, isSaving } = useSavedNews();
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingNotes, setEditingNotes] = useState('');
 
   const newsItems = useMemo(() => {
     if (isLive && liveNews.length > 0) return mapFinnhubNews(liveNews);
@@ -123,6 +137,37 @@ const News = () => {
 
   // Freshness from first item
   const newestFetchedAt = newsItems[0]?.fetchedAt ?? null;
+
+  async function toggleBookmark(
+    e: React.MouseEvent,
+    article: { title: string; source: string; summary?: string; category: string; fetchedAt: number; url?: string }
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = getArticleUrl(article);
+    if (!url) return;
+    if (isSaved(url)) {
+      const item = savedNews.find(s => s.article_url === url);
+      if (item) await removeArticle(item.id);
+    } else {
+      await saveArticle({
+        article_url:      url,
+        headline:         article.title,
+        source:           article.source,
+        summary:          article.summary,
+        category:         article.category,
+        article_datetime: Math.floor(article.fetchedAt / 1000),
+      });
+    }
+  }
+
+  function categoryBadgeClass(category: string) {
+    if (category === 'Earnings') return 'text-bull bg-bull/8';
+    if (category === 'Crypto')   return 'text-chart-accent bg-chart-accent/8';
+    if (category === 'Macro')    return 'text-primary/70 bg-primary/8';
+    if (category === 'Tech')     return 'text-primary/60 bg-primary/8';
+    return 'text-muted-foreground/40 bg-secondary/20';
+  }
 
   return (
     <DashboardLayout title="News">
@@ -172,40 +217,56 @@ const News = () => {
             {/* Featured */}
             {!loading && activeCategory === 'All' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {featured.map((n, i) => (
-                  <a
-                    key={n.id}
-                    href={'url' in n ? (n as { url?: string }).url ?? '#' : '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="glass-card-hover rounded-xl p-5 cursor-pointer group animate-fade-up block"
-                    style={{ animationDelay: `${i * 60}ms` }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <Flame className="h-3 w-3 text-primary/70" />
-                      <span className="text-[8px] uppercase tracking-[0.14em] text-primary/70 font-semibold">Featured</span>
-                      <span className={`ml-auto text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${
-                        n.category === 'Earnings' ? 'text-bull bg-bull/8' :
-                        n.category === 'Crypto'   ? 'text-chart-accent bg-chart-accent/8' :
-                        n.category === 'Macro'    ? 'text-primary/70 bg-primary/8' :
-                        'text-muted-foreground/40 bg-secondary/25'
-                      }`}>{n.category}</span>
-                    </div>
-                    <h3 className="text-[13px] font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
-                      {n.title}
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground/35 leading-relaxed mb-3 line-clamp-3">{n.summary}</p>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[9px] font-medium text-muted-foreground/50">{n.source}</span>
-                      <span className="flex items-center gap-1 text-[9px] text-muted-foreground/30">
-                        <Clock className="h-2.5 w-2.5" />{n.time}
-                      </span>
-                      <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${
-                        n.sentiment === 'bullish' ? 'text-bull bg-bull/8' : 'text-bear bg-bear/8'
-                      }`}>{n.sentiment === 'bullish' ? 'Bullish' : 'Bearish'}</span>
-                    </div>
-                  </a>
-                ))}
+                {featured.map((n, i) => {
+                  const url = getArticleUrl(n as { url?: string });
+                  const saved = url ? isSaved(url) : false;
+                  return (
+                    <a
+                      key={n.id}
+                      href={url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="glass-card-hover rounded-xl p-5 cursor-pointer group animate-fade-up block"
+                      style={{ animationDelay: `${i * 60}ms` }}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <Flame className="h-3 w-3 text-primary/70" />
+                        <span className="text-[8px] uppercase tracking-[0.14em] text-primary/70 font-semibold">Featured</span>
+                        <button
+                          onClick={e => toggleBookmark(e, n as Parameters<typeof toggleBookmark>[1])}
+                          disabled={!url || isSaving}
+                          className={`ml-auto transition-colors ${
+                            saved
+                              ? 'text-primary/70 hover:text-primary'
+                              : 'text-muted-foreground/25 hover:text-primary/60'
+                          } disabled:opacity-30 disabled:cursor-not-allowed`}
+                          title={saved ? 'Remove bookmark' : 'Save article'}
+                        >
+                          {saved
+                            ? <BookmarkCheck className="h-3.5 w-3.5" />
+                            : <Bookmark className="h-3.5 w-3.5" />
+                          }
+                        </button>
+                        <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${categoryBadgeClass(n.category)}`}>
+                          {n.category}
+                        </span>
+                      </div>
+                      <h3 className="text-[13px] font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
+                        {n.title}
+                      </h3>
+                      <p className="text-[10px] text-muted-foreground/35 leading-relaxed mb-3 line-clamp-3">{n.summary}</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[9px] font-medium text-muted-foreground/50">{n.source}</span>
+                        <span className="flex items-center gap-1 text-[9px] text-muted-foreground/30">
+                          <Clock className="h-2.5 w-2.5" />{n.time}
+                        </span>
+                        <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${
+                          n.sentiment === 'bullish' ? 'text-bull bg-bull/8' : 'text-bear bg-bear/8'
+                        }`}>{n.sentiment === 'bullish' ? 'Bullish' : 'Bearish'}</span>
+                      </div>
+                    </a>
+                  );
+                })}
               </div>
             )}
 
@@ -223,45 +284,60 @@ const News = () => {
                   <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums">{filtered.length} articles</span>
                 </div>
                 <div className="divide-y divide-border/8">
-                  {(activeCategory === 'All' ? latest : filtered).map((n, i) => (
-                    <a
-                      key={n.id}
-                      href={'url' in n ? (n as { url?: string }).url ?? '#' : '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group px-5 py-4 hover:bg-accent/10 transition-colors cursor-pointer animate-fade-up flex items-start justify-between gap-3"
-                      style={{ animationDelay: `${i * 40}ms` }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-[13px] font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
-                          {n.title}
-                        </h3>
-                        {n.summary && (
-                          <p className="text-[10px] text-muted-foreground/30 mt-1 line-clamp-2">{n.summary}</p>
-                        )}
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="text-[9px] font-medium text-muted-foreground/45">{n.source}</span>
-                          <span className="flex items-center gap-1 text-[9px] text-muted-foreground/30">
-                            <Clock className="h-2.5 w-2.5" />{n.time}
-                          </span>
-                          <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${
-                            n.category === 'Earnings' ? 'text-bull bg-bull/8' :
-                            n.category === 'Crypto'   ? 'text-chart-accent bg-chart-accent/8' :
-                            n.category === 'Macro'    ? 'text-primary/70 bg-primary/8' :
-                            n.category === 'Tech'     ? 'text-primary/60 bg-primary/8' :
-                            'text-muted-foreground/40 bg-secondary/20'
-                          }`}>{n.category}</span>
+                  {(activeCategory === 'All' ? latest : filtered).map((n, i) => {
+                    const url = getArticleUrl(n as { url?: string });
+                    const saved = url ? isSaved(url) : false;
+                    return (
+                      <a
+                        key={n.id}
+                        href={url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group px-5 py-4 hover:bg-accent/10 transition-colors cursor-pointer animate-fade-up flex items-start justify-between gap-3"
+                        style={{ animationDelay: `${i * 40}ms` }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-[13px] font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
+                            {n.title}
+                          </h3>
+                          {n.summary && (
+                            <p className="text-[10px] text-muted-foreground/30 mt-1 line-clamp-2">{n.summary}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[9px] font-medium text-muted-foreground/45">{n.source}</span>
+                            <span className="flex items-center gap-1 text-[9px] text-muted-foreground/30">
+                              <Clock className="h-2.5 w-2.5" />{n.time}
+                            </span>
+                            <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${categoryBadgeClass(n.category)}`}>
+                              {n.category}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 mt-1">
-                        {n.sentiment === 'bullish'
-                          ? <TrendingUp className="h-3.5 w-3.5 text-bull/30" />
-                          : <TrendingDown className="h-3.5 w-3.5 text-bear/30" />
-                        }
-                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/15 group-hover:text-primary/40 transition-colors" />
-                      </div>
-                    </a>
-                  ))}
+                        <div className="flex items-center gap-2 shrink-0 mt-1">
+                          {n.sentiment === 'bullish'
+                            ? <TrendingUp className="h-3.5 w-3.5 text-bull/30" />
+                            : <TrendingDown className="h-3.5 w-3.5 text-bear/30" />
+                          }
+                          <button
+                            onClick={e => toggleBookmark(e, n as Parameters<typeof toggleBookmark>[1])}
+                            disabled={!url || isSaving}
+                            className={`transition-colors ${
+                              saved
+                                ? 'text-primary/70 hover:text-primary'
+                                : 'text-muted-foreground/15 hover:text-primary/50'
+                            } disabled:opacity-30 disabled:cursor-not-allowed`}
+                            title={saved ? 'Remove bookmark' : 'Save article'}
+                          >
+                            {saved
+                              ? <BookmarkCheck className="h-3.5 w-3.5" />
+                              : <Bookmark className="h-3.5 w-3.5" />
+                            }
+                          </button>
+                          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/15 group-hover:text-primary/40 transition-colors" />
+                        </div>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -269,6 +345,93 @@ const News = () => {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* Saved Articles */}
+            <div className="glass-card rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <BookmarkCheck className="h-3.5 w-3.5 text-primary/70" />
+                <h2 className="section-header text-foreground/80">Saved Articles</h2>
+                {savedNews.length > 0 && (
+                  <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums">{savedNews.length}</span>
+                )}
+              </div>
+              {savedNews.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground/30 text-center py-3 leading-relaxed">
+                  No saved articles yet. Click the bookmark icon on any article.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {savedNews.map((item, i) => (
+                    <div key={item.id} className="group animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <a
+                            href={item.article_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-medium text-foreground/80 hover:text-primary transition-colors leading-snug line-clamp-2 block"
+                          >
+                            {item.headline}
+                          </a>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[8px] text-muted-foreground/40">{item.source}</span>
+                            <span className={`text-[8px] uppercase tracking-[0.08em] font-semibold px-1 py-0.5 rounded ${categoryBadgeClass(item.category)}`}>
+                              {item.category}
+                            </span>
+                          </div>
+                          {editingId === item.id ? (
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <input
+                                value={editingNotes}
+                                onChange={e => setEditingNotes(e.target.value)}
+                                className="flex-1 text-[10px] bg-secondary/20 border border-border/20 rounded px-1.5 py-0.5 text-foreground/80 outline-none focus:border-primary/30"
+                                placeholder="Add notes..."
+                                autoFocus
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') { updateNotes(item.id, editingNotes || null); setEditingId(null); }
+                                  if (e.key === 'Escape') setEditingId(null);
+                                }}
+                              />
+                              <button
+                                onClick={() => { updateNotes(item.id, editingNotes || null); setEditingId(null); }}
+                                className="text-bull/70 hover:text-bull transition-colors"
+                              >
+                                <Check className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => setEditingId(null)}
+                                className="text-muted-foreground/40 hover:text-foreground/60 transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : item.notes ? (
+                            <p className="text-[9px] text-muted-foreground/35 mt-0.5 italic line-clamp-2">{item.notes}</p>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+                          <button
+                            onClick={() => { setEditingId(item.id); setEditingNotes(item.notes ?? ''); }}
+                            className="text-muted-foreground/40 hover:text-primary/70 transition-colors"
+                            title="Edit notes"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => removeArticle(item.id)}
+                            className="text-muted-foreground/40 hover:text-bear/70 transition-colors"
+                            title="Remove bookmark"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                      {i < savedNews.length - 1 && <div className="border-b border-border/8 mt-3" />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="glass-card rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="h-3.5 w-3.5 text-primary/70" />

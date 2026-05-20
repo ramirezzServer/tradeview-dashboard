@@ -9,7 +9,11 @@ import {
   FileBarChart,
   Settings,
   Zap,
+  Plus,
+  X,
+  Loader2,
 } from 'lucide-react';
+import { useState } from 'react';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar,
@@ -25,6 +29,7 @@ import {
   SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { useWatchlist } from '@/hooks/useWatchlist';
 
 const mainNav = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -81,6 +86,95 @@ function NavGroup({
   );
 }
 
+// ─── Mini Watchlist Panel ─────────────────────────────────────────────────────
+
+function WatchlistMiniPanel() {
+  const { items, addSymbol, removeItem, addError, isAdding } = useWatchlist();
+  const [newSymbol, setNewSymbol] = useState('');
+
+  const handleAdd = async () => {
+    const sym = newSymbol.trim();
+    if (!sym || isAdding) return;
+    try {
+      await addSymbol(sym);
+      setNewSymbol('');
+    } catch {
+      // addError shown below input
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleAdd();
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewSymbol(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10));
+  };
+
+  return (
+    <div className="px-2 pb-1">
+      {/* Header */}
+      <div className="flex items-center justify-between px-1 py-1.5">
+        <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground/40 font-semibold">
+          Watchlist
+        </span>
+        <span className="text-[9px] text-muted-foreground/25 tabular-nums">{items.length}</span>
+      </div>
+
+      {/* Items (max 5) */}
+      {items.length === 0 ? (
+        <p className="px-1 py-1 text-[9px] text-muted-foreground/25 italic">No symbols yet</p>
+      ) : (
+        <div className="space-y-0.5">
+          {items.slice(0, 5).map(item => (
+            <div
+              key={item.id}
+              className="group flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-accent/40 transition-colors"
+            >
+              <span className="text-[12px] font-semibold text-foreground/80">{item.symbol}</span>
+              <button
+                onClick={() => removeItem(item.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-bear/10"
+                title={`Remove ${item.symbol}`}
+              >
+                <X className="h-3 w-3 text-muted-foreground/40 hover:text-bear/70 transition-colors" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add input */}
+      <div className="flex items-center gap-1 mt-2 px-1">
+        <input
+          value={newSymbol}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Add symbol..."
+          className="flex-1 min-w-0 bg-secondary/20 border border-border/20 rounded-md px-2 py-1 text-[10px] text-foreground/80 placeholder:text-muted-foreground/25 outline-none focus:border-primary/30 transition-colors"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={!newSymbol || isAdding}
+          title="Add symbol"
+          className="h-6 w-6 shrink-0 flex items-center justify-center rounded-md bg-primary/12 border border-primary/15 text-primary/70 hover:bg-primary/20 hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          {isAdding
+            ? <Loader2 className="h-3 w-3 animate-spin" />
+            : <Plus className="h-3 w-3" />
+          }
+        </button>
+      </div>
+
+      {addError && (
+        <p className="px-1 mt-1 text-[9px] text-bear/60">{addError}</p>
+      )}
+    </div>
+  );
+}
+
+// ─── AppSidebar ───────────────────────────────────────────────────────────────
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
@@ -106,13 +200,23 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarHeader>
+
       <SidebarContent className="px-2">
+        {/* Mini watchlist — only when expanded */}
+        {!collapsed && (
+          <>
+            <WatchlistMiniPanel />
+            <SidebarSeparator className="opacity-20 my-1" />
+          </>
+        )}
+
         <NavGroup label="Trading" items={mainNav} collapsed={collapsed} />
         <SidebarSeparator className="opacity-20 my-1" />
         <NavGroup label="Analysis" items={analysisNav} collapsed={collapsed} />
         <SidebarSeparator className="opacity-20 my-1" />
         <NavGroup label="System" items={settingsNav} collapsed={collapsed} />
       </SidebarContent>
+
       <SidebarFooter className="px-4 py-3 border-t border-border/15">
         {!collapsed && (
           <div className="flex items-center gap-2">

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CryptoController;
 use App\Http\Controllers\Api\MarketController;
 use App\Http\Controllers\Api\PortfolioController;
 use App\Http\Controllers\Api\PortfolioItemController;
+use App\Http\Controllers\Api\SavedNewsController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\WatchlistController;
 use App\Http\Controllers\Api\WatchlistItemController;
@@ -124,5 +125,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // PUT    /api/settings   → partial or full update
     Route::get('settings', [SettingsController::class, 'show']);
     Route::put('settings', [SettingsController::class, 'update']);
+
+    // ── Saved News ────────────────────────────────────────────────────
+    // GET    /api/news/saved               → list saved articles
+    // POST   /api/news/saved               → bookmark an article
+    // PUT    /api/news/saved/{savedNews}   → update notes
+    // DELETE /api/news/saved/{savedNews}   → remove bookmark
+    Route::get('news/saved',                [SavedNewsController::class, 'index']);
+    Route::post('news/saved',               [SavedNewsController::class, 'store']);
+    Route::put('news/saved/{savedNews}',    [SavedNewsController::class, 'update']);
+    Route::delete('news/saved/{savedNews}', [SavedNewsController::class, 'destroy']);
 
 });
