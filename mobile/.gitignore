@@ -10,6 +10,8 @@ web-build/
 *.orig.*
 web-build/
 
+AGENTS.md
+
 # Environment
 .env
 .env.local

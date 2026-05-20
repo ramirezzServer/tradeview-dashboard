@@ -12,6 +12,7 @@ Thumbs.db
 docs/
 skills-lock.json
 CLAUDE.md
+AGENTS.md
 
 # Local settings (developer-specific)
 .claude/settings.local.json
