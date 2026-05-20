@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api, getToken, setToken, removeToken } from '@/services/api';
+import { api, getToken, setToken, removeToken, registerUnauthorizedHandler } from '@/services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,10 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // On mount: if a token exists, validate it by calling /auth/me
   useEffect(() => {
+    const unregisterUnauthorizedHandler = registerUnauthorizedHandler(() => {
+      setUser(null);
+    });
+
     const token = getToken();
     if (!token) {
       setIsLoading(false);
-      return;
+      return unregisterUnauthorizedHandler;
     }
 
     api.get<AuthUser>('/auth/me')
@@ -44,6 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         removeToken();
       })
       .finally(() => setIsLoading(false));
+
+    return unregisterUnauthorizedHandler;
   }, []);
 
   const login = async (email: string, password: string): Promise<void> => {

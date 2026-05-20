@@ -8,6 +8,10 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/,
 
 const TOKEN_KEY = 'auth_token';
 
+type UnauthorizedHandler = () => void;
+
+const unauthorizedHandlers = new Set<UnauthorizedHandler>();
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -20,8 +24,14 @@ export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+export function registerUnauthorizedHandler(handler: UnauthorizedHandler): () => void {
+  unauthorizedHandlers.add(handler);
+  return () => unauthorizedHandlers.delete(handler);
+}
+
 function handleUnauthorized(): void {
   removeToken();
+  unauthorizedHandlers.forEach(handler => handler());
 }
 
 // ─── Error class ─────────────────────────────────────────────────────────────
