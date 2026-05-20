@@ -24,6 +24,7 @@ export interface NormalizedQuote {
   price:         number;
   change:        number;   // 24h / daily $ change
   changePercent: number;   // 24h / daily % change
+  volume?:       number;
   source:        QuoteSource;
   status:        QuoteStatus;
   /** Epoch ms when this quote was last successfully fetched (React Query dataUpdatedAt) */
@@ -33,7 +34,7 @@ export interface NormalizedQuote {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useMarketQuotes(symbols: string[]) {
+export function useMarketQuotes(symbols: string[], liveUpdates = true) {
   const stockSymbols  = symbols.filter(s => !isCryptoSymbol(s));
   const cryptoSymbols = symbols.filter(s => isCryptoSymbol(s));
   const configured    = isFinnhubConfigured();
@@ -46,7 +47,7 @@ export function useMarketQuotes(symbols: string[]) {
       queryFn:  () => getQuote(sym.toUpperCase()),
       enabled:  configured && !!sym,
       staleTime:     10_000,
-      refetchInterval: 15_000,
+      refetchInterval: liveUpdates ? 15_000 : false,
       refetchIntervalInBackground: false,
       retry: 1,
     })),
@@ -58,7 +59,7 @@ export function useMarketQuotes(symbols: string[]) {
     queryFn:  () => getCryptoPrices(cryptoSymbols),
     enabled:  cryptoSymbols.length > 0,
     staleTime:       25_000,
-    refetchInterval: 30_000,
+    refetchInterval: liveUpdates ? 30_000 : false,
     refetchIntervalInBackground: false,
     retry: 1,
   });

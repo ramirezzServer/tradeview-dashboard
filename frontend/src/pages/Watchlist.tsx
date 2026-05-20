@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Eye, TrendingUp, TrendingDown, Search, Star,
   ArrowUpRight, ArrowDownRight, Wifi, WifiOff, Plus, X, Loader2,
 } from 'lucide-react';
+import { Line, LineChart, ResponsiveContainer } from 'recharts';
 import { Input } from '@/components/ui/input';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import { useSettings } from '@/hooks/useSettings';
+import { useFinnhubCandles } from '@/hooks/useFinnhubCandles';
 import { isCryptoSymbol } from '@/services/coingecko';
 
 // ─── Static display names (no prices — prices come from live APIs) ────────────
@@ -35,18 +38,91 @@ const symbolNames: Record<string, string> = {
 };
 
 type FilterTab = 'all' | 'stocks' | 'crypto';
+type SortBy = 'Symbol' | 'Change' | 'Volume';
+type FlashDirection = 'bull' | 'bear';
+
+function Sparkline({ symbol }: { symbol: string }) {
+  const { data, isLive } = useFinnhubCandles(symbol, '1M', 'D');
+  const sparkData = data.slice(-20).map(item => ({ close: item.close }));
+
+  if (!isLive || sparkData.length === 0) {
+    return <span className="text-[10px] text-muted-foreground/25">—</span>;
+  }
+
+  const first = sparkData[0]?.close ?? 0;
+  const last = sparkData[sparkData.length - 1]?.close ?? first;
+  const stroke = last >= first ? 'hsl(var(--bull))' : 'hsl(var(--bear))';
+
+  return (
+    <ResponsiveContainer width="100%" height={28}>
+      <LineChart data={sparkData}>
+        <Line type="monotone" dataKey="close" stroke={stroke} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
 
 const Watchlist = () => {
+  const { settings } = useSettings();
   const { items, isLoading: listLoading, addSymbol, removeItem, isAdding, addError } = useWatchlist();
   const [search, setSearch]           = useState('');
   const [filter, setFilter]           = useState<FilterTab>('all');
   const [addInput, setAddInput]       = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [localAddError, setLocalAddError] = useState('');
+  const [sortBy, setSortBy] = useState<SortBy>('Symbol');
+  const [livePriceUpdates, setLivePriceUpdates] = useState(true);
+  const [flashAnimations, setFlashAnimations] = useState(true);
+  const [showSparklines, setShowSparklines] = useState(false);
+  const [flashDirections, setFlashDirections] = useState<Record<string, FlashDirection>>({});
+  const initializedFromSettings = useRef(false);
+  const previousPrices = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    if (initializedFromSettings.current || !settings) return;
+    const prefs = settings.watchlist_prefs ?? {};
+    setSortBy((prefs.sort_by as SortBy | undefined) ?? 'Symbol');
+    setLivePriceUpdates(prefs.live_price_updates ?? true);
+    setFlashAnimations(prefs.flash_animations ?? true);
+    setShowSparklines(prefs.show_sparklines ?? false);
+    initializedFromSettings.current = true;
+  }, [settings]);
 
   // ── Live quotes from unified market data layer ────────────────────────────
   const symbols = items.map(i => i.symbol);
-  const { quotes, liveCount } = useMarketQuotes(symbols);
+  const { quotes, liveCount } = useMarketQuotes(symbols, livePriceUpdates);
+
+  useEffect(() => {
+    if (!flashAnimations) {
+      previousPrices.current = Object.fromEntries(
+        Object.entries(quotes).map(([symbol, quote]) => [symbol, quote.price])
+      );
+      setFlashDirections({});
+      return;
+    }
+
+    const nextFlashes: Record<string, FlashDirection> = {};
+    for (const [symbol, quote] of Object.entries(quotes)) {
+      if (quote.status !== 'live') continue;
+      const previous = previousPrices.current[symbol];
+      if (previous !== undefined && previous !== quote.price) {
+        nextFlashes[symbol] = quote.price > previous ? 'bull' : 'bear';
+      }
+      previousPrices.current[symbol] = quote.price;
+    }
+
+    if (Object.keys(nextFlashes).length === 0) return;
+    setFlashDirections(current => ({ ...current, ...nextFlashes }));
+    const timeout = window.setTimeout(() => {
+      setFlashDirections(current => {
+        const next = { ...current };
+        Object.keys(nextFlashes).forEach(symbol => delete next[symbol]);
+        return next;
+      });
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [quotes, flashAnimations]);
 
   // ── Filtered rows ─────────────────────────────────────────────────────────
   const filteredItems = items.filter(item => {
@@ -61,6 +137,17 @@ const Watchlist = () => {
       (filter === 'crypto' && assetType === 'crypto');
     return matchesSearch && matchesFilter;
   });
+
+  const sortedItems = useMemo(() => {
+    return [...filteredItems].sort((a, b) => {
+      if (sortBy === 'Symbol') return a.symbol.localeCompare(b.symbol);
+      if (sortBy === 'Change') {
+        return (quotes[b.symbol]?.changePercent ?? Number.NEGATIVE_INFINITY) -
+          (quotes[a.symbol]?.changePercent ?? Number.NEGATIVE_INFINITY);
+      }
+      return (quotes[b.symbol]?.volume ?? 0) - (quotes[a.symbol]?.volume ?? 0);
+    });
+  }, [filteredItems, quotes, sortBy]);
 
   // ── Summary values (computed from live quotes only) ───────────────────────
   const liveQuotes = Object.values(quotes).filter(q => q.status === 'live');
@@ -200,7 +287,7 @@ const Watchlist = () => {
                 </span>
               )}
               <span className="text-[9px] text-muted-foreground/30 tabular-nums">
-                {filteredItems.length} assets
+                {sortedItems.length} assets
               </span>
               <button
                 onClick={() => { setShowAddForm(v => !v); setLocalAddError(''); }}
@@ -236,10 +323,11 @@ const Watchlist = () => {
           )}
 
           {/* Table header */}
-          <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_56px] gap-2 px-5 py-2.5 text-[8px] uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10">
+          <div className={`hidden md:grid ${showSparklines ? 'grid-cols-[2fr_1fr_1fr_80px_56px]' : 'grid-cols-[2fr_1fr_1fr_56px]'} gap-2 px-5 py-2.5 text-[8px] uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10`}>
             <span>Asset</span>
             <span className="text-right">Price</span>
             <span className="text-right">24h Change</span>
+            {showSparklines && <span className="text-right">Trend</span>}
             <span className="text-right">Action</span>
           </div>
 
@@ -251,7 +339,7 @@ const Watchlist = () => {
           )}
 
           {/* Empty state */}
-          {!listLoading && filteredItems.length === 0 && (
+          {!listLoading && sortedItems.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/30">
               <Star className="h-6 w-6 mb-2 opacity-30" />
               <p className="text-[11px]">Your watchlist is empty</p>
@@ -261,12 +349,13 @@ const Watchlist = () => {
 
           {/* Rows */}
           <div className="divide-y divide-border/8">
-            {filteredItems.map((item, i) => {
+            {sortedItems.map((item, i) => {
               const q         = quotes[item.symbol];
               const live      = q?.status === 'live';
               const positive  = (q?.changePercent ?? 0) >= 0;
               const crypto    = isCryptoSymbol(item.symbol);
               const name      = symbolNames[item.symbol] ?? item.symbol;
+              const flash     = flashDirections[item.symbol];
 
               const priceStr = live && q
                 ? (crypto
@@ -277,7 +366,7 @@ const Watchlist = () => {
               return (
                 <div
                   key={item.symbol}
-                  className="grid grid-cols-2 md:grid-cols-[2fr_1fr_1fr_56px] gap-2 items-center px-5 py-3 hover:bg-accent/15 transition-colors animate-fade-up"
+                  className={`grid grid-cols-2 ${showSparklines ? 'md:grid-cols-[2fr_1fr_1fr_80px_56px]' : 'md:grid-cols-[2fr_1fr_1fr_56px]'} gap-2 items-center px-5 py-3 hover:bg-accent/15 transition-colors animate-fade-up ${flash === 'bull' ? 'flash-bull' : flash === 'bear' ? 'flash-bear' : ''}`}
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
                   {/* Symbol / Name */}
@@ -320,6 +409,13 @@ const Watchlist = () => {
                       <span className="text-[11px] text-muted-foreground/25">—</span>
                     )}
                   </div>
+
+                  {/* Sparkline (desktop) */}
+                  {showSparklines && (
+                    <div className="hidden md:block h-7">
+                      <Sparkline symbol={item.symbol} />
+                    </div>
+                  )}
 
                   {/* Action (desktop) */}
                   <div className="hidden md:flex justify-end">
