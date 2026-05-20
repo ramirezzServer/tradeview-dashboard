@@ -30,6 +30,12 @@ class SettingsController extends Controller
                 'default_resolution'      => 'D',
                 'default_symbol'          => 'AAPL',
                 'preferred_news_category' => 'general',
+                'notifications'           => [
+                    'price_alerts'       => true,
+                    'news_updates'       => true,
+                    'portfolio_changes'  => true,
+                    'earnings_reminders' => false,
+                ],
             ]
         );
 

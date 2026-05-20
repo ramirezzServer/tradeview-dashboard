@@ -4,6 +4,7 @@ import {
   Layout, User, LogOut, Loader2, AlertCircle, CheckCircle2, RotateCcw,
 } from 'lucide-react';
 import { useSettings, PartialSettings } from '@/hooks/useSettings';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -86,6 +87,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const Settings = () => {
   const { settings, isLoading, updateSettings, resetSettings, isSaving, isResetting } = useSettings();
+  const push = usePushNotifications();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -144,6 +146,14 @@ const Settings = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handlePushToggle = async (enabled: boolean) => {
+    if (enabled) {
+      await push.subscribe();
+    } else {
+      await push.unsubscribe();
+    }
   };
 
   return (
@@ -249,6 +259,27 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Notifications</h3>
             </div>
             <div className="divide-y divide-border/8">
+              <div className="py-3">
+                {push.isSupported ? (
+                  <>
+                    <Toggle
+                      label="Enable Push Notifications"
+                      desc={`Browser permission: ${push.permission}`}
+                      value={push.isSubscribed}
+                      onChange={handlePushToggle}
+                      isSaving={push.isBusy}
+                    />
+                    {push.error && (
+                      <p className="text-[10px] text-bear/70 pb-2">{push.error}</p>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-[13px] text-foreground">Enable Push Notifications</p>
+                    <p className="text-[9px] text-muted-foreground/35">Not supported by your browser</p>
+                  </div>
+                )}
+              </div>
               <Toggle
                 label="Price Alerts"
                 desc="Get notified when assets hit target prices"

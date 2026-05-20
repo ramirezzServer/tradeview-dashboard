@@ -117,6 +117,6 @@ export const api = {
   put:    <T>(path: string, body: unknown, auth = true) =>
     request<T>('PUT', path, body, auth),
 
-  delete: <T>(path: string, auth = true) =>
-    request<T>('DELETE', path, undefined, auth),
+  delete: <T>(path: string, body?: unknown, auth = true) =>
+    request<T>('DELETE', path, body, auth),
 };
