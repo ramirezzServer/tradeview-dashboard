@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ComposedChart, Bar, XAxis, YAxis, Tooltip, Line, Area,
   ResponsiveContainer, CartesianGrid, Cell,
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { OHLCVData } from '@/types/stock';
 import { useFinnhubCandles, type Timeframe } from '@/hooks/useFinnhubCandles';
 import { useDashboardPrefs } from '@/context/DashboardPrefsContext';
-import { useSettings } from '@/hooks/useSettings';
+import { SETTINGS_DEFAULTS, useSettings } from '@/hooks/useSettings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Wifi, WifiOff, Lock, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -86,19 +86,22 @@ function ChartPlaceholder({
 export function CandlestickChart() {
   const { settings } = useSettings();
   const { volumeBars } = useDashboardPrefs();
-  const [timeframe, setTimeframe] = useState<Timeframe>('3M');
-  const [resolution, setResolution] = useState('D');
-  const [seriesType, setSeriesType] = useState<ChartStyle>('Candles');
+  const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
+  const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
+  const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
   const [retryKey, setRetryKey]   = useState(0);
-  const initializedFromSettings = useRef(false);
 
   useEffect(() => {
-    if (initializedFromSettings.current || !settings) return;
-    setTimeframe(settings.chart_timeframe ?? '3M');
-    setResolution(settings.default_resolution ?? 'D');
-    setSeriesType((settings.appearance_prefs?.chart_style as ChartStyle | undefined) ?? 'Candles');
-    initializedFromSettings.current = true;
-  }, [settings]);
+    setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
+  }, [settings?.chart_timeframe]);
+
+  useEffect(() => {
+    setResolution(settings?.default_resolution ?? SETTINGS_DEFAULTS.default_resolution!);
+  }, [settings?.default_resolution]);
+
+  useEffect(() => {
+    setSeriesType((settings?.appearance_prefs?.chart_style ?? SETTINGS_DEFAULTS.appearance_prefs?.chart_style) as ChartStyle);
+  }, [settings?.appearance_prefs?.chart_style]);
 
   const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles('AAPL', timeframe, resolution);
 

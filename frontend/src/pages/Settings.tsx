@@ -3,7 +3,7 @@ import {
   Settings as SettingsIcon, Monitor, Bell, Eye, Clock, Palette,
   Layout, User, LogOut, Loader2, AlertCircle, CheckCircle2, RotateCcw,
 } from 'lucide-react';
-import { useSettings, PartialSettings } from '@/hooks/useSettings';
+import { SETTINGS_DEFAULTS, useSettings, PartialSettings } from '@/hooks/useSettings';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -104,16 +104,16 @@ const Settings = () => {
   };
 
   const theme          = settings?.theme === 'light' ? 'Light' : 'Dark';
-  const density        = settings?.density        ?? 'Normal';
-  const fontSize       = settings?.font_size      ?? 'Medium';
-  const chartTimeframe = settings?.chart_timeframe ?? '1M';
-  const resolution     = resMap[settings?.default_resolution ?? 'D'] ?? '1D';
-  const newsCategory   = settings?.preferred_news_category ?? 'general';
+  const density        = settings?.density        ?? SETTINGS_DEFAULTS.density!;
+  const fontSize       = settings?.font_size      ?? SETTINGS_DEFAULTS.font_size!;
+  const chartTimeframe = settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe!;
+  const resolution     = resMap[settings?.default_resolution ?? SETTINGS_DEFAULTS.default_resolution!] ?? '1D';
+  const newsCategory   = settings?.preferred_news_category ?? SETTINGS_DEFAULTS.preferred_news_category!;
 
-  const notifs  = settings?.notifications   ?? {};
-  const wlPrefs = settings?.watchlist_prefs ?? {};
-  const dashP   = settings?.dashboard_prefs ?? {};
-  const appP    = settings?.appearance_prefs ?? {};
+  const notifs  = settings?.notifications   ?? SETTINGS_DEFAULTS.notifications!;
+  const wlPrefs = settings?.watchlist_prefs ?? SETTINGS_DEFAULTS.watchlist_prefs!;
+  const dashP   = settings?.dashboard_prefs ?? SETTINGS_DEFAULTS.dashboard_prefs!;
+  const appP    = settings?.appearance_prefs ?? SETTINGS_DEFAULTS.appearance_prefs!;
 
   // ── Unified save wrapper (surfaces status in the banner) ─────────────────
 
@@ -344,8 +344,8 @@ const Settings = () => {
               <SelectOption
                 label="Sort By"
                 desc="Default sort order"
-                options={['Symbol', 'Change', 'Volume']}
-                value={wlPrefs.sort_by ?? 'Change'}
+                options={['Symbol', 'Change']}
+                value={wlPrefs.sort_by === 'Volume' ? 'Change' : (wlPrefs.sort_by ?? SETTINGS_DEFAULTS.watchlist_prefs!.sort_by!)}
                 onChange={v => save({ watchlist_prefs: { ...wlPrefs, sort_by: v } })}
                 isSaving={isSaving}
               />

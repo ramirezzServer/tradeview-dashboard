@@ -8,7 +8,7 @@ import { Line, LineChart, ResponsiveContainer } from 'recharts';
 import { Input } from '@/components/ui/input';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
-import { useSettings } from '@/hooks/useSettings';
+import { SETTINGS_DEFAULTS, useSettings } from '@/hooks/useSettings';
 import { useFinnhubCandles } from '@/hooks/useFinnhubCandles';
 import { isCryptoSymbol } from '@/services/coingecko';
 
@@ -41,6 +41,9 @@ type FilterTab = 'all' | 'stocks' | 'crypto';
 type SortBy = 'Symbol' | 'Change' | 'Volume';
 type FlashDirection = 'bull' | 'bear';
 
+const normalizeSortBy = (value: string | undefined): SortBy =>
+  value === 'Symbol' || value === 'Change' ? value : 'Change';
+
 function Sparkline({ symbol }: { symbol: string }) {
   const { data, isLive } = useFinnhubCandles(symbol, '1M', 'D');
   const sparkData = data.slice(-20).map(item => ({ close: item.close }));
@@ -70,23 +73,29 @@ const Watchlist = () => {
   const [addInput, setAddInput]       = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [localAddError, setLocalAddError] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('Symbol');
-  const [livePriceUpdates, setLivePriceUpdates] = useState(true);
-  const [flashAnimations, setFlashAnimations] = useState(true);
-  const [showSparklines, setShowSparklines] = useState(false);
+  const [sortBy, setSortBy] = useState<SortBy>(normalizeSortBy(SETTINGS_DEFAULTS.watchlist_prefs?.sort_by));
+  const [livePriceUpdates, setLivePriceUpdates] = useState(SETTINGS_DEFAULTS.watchlist_prefs?.live_price_updates ?? true);
+  const [flashAnimations, setFlashAnimations] = useState(SETTINGS_DEFAULTS.watchlist_prefs?.flash_animations ?? true);
+  const [showSparklines, setShowSparklines] = useState(SETTINGS_DEFAULTS.watchlist_prefs?.show_sparklines ?? true);
   const [flashDirections, setFlashDirections] = useState<Record<string, FlashDirection>>({});
-  const initializedFromSettings = useRef(false);
   const previousPrices = useRef<Record<string, number>>({});
+  const watchlistPrefs = settings?.watchlist_prefs;
+  const preferredSortBy = normalizeSortBy(watchlistPrefs?.sort_by);
+  const preferredLivePriceUpdates = watchlistPrefs?.live_price_updates ?? SETTINGS_DEFAULTS.watchlist_prefs!.live_price_updates!;
+  const preferredFlashAnimations = watchlistPrefs?.flash_animations ?? SETTINGS_DEFAULTS.watchlist_prefs!.flash_animations!;
+  const preferredShowSparklines = watchlistPrefs?.show_sparklines ?? SETTINGS_DEFAULTS.watchlist_prefs!.show_sparklines!;
 
   useEffect(() => {
-    if (initializedFromSettings.current || !settings) return;
-    const prefs = settings.watchlist_prefs ?? {};
-    setSortBy((prefs.sort_by as SortBy | undefined) ?? 'Symbol');
-    setLivePriceUpdates(prefs.live_price_updates ?? true);
-    setFlashAnimations(prefs.flash_animations ?? true);
-    setShowSparklines(prefs.show_sparklines ?? false);
-    initializedFromSettings.current = true;
-  }, [settings]);
+    setSortBy(preferredSortBy);
+    setLivePriceUpdates(preferredLivePriceUpdates);
+    setFlashAnimations(preferredFlashAnimations);
+    setShowSparklines(preferredShowSparklines);
+  }, [
+    preferredSortBy,
+    preferredLivePriceUpdates,
+    preferredFlashAnimations,
+    preferredShowSparklines,
+  ]);
 
   // ── Live quotes from unified market data layer ────────────────────────────
   const symbols = items.map(i => i.symbol);
@@ -141,11 +150,8 @@ const Watchlist = () => {
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => {
       if (sortBy === 'Symbol') return a.symbol.localeCompare(b.symbol);
-      if (sortBy === 'Change') {
-        return (quotes[b.symbol]?.changePercent ?? Number.NEGATIVE_INFINITY) -
-          (quotes[a.symbol]?.changePercent ?? Number.NEGATIVE_INFINITY);
-      }
-      return (quotes[b.symbol]?.volume ?? 0) - (quotes[a.symbol]?.volume ?? 0);
+      return (quotes[b.symbol]?.changePercent ?? Number.NEGATIVE_INFINITY) -
+        (quotes[a.symbol]?.changePercent ?? Number.NEGATIVE_INFINITY);
     });
   }, [filteredItems, quotes, sortBy]);
 

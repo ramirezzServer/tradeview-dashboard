@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Activity, TrendingUp, TrendingDown, Target, Shield, Zap,
@@ -7,7 +7,7 @@ import {
 import { ComposedChart, Area, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIndicators } from '@/hooks/useIndicators';
-import { useSettings } from '@/hooks/useSettings';
+import { SETTINGS_DEFAULTS, useSettings } from '@/hooks/useSettings';
 import { FreshnessBadge } from '@/components/ui/FreshnessBadge';
 import type { Timeframe } from '@/hooks/useFinnhubCandles';
 
@@ -35,19 +35,23 @@ function ProviderNotice({ error }: { error: string | null }) {
 
 const TechnicalAnalysis = () => {
   const { settings } = useSettings();
-  const [timeframe, setTimeframe] = useState<Timeframe>('3M');
-  const [resolution, setResolution] = useState('D');
-  const [seriesType, setSeriesType] = useState<ChartStyle>('Area');
-  const initializedFromSettings = useRef(false);
+  const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
+  const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
+  const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
+  const technicalSeriesType: Exclude<ChartStyle, 'Candles'> = seriesType === 'Line' ? 'Line' : 'Area';
   const { indicators, loading, error, provider, isLive } = useIndicators(SYMBOL, timeframe, resolution);
 
   useEffect(() => {
-    if (initializedFromSettings.current || !settings) return;
-    setTimeframe(settings.chart_timeframe ?? '3M');
-    setResolution(settings.default_resolution ?? 'D');
-    setSeriesType((settings.appearance_prefs?.chart_style as ChartStyle | undefined) ?? 'Area');
-    initializedFromSettings.current = true;
-  }, [settings]);
+    setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
+  }, [settings?.chart_timeframe]);
+
+  useEffect(() => {
+    setResolution(settings?.default_resolution ?? SETTINGS_DEFAULTS.default_resolution!);
+  }, [settings?.default_resolution]);
+
+  useEffect(() => {
+    setSeriesType((settings?.appearance_prefs?.chart_style ?? SETTINGS_DEFAULTS.appearance_prefs?.chart_style) as ChartStyle);
+  }, [settings?.appearance_prefs?.chart_style]);
 
   const p = indicators?.currentPrice ?? 0;
   const fmt = (v: number | null) => v !== null ? `$${v.toFixed(2)}` : '—';
@@ -237,6 +241,11 @@ const TechnicalAnalysis = () => {
                     As of {indicators.lastDate}
                   </span>
                 )}
+                {seriesType === 'Candles' && (
+                  <span className="text-[8px] text-muted-foreground/30">
+                    Candles shown as Area
+                  </span>
+                )}
               </div>
               {loading ? (
                 <Skeleton className="h-56 w-full rounded-lg bg-secondary/20" />
@@ -259,7 +268,7 @@ const TechnicalAnalysis = () => {
                         labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                         formatter={(v: number, name: string) => [`$${v.toFixed(2)}`, name === 'price' ? 'Price' : name === 'ma20' ? 'SMA 20' : 'SMA 50']}
                       />
-                      {seriesType === 'Line' ? (
+                      {technicalSeriesType === 'Line' ? (
                         <Line type="monotone" dataKey="price" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                       ) : (
                         <Area type="monotone" dataKey="price" stroke="hsl(var(--primary))" fill="url(#taPriceGrad)" strokeWidth={2} dot={false} />

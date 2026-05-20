@@ -41,6 +41,45 @@ export const SETTINGS_DEFAULTS: PartialSettings = {
   },
 };
 
+const JSON_PREF_KEYS = [
+  'notifications',
+  'watchlist_prefs',
+  'dashboard_prefs',
+  'appearance_prefs',
+] as const;
+
+export function withSettingsDefaults(settings?: PartialSettings | null): UserSettings {
+  const merged = {
+    ...SETTINGS_DEFAULTS,
+    ...settings,
+  } as UserSettings;
+
+  for (const key of JSON_PREF_KEYS) {
+    merged[key] = {
+      ...(SETTINGS_DEFAULTS[key] ?? {}),
+      ...(settings?.[key] ?? {}),
+    } as never;
+  }
+
+  return merged;
+}
+
+function mergeSettingsUpdate(current: UserSettings | undefined, updates: PartialSettings): PartialSettings {
+  const base = withSettingsDefaults(current);
+  const merged: PartialSettings = { ...updates };
+
+  for (const key of JSON_PREF_KEYS) {
+    if (updates[key] !== undefined) {
+      merged[key] = {
+        ...(base[key] ?? {}),
+        ...(updates[key] ?? {}),
+      } as never;
+    }
+  }
+
+  return merged;
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -59,9 +98,24 @@ export function useSettings() {
 
   const updateMutation = useMutation({
     mutationFn: (updates: PartialSettings) =>
-      api.put<UserSettings>('/settings', updates),
+      api.put<UserSettings>('/settings', mergeSettingsUpdate(qc.getQueryData<UserSettings>(['settings']), updates)),
+    onMutate: async (updates) => {
+      await qc.cancelQueries({ queryKey: ['settings'] });
+      const previous = qc.getQueryData<UserSettings>(['settings']);
+      const optimistic = withSettingsDefaults({
+        ...previous,
+        ...mergeSettingsUpdate(previous, updates),
+      });
+      qc.setQueryData(['settings'], optimistic);
+      return { previous };
+    },
+    onError: (_error, _updates, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['settings'], context.previous);
+      }
+    },
     onSuccess: (updated) => {
-      qc.setQueryData(['settings'], updated);
+      qc.setQueryData(['settings'], withSettingsDefaults(updated));
     },
   });
 
@@ -69,12 +123,12 @@ export function useSettings() {
     mutationFn: () =>
       api.put<UserSettings>('/settings', SETTINGS_DEFAULTS),
     onSuccess: (updated) => {
-      qc.setQueryData(['settings'], updated);
+      qc.setQueryData(['settings'], withSettingsDefaults(updated));
     },
   });
 
   return {
-    settings:       query.data,
+    settings:       query.data ? withSettingsDefaults(query.data) : undefined,
     isLoading:      query.isLoading,
     updateSettings: (updates: PartialSettings) => updateMutation.mutateAsync(updates),
     resetSettings:  () => resetMutation.mutateAsync(),
