@@ -20,7 +20,7 @@ export interface MarketMoversData {
 }
 
 async function fetchMovers(): Promise<MarketMoversData> {
-  const res = await fetch(`${API_BASE}/api/market/movers`, {
+  const res = await fetch(`${API_BASE}/market/movers`, {
     headers: { Accept: 'application/json' },
   });
 

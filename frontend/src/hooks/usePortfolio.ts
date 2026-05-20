@@ -22,7 +22,7 @@ export function usePortfolio() {
   // ── Fetch all portfolios ──────────────────────────────────────────────────
   const listsQuery = useQuery<Portfolio[]>({
     queryKey: ['portfolios'],
-    queryFn: () => api.get<Portfolio[]>('/api/portfolios'),
+    queryFn: () => api.get<Portfolio[]>('/portfolios'),
     retry: 1,
   });
 
@@ -31,7 +31,7 @@ export function usePortfolio() {
   // ── Fetch items ───────────────────────────────────────────────────────────
   const itemsQuery = useQuery<Portfolio>({
     queryKey: ['portfolio', portfolioId],
-    queryFn: () => api.get<Portfolio>(`/api/portfolios/${portfolioId}`),
+    queryFn: () => api.get<Portfolio>(`/portfolios/${portfolioId}`),
     enabled: !!portfolioId,
     retry: 1,
   });
@@ -41,7 +41,7 @@ export function usePortfolio() {
   // ── Auto-create default portfolio ─────────────────────────────────────────
   const createDefault = useMutation({
     mutationFn: () =>
-      api.post<Portfolio>('/api/portfolios', { name: 'My Portfolio' }),
+      api.post<Portfolio>('/portfolios', { name: 'My Portfolio' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portfolios'] });
     },
@@ -58,7 +58,7 @@ export function usePortfolio() {
   // ── Add holding ───────────────────────────────────────────────────────────
   const addHolding = useMutation({
     mutationFn: (input: AddHoldingInput) =>
-      api.post<PortfolioItem>(`/api/portfolios/${portfolioId}/items`, input),
+      api.post<PortfolioItem>(`/portfolios/${portfolioId}/items`, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portfolio', portfolioId] });
     },
@@ -67,7 +67,7 @@ export function usePortfolio() {
   // ── Remove holding ────────────────────────────────────────────────────────
   const removeHolding = useMutation({
     mutationFn: (itemId: number) =>
-      api.delete(`/api/portfolio-items/${itemId}`),
+      api.delete(`/portfolio-items/${itemId}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portfolio', portfolioId] });
     },
@@ -76,7 +76,7 @@ export function usePortfolio() {
   // ── Update holding ────────────────────────────────────────────────────────
   const updateHolding = useMutation({
     mutationFn: ({ itemId, data }: { itemId: number; data: Partial<AddHoldingInput> }) =>
-      api.put<PortfolioItem>(`/api/portfolio-items/${itemId}`, data),
+      api.put<PortfolioItem>(`/portfolio-items/${itemId}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portfolio', portfolioId] });
     },

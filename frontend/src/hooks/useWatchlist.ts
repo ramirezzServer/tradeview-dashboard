@@ -22,7 +22,7 @@ export function useWatchlist() {
   // ── Fetch all watchlists ──────────────────────────────────────────────────
   const listsQuery = useQuery<Watchlist[]>({
     queryKey: ['watchlists'],
-    queryFn: () => api.get<Watchlist[]>('/api/watchlists'),
+    queryFn: () => api.get<Watchlist[]>('/watchlists'),
     retry: 1,
   });
 
@@ -32,7 +32,7 @@ export function useWatchlist() {
   // ── Fetch items for the first watchlist ──────────────────────────────────
   const itemsQuery = useQuery<Watchlist>({
     queryKey: ['watchlist', watchlistId],
-    queryFn: () => api.get<Watchlist>(`/api/watchlists/${watchlistId}`),
+    queryFn: () => api.get<Watchlist>(`/watchlists/${watchlistId}`),
     enabled: !!watchlistId,
     retry: 1,
   });
@@ -42,7 +42,7 @@ export function useWatchlist() {
   // ── Create default watchlist if user has none ─────────────────────────────
   const createDefault = useMutation({
     mutationFn: () =>
-      api.post<Watchlist>('/api/watchlists', { name: 'My Watchlist' }),
+      api.post<Watchlist>('/watchlists', { name: 'My Watchlist' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['watchlists'] });
     },
@@ -59,7 +59,7 @@ export function useWatchlist() {
   // ── Add symbol ────────────────────────────────────────────────────────────
   const addSymbol = useMutation({
     mutationFn: (symbol: string) =>
-      api.post<WatchlistItem>(`/api/watchlists/${watchlistId}/items`, { symbol }),
+      api.post<WatchlistItem>(`/watchlists/${watchlistId}/items`, { symbol }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['watchlist', watchlistId] });
     },
@@ -68,7 +68,7 @@ export function useWatchlist() {
   // ── Remove item ───────────────────────────────────────────────────────────
   const removeItem = useMutation({
     mutationFn: (itemId: number) =>
-      api.delete(`/api/watchlist-items/${itemId}`),
+      api.delete(`/watchlist-items/${itemId}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['watchlist', watchlistId] });
     },

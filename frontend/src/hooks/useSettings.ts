@@ -52,14 +52,14 @@ export function useSettings() {
 
   const query = useQuery<UserSettings>({
     queryKey: ['settings'],
-    queryFn: () => api.get<UserSettings>('/api/settings'),
+    queryFn: () => api.get<UserSettings>('/settings'),
     retry: 1,
     staleTime: 60_000, // settings don't change often — cache for 1 min
   });
 
   const updateMutation = useMutation({
     mutationFn: (updates: PartialSettings) =>
-      api.put<UserSettings>('/api/settings', updates),
+      api.put<UserSettings>('/settings', updates),
     onSuccess: (updated) => {
       qc.setQueryData(['settings'], updated);
     },
@@ -67,7 +67,7 @@ export function useSettings() {
 
   const resetMutation = useMutation({
     mutationFn: () =>
-      api.put<UserSettings>('/api/settings', SETTINGS_DEFAULTS),
+      api.put<UserSettings>('/settings', SETTINGS_DEFAULTS),
     onSuccess: (updated) => {
       qc.setQueryData(['settings'], updated);
     },

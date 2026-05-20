@@ -135,7 +135,7 @@ async function fetchFromBackend<T>(
 
 /** Live stock quote via Laravel → Finnhub /quote */
 export async function getQuote(symbol: string): Promise<FinnhubQuote> {
-  return fetchFromBackend<FinnhubQuote>(`/api/market/quote/${encodeURIComponent(symbol)}`);
+  return fetchFromBackend<FinnhubQuote>(`/market/quote/${encodeURIComponent(symbol)}`);
 }
 
 /**
@@ -152,7 +152,7 @@ export async function getCandles(
   to: number
 ): Promise<FinnhubCandle> {
   return fetchFromBackend<FinnhubCandle>(
-    `/api/market/candles/${encodeURIComponent(symbol)}`,
+    `/market/candles/${encodeURIComponent(symbol)}`,
     { resolution, from, to }
   );
 }
@@ -170,7 +170,7 @@ export async function getAlternativeCandles(
   to: number
 ): Promise<FinnhubCandle> {
   return fetchFromBackend<FinnhubCandle>(
-    `/api/market/candles-alt/${encodeURIComponent(symbol)}`,
+    `/market/candles-alt/${encodeURIComponent(symbol)}`,
     { from, to }
   );
 }
@@ -180,7 +180,7 @@ export async function getMarketNews(
   category = 'general',
   minId = 0
 ): Promise<FinnhubNewsItem[]> {
-  return fetchFromBackend<FinnhubNewsItem[]>('/api/market/news', { category, minId });
+  return fetchFromBackend<FinnhubNewsItem[]>('/market/news', { category, minId });
 }
 
 /** Company-specific news via Laravel → Finnhub /company-news */
@@ -190,19 +190,19 @@ export async function getCompanyNews(
   to: string
 ): Promise<FinnhubNewsItem[]> {
   return fetchFromBackend<FinnhubNewsItem[]>(
-    `/api/market/company-news/${encodeURIComponent(symbol)}`,
+    `/market/company-news/${encodeURIComponent(symbol)}`,
     { from, to }
   );
 }
 
 /** Company profile via Laravel → Finnhub /stock/profile2 */
 export async function getCompanyProfile(symbol: string): Promise<FinnhubProfile> {
-  return fetchFromBackend<FinnhubProfile>(`/api/market/profile/${encodeURIComponent(symbol)}`);
+  return fetchFromBackend<FinnhubProfile>(`/market/profile/${encodeURIComponent(symbol)}`);
 }
 
 /** Basic financial metrics via Laravel → Finnhub /stock/metric */
 export async function getBasicFinancials(symbol: string): Promise<FinnhubBasicFinancials> {
   return fetchFromBackend<FinnhubBasicFinancials>(
-    `/api/market/financials/${encodeURIComponent(symbol)}`
+    `/market/financials/${encodeURIComponent(symbol)}`
   );
 }

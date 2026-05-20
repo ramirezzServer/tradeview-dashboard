@@ -3,8 +3,8 @@
 // crypto symbols, normalizes them into a single unified shape, and exposes a
 // consistent live/unavailable status per symbol.
 //
-// Stocks  → Finnhub /api/market/quote/{symbol}     (via React Query per-symbol)
-// Crypto  → CoinGecko /api/market/crypto/prices    (one request for all)
+// Stocks  → Finnhub /market/quote/{symbol}     (via React Query per-symbol)
+// Crypto  → CoinGecko /market/crypto/prices    (one request for all)
 //
 // Both sources share the same normalized NormalizedQuote interface so components
 // do not need to branch on asset class.

@@ -22,10 +22,6 @@ export function removeToken(): void {
 
 function handleUnauthorized(): void {
   removeToken();
-
-  if (window.location.pathname !== '/login') {
-    window.location.assign('/login');
-  }
 }
 
 // ─── Error class ─────────────────────────────────────────────────────────────

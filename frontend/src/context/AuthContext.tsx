@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On mount: if a token exists, validate it by calling /api/auth/me
+  // On mount: if a token exists, validate it by calling /auth/me
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    api.get<AuthUser>('/api/auth/me')
+    api.get<AuthUser>('/auth/me')
       .then(setUser)
       .catch(() => {
         // Token invalid or expired — clear it
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<void> => {
     const data = await api.post<{ user: AuthUser; token: string }>(
-      '/api/auth/login',
+      '/auth/login',
       { email, password },
       false // no auth header needed for login
     );
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     passwordConfirmation: string
   ): Promise<void> => {
     const data = await api.post<{ user: AuthUser; token: string }>(
-      '/api/auth/register',
+      '/auth/register',
       { name, email, password, password_confirmation: passwordConfirmation },
       false
     );
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async (): Promise<void> => {
     try {
-      await api.post('/api/auth/logout', {});
+      await api.post('/auth/logout', {});
     } finally {
       removeToken();
       setUser(null);

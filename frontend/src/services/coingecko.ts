@@ -48,7 +48,7 @@ export async function getCryptoPrices(
 
   if (!API_BASE || clean.length === 0) return {};
 
-  const url = new URL(`${API_BASE}/api/market/crypto/prices`);
+  const url = new URL(`${API_BASE}/market/crypto/prices`);
   url.searchParams.set('symbols', clean.join(','));
 
   const controller = new AbortController();

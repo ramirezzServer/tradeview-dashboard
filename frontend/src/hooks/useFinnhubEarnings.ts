@@ -21,7 +21,7 @@ interface EarningsState {
 }
 
 async function fetchEarnings(symbol: string): Promise<EarningsEntry[]> {
-  const res = await fetch(`${API_BASE}/api/market/earnings/${encodeURIComponent(symbol)}`, {
+  const res = await fetch(`${API_BASE}/market/earnings/${encodeURIComponent(symbol)}`, {
     headers: { Accept: 'application/json' },
   });
   if (!res.ok) throw new Error(`HTTP_${res.status}`);

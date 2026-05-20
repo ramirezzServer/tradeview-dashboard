@@ -19,7 +19,7 @@ export function useSavedNews() {
 
   const query = useQuery<SavedNewsItem[]>({
     queryKey: ['saved-news'],
-    queryFn: () => api.get<SavedNewsItem[]>('/api/news/saved'),
+    queryFn: () => api.get<SavedNewsItem[]>('/news/saved'),
     retry: 1,
   });
 
@@ -27,7 +27,7 @@ export function useSavedNews() {
 
   const saveMutation = useMutation({
     mutationFn: (payload: SaveArticlePayload) =>
-      api.post<SavedNewsItem>('/api/news/saved', payload),
+      api.post<SavedNewsItem>('/news/saved', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['saved-news'] });
     },
@@ -35,14 +35,14 @@ export function useSavedNews() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, notes }: { id: number; notes: string | null }) =>
-      api.put<SavedNewsItem>(`/api/news/saved/${id}`, { notes }),
+      api.put<SavedNewsItem>(`/news/saved/${id}`, { notes }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['saved-news'] });
     },
   });
 
   const removeMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/api/news/saved/${id}`),
+    mutationFn: (id: number) => api.delete(`/news/saved/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['saved-news'] });
     },
