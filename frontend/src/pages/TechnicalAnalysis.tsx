@@ -34,7 +34,7 @@ function ProviderNotice({ error }: { error: string | null }) {
 }
 
 const TechnicalAnalysis = () => {
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
   const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
   const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
@@ -52,6 +52,16 @@ const TechnicalAnalysis = () => {
   useEffect(() => {
     setSeriesType((settings?.appearance_prefs?.chart_style ?? SETTINGS_DEFAULTS.appearance_prefs?.chart_style) as ChartStyle);
   }, [settings?.appearance_prefs?.chart_style]);
+
+  const handleTimeframeChange = (tf: Timeframe) => {
+    setTimeframe(tf);
+
+    if (settings?.chart_timeframe !== tf) {
+      void updateSettings({ chart_timeframe: tf }).catch(() => {
+        setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
+      });
+    }
+  };
 
   const p = indicators?.currentPrice ?? 0;
   const fmt = (v: number | null) => v !== null ? `$${v.toFixed(2)}` : '—';
@@ -153,7 +163,7 @@ const TechnicalAnalysis = () => {
             {(['1D', '1W', '1M', '3M'] as Timeframe[]).map(tf => (
               <button
                 key={tf}
-                onClick={() => setTimeframe(tf)}
+                onClick={() => handleTimeframeChange(tf)}
                 className={`px-2.5 py-1 rounded-md text-[9px] font-semibold transition-all ${
                   timeframe === tf
                     ? 'bg-primary/12 text-primary border border-primary/15'

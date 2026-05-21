@@ -84,7 +84,7 @@ function ChartPlaceholder({
 // ─── Main chart ───────────────────────────────────────────────────────────────
 
 export function CandlestickChart() {
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const { volumeBars } = useDashboardPrefs();
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
   const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
@@ -102,6 +102,16 @@ export function CandlestickChart() {
   useEffect(() => {
     setSeriesType((settings?.appearance_prefs?.chart_style ?? SETTINGS_DEFAULTS.appearance_prefs?.chart_style) as ChartStyle);
   }, [settings?.appearance_prefs?.chart_style]);
+
+  const handleTimeframeChange = (tf: Timeframe) => {
+    setTimeframe(tf);
+
+    if (settings?.chart_timeframe !== tf) {
+      void updateSettings({ chart_timeframe: tf }).catch(() => {
+        setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
+      });
+    }
+  };
 
   const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles('AAPL', timeframe, resolution);
 
@@ -179,7 +189,7 @@ export function CandlestickChart() {
                   ? 'bg-primary/15 text-primary shadow-[0_0_8px_-2px_hsl(var(--primary)/0.2)]'
                   : 'text-muted-foreground/50 hover:text-foreground'
               }`}
-              onClick={() => setTimeframe(tf)}
+              onClick={() => handleTimeframeChange(tf)}
             >
               {tf}
             </Button>

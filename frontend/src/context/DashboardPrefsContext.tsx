@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useSettings } from '@/hooks/useSettings';
+import { SETTINGS_DEFAULTS, useSettings } from '@/hooks/useSettings';
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -24,16 +24,27 @@ export function useDashboardPrefs(): DashboardPrefs {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function DashboardPrefsProvider({ children }: { children: ReactNode }) {
-  const { settings } = useSettings();
-  const prefs = settings?.dashboard_prefs ?? {};
+  const { settings, isLoading } = useSettings();
+  const settingsReady = Boolean(settings) || !isLoading;
+  const defaultPrefs = SETTINGS_DEFAULTS.dashboard_prefs;
+  const prefs = settings?.dashboard_prefs ?? defaultPrefs;
+
+  const value = settingsReady
+    ? {
+        aiPredictions: prefs.ai_predictions ?? defaultPrefs.ai_predictions ?? true,
+        marketMovers:  prefs.market_movers  ?? defaultPrefs.market_movers  ?? true,
+        dailyRange:    prefs.daily_range    ?? defaultPrefs.daily_range    ?? true,
+        volumeBars:    prefs.volume_bars    ?? defaultPrefs.volume_bars    ?? true,
+      }
+    : {
+        aiPredictions: false,
+        marketMovers:  false,
+        dailyRange:    false,
+        volumeBars:    false,
+      };
 
   return (
-    <DashboardPrefsContext.Provider value={{
-      aiPredictions: prefs.ai_predictions ?? true,
-      marketMovers:  prefs.market_movers  ?? true,
-      dailyRange:    prefs.daily_range    ?? true,
-      volumeBars:    prefs.volume_bars    ?? true,
-    }}>
+    <DashboardPrefsContext.Provider value={value}>
       {children}
     </DashboardPrefsContext.Provider>
   );
