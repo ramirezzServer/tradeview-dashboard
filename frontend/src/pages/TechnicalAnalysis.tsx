@@ -18,11 +18,15 @@ type ChartStyle = 'Candles' | 'Line' | 'Area';
 function ProviderNotice({ error }: { error: string | null }) {
   if (!error) return null;
   const messages: Record<string, string> = {
-    PLAN_RESTRICTION: 'Finnhub candle data requires a paid plan. Falling back to Alpha Vantage.',
-    AV_RATE_LIMITED:  'Alpha Vantage daily quota reached (25 req/day free tier). Chart data unavailable until quota resets.',
+    PROVIDER_FORBIDDEN: 'The primary provider denied candle data and fallback recovery failed.',
+    PLAN_RESTRICTION: 'The primary provider denied candle data and fallback recovery failed.',
+    AV_RATE_LIMITED:  'Alternative provider quota reached and fallback recovery failed.',
     AV_NOT_CONFIGURED: 'Alpha Vantage key not configured (ALPHA_VANTAGE_KEY). Set it in backend .env.',
     FINNHUB_KEY_MISSING: 'Finnhub API key not configured on the server.',
     NO_DATA:          'No candle data available for the selected timeframe.',
+    EMPTY_CANDLES:    'No candle data available for the selected timeframe.',
+    REQUEST_TIMEOUT:  'Chart data request timed out.',
+    FALLBACK_FAILED:  'Fallback candle data could not be loaded.',
   };
   const msg = messages[error] ?? `Chart data unavailable (${error})`;
   return (
@@ -38,10 +42,9 @@ const TechnicalAnalysis = () => {
   const [symbol, setSymbol] = useState((settings?.default_symbol ?? SETTINGS_DEFAULTS.default_symbol ?? 'AAPL').toUpperCase());
   const [symbolInput, setSymbolInput] = useState(symbol);
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
-  const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
   const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
   const technicalSeriesType: Exclude<ChartStyle, 'Candles'> = seriesType === 'Line' ? 'Line' : 'Area';
-  const { indicators, loading, error, provider, isLive } = useIndicators(symbol, timeframe, resolution);
+  const { indicators, loading, error, provider, isLive } = useIndicators(symbol, timeframe);
 
   useEffect(() => {
     const nextSymbol = (settings?.default_symbol ?? SETTINGS_DEFAULTS.default_symbol ?? 'AAPL').toUpperCase();
@@ -52,10 +55,6 @@ const TechnicalAnalysis = () => {
   useEffect(() => {
     setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
   }, [settings?.chart_timeframe]);
-
-  useEffect(() => {
-    setResolution(settings?.default_resolution ?? SETTINGS_DEFAULTS.default_resolution!);
-  }, [settings?.default_resolution]);
 
   useEffect(() => {
     setSeriesType((settings?.appearance_prefs?.chart_style ?? SETTINGS_DEFAULTS.appearance_prefs?.chart_style) as ChartStyle);
@@ -165,7 +164,7 @@ const TechnicalAnalysis = () => {
             <Skeleton className="h-4 w-32 bg-secondary/20 rounded" />
           ) : isLive ? (
             <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
-              <Wifi className="h-2.5 w-2.5" /> Live · {provider === 'finnhub' ? 'Finnhub' : provider === 'coingecko' ? 'CoinGecko' : 'Alpha Vantage'} — {symbol}
+              <Wifi className="h-2.5 w-2.5" /> Live · {provider === 'finnhub' ? 'Finnhub' : provider === 'coingecko' ? 'CoinGecko' : 'Fallback data'} — {symbol}
             </span>
           ) : (
             <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">

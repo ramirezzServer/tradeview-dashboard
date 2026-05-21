@@ -115,29 +115,30 @@ describe('fetchCandlesWithFallback', () => {
     expect(result.provider).toBe('alphavantage');
   });
 
-  it('propagates non-fallback errors without calling alphavantage', async () => {
+  it('falls back to alphavantage on rate limits', async () => {
     const deps: CandleDeps = {
       getCandles: vi.fn().mockRejectedValue(new Error('RATE_LIMITED')),
-      getAlternativeCandles: vi.fn(),
+      getAlternativeCandles: vi.fn().mockResolvedValue(validCandle),
     };
-    await expect(fetchCandlesWithFallback(...ARGS, deps)).rejects.toThrow('RATE_LIMITED');
-    expect(deps.getAlternativeCandles).not.toHaveBeenCalled();
+    const result = await fetchCandlesWithFallback(...ARGS, deps);
+    expect(result.provider).toBe('alphavantage');
   });
 
-  it('throws NO_DATA when finnhub returns empty candles', async () => {
+  it('falls back when finnhub returns empty candles', async () => {
     const empty: FinnhubCandle = { s: 'ok', t: [], o: [], h: [], l: [], c: [], v: [] };
     const deps: CandleDeps = {
       getCandles: vi.fn().mockResolvedValue(empty),
-      getAlternativeCandles: vi.fn(),
+      getAlternativeCandles: vi.fn().mockResolvedValue(validCandle),
     };
-    await expect(fetchCandlesWithFallback(...ARGS, deps)).rejects.toThrow('NO_DATA');
+    const result = await fetchCandlesWithFallback(...ARGS, deps);
+    expect(result.provider).toBe('alphavantage');
   });
 
-  it('propagates alphavantage error when fallback also fails', async () => {
+  it('normalizes fallback errors when fallback also fails', async () => {
     const deps: CandleDeps = {
       getCandles: vi.fn().mockRejectedValue(new Error('PLAN_RESTRICTION')),
       getAlternativeCandles: vi.fn().mockRejectedValue(new Error('AV_RATE_LIMITED')),
     };
-    await expect(fetchCandlesWithFallback(...ARGS, deps)).rejects.toThrow('AV_RATE_LIMITED');
+    await expect(fetchCandlesWithFallback(...ARGS, deps)).rejects.toThrow('FALLBACK_FAILED');
   });
 });

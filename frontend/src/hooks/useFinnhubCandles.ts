@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { getCandles, getAlternativeCandles, getCryptoCandles, isFinnhubConfigured } from '@/services/finnhub';
 import { isCryptoSymbol } from '@/services/coingecko';
 import {
@@ -33,6 +33,7 @@ export function useFinnhubCandles(
   });
   const [requestKey, setRequestKey] = useState(0);
   const refetch = useCallback(() => setRequestKey(key => key + 1), []);
+  const requestSeq = useRef(0);
 
   useEffect(() => {
     if (!isFinnhubConfigured()) {
@@ -41,6 +42,10 @@ export function useFinnhubCandles(
     }
 
     let cancelled = false;
+    const controller = new AbortController();
+    const requestId = requestSeq.current + 1;
+    requestSeq.current = requestId;
+
     setState(s => ({ ...s, loading: true, error: null }));
 
     const { from, to, resolution } = getRange(timeframe);
@@ -48,28 +53,38 @@ export function useFinnhubCandles(
 
     const normalizedSymbol = symbol.toUpperCase();
     const candlePromise = isCryptoSymbol(normalizedSymbol)
-      ? getCryptoCandles(normalizedSymbol, selectedResolution, from, to)
+      ? getCryptoCandles(normalizedSymbol, selectedResolution, from, to, { signal: controller.signal })
           .then(raw => {
             const data = mapCandles(raw);
-            if (data.length === 0) throw new Error('NO_DATA');
+            if (data.length === 0) throw new Error('EMPTY_CANDLES');
             return { data, provider: 'coingecko' as const };
           })
-      : fetchCandlesWithFallback(normalizedSymbol, selectedResolution, from, to, defaultDeps);
+      : fetchCandlesWithFallback(
+          normalizedSymbol,
+          selectedResolution,
+          from,
+          to,
+          defaultDeps,
+          { signal: controller.signal },
+        );
 
     candlePromise
       .then(({ data, provider }) => {
-        if (cancelled) return;
+        if (cancelled || requestSeq.current !== requestId) return;
         setState({ data, loading: false, error: null, isLive: true, provider, refetch });
       })
       .catch((e: unknown) => {
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted || requestSeq.current !== requestId) return;
         const msg = e instanceof Error ? e.message : String(e);
         // Map AV rate-limit to a distinct error code so the UI can show a specific message.
         const error = msg === 'RATE_LIMITED' ? 'AV_RATE_LIMITED' : msg;
         setState({ data: [], loading: false, error, isLive: false, provider: null, refetch });
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [symbol, timeframe, resolutionOverride, requestKey, refetch]);
 
   return state;

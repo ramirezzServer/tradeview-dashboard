@@ -97,9 +97,14 @@ export interface SectorPerformance {
  * GET a Laravel backend endpoint and unwrap the standard
  * { success, message, data } response envelope.
  */
+type RequestOptions = {
+  signal?: AbortSignal;
+};
+
 async function fetchFromBackend<T>(
   path: string,
-  params: Record<string, string | number> = {}
+  params: Record<string, string | number> = {},
+  options: RequestOptions = {}
 ): Promise<T> {
   if (!API_BASE) {
     throw new Error('BACKEND_NOT_CONFIGURED');
@@ -113,6 +118,9 @@ async function fetchFromBackend<T>(
   });
 
   const controller = new AbortController();
+  const abortFromParent = () => controller.abort();
+  options.signal?.addEventListener('abort', abortFromParent, { once: true });
+  if (options.signal?.aborted) controller.abort();
   const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
@@ -122,9 +130,9 @@ async function fetchFromBackend<T>(
       signal: controller.signal,
     });
 
-    if (response.status === 429) throw new Error('RATE_LIMITED');
     if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (response.status === 403) throw new Error('PLAN_RESTRICTION');
+    if (response.status === 403) throw new Error('PROVIDER_FORBIDDEN');
+    if (response.status === 429) throw new Error('RATE_LIMITED');
     if (!response.ok) throw new Error(`HTTP_${response.status}`);
 
     // Unwrap Laravel envelope: { success, message, data, meta? }
@@ -147,6 +155,7 @@ async function fetchFromBackend<T>(
     throw e;
   } finally {
     clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abortFromParent);
   }
 }
 
@@ -168,11 +177,13 @@ export async function getCandles(
   symbol: string,
   resolution: string,
   from: number,
-  to: number
+  to: number,
+  options?: RequestOptions
 ): Promise<FinnhubCandle> {
   return fetchFromBackend<FinnhubCandle>(
     `/market/candles/${encodeURIComponent(symbol)}`,
-    { resolution, from, to }
+    { resolution, from, to },
+    options
   );
 }
 
@@ -187,11 +198,13 @@ export async function getAlternativeCandles(
   symbol: string,
   resolution: string,
   from: number,
-  to: number
+  to: number,
+  options?: RequestOptions
 ): Promise<FinnhubCandle> {
   return fetchFromBackend<FinnhubCandle>(
     `/market/candles-alt/${encodeURIComponent(symbol)}`,
-    { resolution, from, to }
+    { resolution, from, to },
+    options
   );
 }
 
@@ -200,11 +213,13 @@ export async function getCryptoCandles(
   symbol: string,
   resolution: string,
   from: number,
-  to: number
+  to: number,
+  options?: RequestOptions
 ): Promise<FinnhubCandle> {
   return fetchFromBackend<FinnhubCandle>(
     `/market/crypto/ohlcv/${encodeURIComponent(symbol)}`,
-    { resolution, from, to }
+    { resolution, from, to },
+    options
   );
 }
 

@@ -92,16 +92,11 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
   const { settings, updateSettings } = useSettings();
   const { volumeBars } = useDashboardPrefs();
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
-  const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
   const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
 
   useEffect(() => {
     setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
   }, [settings?.chart_timeframe]);
-
-  useEffect(() => {
-    setResolution(settings?.default_resolution ?? SETTINGS_DEFAULTS.default_resolution!);
-  }, [settings?.default_resolution]);
 
   useEffect(() => {
     setSeriesType((settings?.appearance_prefs?.chart_style ?? SETTINGS_DEFAULTS.appearance_prefs?.chart_style) as ChartStyle);
@@ -117,12 +112,12 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
     }
   };
 
-  const { data: liveData, loading, error, isLive, provider, refetch } = useFinnhubCandles(normalizedSymbol, timeframe, resolution);
+  const { data: liveData, loading, error, isLive, provider, refetch } = useFinnhubCandles(normalizedSymbol, timeframe);
 
   // ── Error routing ──────────────────────────────────────────────────────────
-  const isPlanRestriction = error === 'PLAN_RESTRICTION' || error === 'ACCESS_FORBIDDEN';
+  const isPlanRestriction = error === 'PLAN_RESTRICTION' || error === 'ACCESS_FORBIDDEN' || error === 'PROVIDER_FORBIDDEN';
   const isAvRateLimited   = error === 'AV_RATE_LIMITED';
-  const isNoData          = error === 'NO_DATA';
+  const isNoData          = error === 'NO_DATA' || error === 'EMPTY_CANDLES';
   const isOtherError      = !!error && !isPlanRestriction && !isNoData && !isAvRateLimited;
 
   const { chartData, minPrice, maxPrice } = useMemo(() => {
@@ -157,7 +152,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
             ) : isLive ? (
               <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
                 <Wifi className="h-2.5 w-2.5" />
-                {provider === 'alphavantage' ? 'Alpha Vantage' : provider === 'coingecko' ? 'CoinGecko' : 'Live'}
+                {provider === 'alphavantage' ? 'Fallback data' : provider === 'coingecko' ? 'CoinGecko' : 'Live'}
               </span>
             ) : isPlanRestriction ? (
               <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">
@@ -211,8 +206,9 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
         {!loading && isPlanRestriction && (
           <ChartPlaceholder
             icon={Lock}
-            title="Candle data requires a paid Finnhub plan"
-            body="Historical OHLCV candles are not available on the Finnhub free tier. Upgrade your Finnhub plan or switch to a provider that supports candle data on the free tier."
+            title="Provider denied candle data"
+            body="The primary provider denied this request and the fallback could not recover. Try again or choose another symbol."
+            onRetry={refetch}
           />
         )}
 

@@ -136,6 +136,31 @@ class MarketEndpointTest extends TestCase
             ->assertJsonPath('data.s', 'ok');
     }
 
+    public function test_alternative_candles_returns_calculated_data_when_provider_fails(): void
+    {
+        config([
+            'alphavantage.key' => 'test-key',
+            'alphavantage.base_url' => 'https://www.alphavantage.co/query',
+        ]);
+
+        Http::fake([
+            'https://www.alphavantage.co/query*' => Http::response([], 500),
+            "{$this->finnhubBase}/*" => Http::response([
+                'c' => 150.0, 'pc' => 149.0, 't' => 1700000000,
+            ], 200),
+        ]);
+
+        $to = now()->timestamp;
+        $from = $to - (7 * 86400);
+
+        $this->getJson("/api/market/candles-alt/AAPL?resolution=60&from={$from}&to={$to}")
+            ->assertStatus(200)
+            ->assertHeader('X-Data-Source', 'calculated')
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.s', 'ok')
+            ->assertJsonCount(168, 'data.t');
+    }
+
     public function test_market_movers_returns_empty_response_when_provider_unavailable(): void
     {
         config(['alphavantage.key' => '']);

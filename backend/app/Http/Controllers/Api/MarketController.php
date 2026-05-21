@@ -25,6 +25,7 @@ use App\Services\AlphaVantageService;
 use App\Services\FinnhubService;
 use App\Services\SimulatedCandleService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class MarketController extends Controller
 {
@@ -311,8 +312,11 @@ class MarketController extends Controller
                 (int) $request->validated('to'),
             );
 
-            if (($data['s'] ?? 'no_data') !== 'ok') {
-                return $this->error('No candle data available from alternative provider.', 404);
+            if (
+                ($data['s'] ?? 'no_data') !== 'ok'
+                || count($data['t'] ?? []) < $this->minimumFallbackCandles($request->validated('resolution'))
+            ) {
+                return $this->calculatedCandles($symbol, $request, 'alternative provider returned empty or sparse candle data');
             }
 
             return $this->success($data, 'Candles fetched from alternative provider.', 200, [
@@ -322,47 +326,72 @@ class MarketController extends Controller
             ]);
 
         } catch (AvNotConfiguredException) {
-            return $this->calculatedCandles($symbol, $request);
+            return $this->calculatedCandles($symbol, $request, 'Alpha Vantage is not configured');
         } catch (AvRateLimitedException) {
-            return $this->calculatedCandles($symbol, $request);
+            return $this->calculatedCandles($symbol, $request, 'Alpha Vantage rate limit reached');
         } catch (AvInvalidSymbolException) {
             return $this->error(
                 "Symbol '{$symbol}' was not recognised by the alternative provider.",
                 404
             );
         } catch (AvRequestFailedException) {
-            return $this->calculatedCandles($symbol, $request);
+            return $this->calculatedCandles($symbol, $request, 'Alpha Vantage request failed');
         } catch (\Throwable) {
-            return $this->calculatedCandles($symbol, $request);
+            return $this->calculatedCandles($symbol, $request, 'Alpha Vantage fallback failed unexpectedly');
         }
     }
 
-    private function calculatedCandles(string $symbol, CandleRequest $request): JsonResponse
+    private function calculatedCandles(string $symbol, CandleRequest $request, string $reason): JsonResponse
+    {
+        Log::warning('Using calculated candle fallback.', [
+            'symbol' => $symbol,
+            'resolution' => $request->validated('resolution'),
+            'from' => (int) $request->validated('from'),
+            'to' => (int) $request->validated('to'),
+            'reason' => $reason,
+        ]);
+
+        $price = $this->fallbackQuotePrice($symbol);
+
+        $data = app(SimulatedCandleService::class)->generateEquityCandles(
+            $symbol,
+            $price,
+            (int) $request->validated('from'),
+            (int) $request->validated('to'),
+            $request->validated('resolution'),
+        );
+
+        return $this->success($data, 'Candles calculated from fallback data.', 200, [
+            'symbol' => $symbol,
+            'provider' => 'calculated',
+            'count' => count($data['t'] ?? []),
+        ])->header('X-Data-Source', 'calculated');
+    }
+
+    private function fallbackQuotePrice(string $symbol): float
     {
         try {
             $quote = $this->finnhub->getQuote($symbol);
             $price = (float) ($quote['c'] ?? $quote['pc'] ?? 0);
 
-            if ($price <= 0) {
-                return $this->error('Could not calculate candle fallback without a current quote.', 503);
+            if ($price > 0) {
+                return $price;
             }
-
-            $data = app(SimulatedCandleService::class)->generateEquityCandles(
-                $symbol,
-                $price,
-                (int) $request->validated('from'),
-                (int) $request->validated('to'),
-                $request->validated('resolution'),
-            );
-
-            return $this->success($data, 'Candles calculated from live quote fallback.', 200, [
-                'symbol' => $symbol,
-                'provider' => 'calculated',
-                'count' => count($data['t'] ?? []),
-            ])->header('X-Data-Source', 'calculated');
         } catch (\RuntimeException $e) {
-            return $this->finnhubError($e);
+            Log::warning('Could not fetch quote for candle fallback; using deterministic estimate.', [
+                'symbol' => $symbol,
+                'exception' => $e::class,
+            ]);
         }
+
+        $hash = hexdec(substr(hash('crc32b', $symbol), 0, 6));
+
+        return round(50 + ($hash % 45000) / 100, 2);
+    }
+
+    private function minimumFallbackCandles(string $resolution): int
+    {
+        return in_array($resolution, ['1', '5', '15', '30', '60'], true) ? 14 : 1;
     }
 
     // ─── Error Handling ───────────────────────────────────────────────────────

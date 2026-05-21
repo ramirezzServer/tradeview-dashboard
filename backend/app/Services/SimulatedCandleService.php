@@ -95,8 +95,8 @@ class SimulatedCandleService
     {
         $days = max(1, (int) ceil(($to - $from) / 86400));
 
-        if ($resolution === '60' && $days <= 1) {
-            return [24, 3600];
+        if ($resolution === '60' && $days <= 7) {
+            return [max(24, $days * 24), 3600];
         }
 
         if ($days <= 7) return [7, 86400];

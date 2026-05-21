@@ -6,12 +6,13 @@ export type CandleProvider = 'finnhub' | 'alphavantage' | 'coingecko'
 export type CandleResult = { data: OHLCVData[]; provider: CandleProvider }
 
 export type CandleDeps = {
-  getCandles: (symbol: string, resolution: string, from: number, to: number) => Promise<FinnhubCandle>
-  getAlternativeCandles: (symbol: string, resolution: string, from: number, to: number) => Promise<FinnhubCandle>
+  getCandles: (symbol: string, resolution: string, from: number, to: number, options?: { signal?: AbortSignal }) => Promise<FinnhubCandle>
+  getAlternativeCandles: (symbol: string, resolution: string, from: number, to: number, options?: { signal?: AbortSignal }) => Promise<FinnhubCandle>
 }
 
 export function mapCandles(raw: FinnhubCandle): OHLCVData[] {
   if (raw.s !== 'ok' || !raw.t?.length) return []
+  if (![raw.o, raw.h, raw.l, raw.c, raw.v].every(values => values?.length === raw.t.length)) return []
   return raw.t.map((t, i) => ({
     date:   new Date(t * 1000).toISOString().split('T')[0],
     open:   raw.o[i],
@@ -34,7 +35,21 @@ export function getRange(tf: Timeframe): { from: number; to: number; resolution:
 }
 
 // Errors from Finnhub that mean "this plan doesn't cover candles — try the fallback".
-const FALLBACK_TRIGGERS = new Set(['PLAN_RESTRICTION', 'ACCESS_FORBIDDEN'])
+const FALLBACK_TRIGGERS = new Set([
+  'PROVIDER_FORBIDDEN',
+  'PLAN_RESTRICTION',
+  'ACCESS_FORBIDDEN',
+  'REQUEST_TIMEOUT',
+  'EMPTY_CANDLES',
+  'NO_DATA',
+  'RATE_LIMITED',
+  'BACKEND_ERROR',
+  'HTTP_422',
+  'HTTP_429',
+  'HTTP_500',
+  'HTTP_502',
+  'HTTP_503',
+])
 
 export async function fetchCandlesWithFallback(
   symbol: string,
@@ -42,19 +57,24 @@ export async function fetchCandlesWithFallback(
   from: number,
   to: number,
   deps: CandleDeps,
+  options?: { signal?: AbortSignal },
 ): Promise<CandleResult> {
   try {
-    const raw  = await deps.getCandles(symbol, resolution, from, to)
+    const raw  = await deps.getCandles(symbol, resolution, from, to, options)
     const data = mapCandles(raw)
-    if (data.length === 0) throw new Error('NO_DATA')
+    if (data.length === 0) throw new Error('EMPTY_CANDLES')
     return { data, provider: 'finnhub' }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     if (!FALLBACK_TRIGGERS.has(msg)) throw e
 
-    const raw  = await deps.getAlternativeCandles(symbol, resolution, from, to)
-    const data = mapCandles(raw)
-    if (data.length === 0) throw new Error('NO_DATA')
-    return { data, provider: 'alphavantage' }
+    try {
+      const raw  = await deps.getAlternativeCandles(symbol, resolution, from, to, options)
+      const data = mapCandles(raw)
+      if (data.length === 0) throw new Error('EMPTY_CANDLES')
+      return { data, provider: 'alphavantage' }
+    } catch {
+      throw new Error('FALLBACK_FAILED')
+    }
   }
 }
