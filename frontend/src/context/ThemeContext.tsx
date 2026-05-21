@@ -29,22 +29,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // ── Theme class (dark / light) ────────────────────────────────────────────
   useEffect(() => {
-    // Fall back to localStorage so the class is correct before settings load
-    const theme = settings?.theme
-      ?? (localStorage.getItem('theme') as 'dark' | 'light' | null)
-      ?? 'dark';
-
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-
-    if (settings?.theme) {
-      localStorage.setItem('theme', settings.theme);
-    }
-  }, [settings?.theme]);
+    root.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  }, []);
 
   // ── Density ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -82,10 +70,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--sidebar-ring', hsl);
   }, [settings?.appearance_prefs?.accent_color]);
 
-  const theme = settings?.theme ?? 'dark';
-
   return (
-    <ThemeContext.Provider value={{ theme }}>
+    <ThemeContext.Provider value={{ theme: 'dark' }}>
       {children}
     </ThemeContext.Provider>
   );

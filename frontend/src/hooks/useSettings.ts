@@ -52,6 +52,7 @@ export function withSettingsDefaults(settings?: PartialSettings | null): UserSet
   const merged = {
     ...SETTINGS_DEFAULTS,
     ...settings,
+    theme: 'dark',
   } as UserSettings;
 
   for (const key of JSON_PREF_KEYS) {
@@ -66,7 +67,7 @@ export function withSettingsDefaults(settings?: PartialSettings | null): UserSet
 
 function mergeSettingsUpdate(current: UserSettings | undefined, updates: PartialSettings): PartialSettings {
   const base = withSettingsDefaults(current);
-  const merged: PartialSettings = { ...updates };
+  const merged: PartialSettings = { ...updates, theme: 'dark' };
 
   for (const key of JSON_PREF_KEYS) {
     if (updates[key] !== undefined) {

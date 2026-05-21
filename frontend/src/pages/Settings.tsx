@@ -103,7 +103,6 @@ const Settings = () => {
     '1m': '1', '5m': '5', '15m': '15', '1h': '60', '1D': 'D', '1W': 'W', '1M': 'M',
   };
 
-  const theme          = settings?.theme === 'light' ? 'Light' : 'Dark';
   const density        = settings?.density        ?? SETTINGS_DEFAULTS.density!;
   const fontSize       = settings?.font_size      ?? SETTINGS_DEFAULTS.font_size!;
   const chartTimeframe = settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe!;
@@ -223,14 +222,6 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Display</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <SelectOption
-                label="Theme"
-                desc="Application color theme"
-                options={['Dark', 'Light']}
-                value={theme}
-                onChange={v => save({ theme: v === 'Light' ? 'light' : 'dark' })}
-                isSaving={isSaving}
-              />
               <SelectOption
                 label="Density"
                 desc="UI element spacing"
