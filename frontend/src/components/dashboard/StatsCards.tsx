@@ -3,8 +3,6 @@ import { useMarketQuote } from '@/hooks/useMarketQuote';
 import { useFinnhubProfile } from '@/hooks/useFinnhubProfile';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const SYMBOL = 'AAPL';
-
 const formatLarge = (n: number) => {
   if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
   if (n >= 1e9)  return `$${(n / 1e9).toFixed(2)}B`;
@@ -12,13 +10,18 @@ const formatLarge = (n: number) => {
   return n.toLocaleString();
 };
 
-export function StatsCards() {
+interface StatsCardsProps {
+  symbol?: string;
+}
+
+export function StatsCards({ symbol = 'AAPL' }: StatsCardsProps) {
+  const normalizedSymbol = symbol.toUpperCase();
   // Shared React Query cache — DailyRangeCard uses the same queryKey ['quote', 'AAPL']
   // so both components share one request.
-  const { data: quote, isLoading: quoteLoading, isLive } = useMarketQuote(SYMBOL);
+  const { data: quote, isLoading: quoteLoading, isLive } = useMarketQuote(normalizedSymbol);
 
   // Profile gives us 52-week range, market cap (from financials metric)
-  const { data: profileData, loading: profileLoading } = useFinnhubProfile(SYMBOL);
+  const { data: profileData, loading: profileLoading } = useFinnhubProfile(normalizedSymbol);
   const metrics = profileData?.metrics ?? {};
   const profile = profileData?.profile ?? null;
 
@@ -47,7 +50,7 @@ export function StatsCards() {
     {
       label: 'Current Price',
       value:    isLive                     ? `$${currentPrice.toFixed(2)}`                          : null,
-      sub:      SYMBOL,
+      sub:      normalizedSymbol,
       icon:     DollarSign,
       accent:   false,
     },
@@ -94,7 +97,7 @@ export function StatsCards() {
           </div>
         ) : isLive ? (
           <div className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
-            <Wifi className="h-2.5 w-2.5" /> Live · AAPL
+            <Wifi className="h-2.5 w-2.5" /> Live · {normalizedSymbol}
           </div>
         ) : (
           <div className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium">

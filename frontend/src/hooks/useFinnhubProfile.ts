@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getCompanyProfile, getBasicFinancials, FinnhubProfile, isFinnhubConfigured } from '@/services/finnhub';
 
 export interface ProfileData {
@@ -14,37 +14,37 @@ interface ProfileState {
 }
 
 export function useFinnhubProfile(symbol: string): ProfileState {
-  const [state, setState] = useState<ProfileState>({
-    data: { profile: null, metrics: {} },
-    loading: true,
-    error: null,
-    isLive: false,
+  const normalizedSymbol = symbol.toUpperCase();
+  const configured = isFinnhubConfigured();
+
+  const query = useQuery<ProfileData, Error>({
+    queryKey: ['profile', normalizedSymbol],
+    queryFn: async () => {
+      const [profile, financials] = await Promise.all([
+        getCompanyProfile(normalizedSymbol),
+        getBasicFinancials(normalizedSymbol),
+      ]);
+
+      return { profile, metrics: financials.metric || {} };
+    },
+    enabled: configured && Boolean(normalizedSymbol),
+    staleTime: 15 * 60_000,
+    retry: 1,
   });
 
-  useEffect(() => {
-    if (!isFinnhubConfigured()) {
-      setState({ data: { profile: null, metrics: {} }, loading: false, error: 'FINNHUB_KEY_MISSING', isLive: false });
-      return;
-    }
+  if (!configured) {
+    return {
+      data: { profile: null, metrics: {} },
+      loading: false,
+      error: 'FINNHUB_KEY_MISSING',
+      isLive: false,
+    };
+  }
 
-    let cancelled = false;
-
-    Promise.all([getCompanyProfile(symbol), getBasicFinancials(symbol)])
-      .then(([profile, financials]) => {
-        if (cancelled) return;
-        setState({
-          data: { profile, metrics: financials.metric || {} },
-          loading: false,
-          error: null,
-          isLive: true,
-        });
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) setState(s => ({ ...s, loading: false, error: e instanceof Error ? e.message : String(e), isLive: false }));
-      });
-
-    return () => { cancelled = true; };
-  }, [symbol]);
-
-  return state;
+  return {
+    data: query.data ?? { profile: null, metrics: {} },
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    isLive: Boolean(query.data?.profile) && !query.isError,
+  };
 }

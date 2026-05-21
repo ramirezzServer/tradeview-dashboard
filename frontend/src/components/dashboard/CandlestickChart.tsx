@@ -83,7 +83,12 @@ function ChartPlaceholder({
 
 // ─── Main chart ───────────────────────────────────────────────────────────────
 
-export function CandlestickChart() {
+interface CandlestickChartProps {
+  symbol?: string;
+}
+
+export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
+  const normalizedSymbol = symbol.toUpperCase();
   const { settings, updateSettings } = useSettings();
   const { volumeBars } = useDashboardPrefs();
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
@@ -113,7 +118,7 @@ export function CandlestickChart() {
     }
   };
 
-  const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles('AAPL', timeframe, resolution);
+  const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles(normalizedSymbol, timeframe, resolution);
 
   // Retry by changing the key so the parent re-mounts the hook's effect
   const retry = () => setRetryKey(k => k + 1);
@@ -150,7 +155,7 @@ export function CandlestickChart() {
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-foreground tracking-tight">AAPL — Apple Inc.</h2>
+            <h2 className="text-base font-bold text-foreground tracking-tight">{normalizedSymbol}</h2>
             {loading ? (
               <span className="text-[8px] text-muted-foreground/30 font-medium">Loading…</span>
             ) : isLive ? (

@@ -57,8 +57,12 @@ export function usePortfolio() {
 
   // ── Add holding ───────────────────────────────────────────────────────────
   const addHolding = useMutation({
-    mutationFn: (input: AddHoldingInput) =>
-      api.post<PortfolioItem>(`/portfolios/${portfolioId}/items`, input),
+    mutationFn: (input: AddHoldingInput) => {
+      if (!portfolioId) {
+        throw new ApiError(0, 'Portfolio is still being created. Please try again.');
+      }
+      return api.post<PortfolioItem>(`/portfolios/${portfolioId}/items`, input);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['portfolio', portfolioId] });
     },
@@ -85,13 +89,13 @@ export function usePortfolio() {
   return {
     items,
     portfolioId,
-    isLoading: listsQuery.isLoading || (!!portfolioId && itemsQuery.isLoading),
+    isLoading: listsQuery.isLoading || isCreating || (!!portfolioId && itemsQuery.isLoading),
     addHolding: (input: AddHoldingInput) => addHolding.mutateAsync(input),
     removeHolding: (itemId: number) => removeHolding.mutateAsync(itemId),
     updateHolding: (itemId: number, data: Partial<AddHoldingInput>) =>
       updateHolding.mutateAsync({ itemId, data }),
     addError: addHolding.error instanceof ApiError ? addHolding.error.message : null,
-    isAdding: addHolding.isPending,
+    isAdding: addHolding.isPending || isCreating,
     isRemoving: removeHolding.isPending,
   };
 }

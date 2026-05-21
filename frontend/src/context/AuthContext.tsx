@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, getToken, setToken, removeToken, registerUnauthorizedHandler } from '@/services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const qc = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unregisterUnauthorizedHandler = registerUnauthorizedHandler(() => {
       setUser(null);
+      qc.clear();
     });
 
     const token = getToken();
@@ -46,11 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         // Token invalid or expired — clear it
         removeToken();
+        qc.clear();
       })
       .finally(() => setIsLoading(false));
 
     return unregisterUnauthorizedHandler;
-  }, []);
+  }, [qc]);
 
   const login = async (email: string, password: string): Promise<void> => {
     const data = await api.post<{ user: AuthUser; token: string }>(
@@ -59,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       false // no auth header needed for login
     );
     setToken(data.token);
+    qc.clear();
     setUser(data.user);
   };
 
@@ -74,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       false
     );
     setToken(data.token);
+    qc.clear();
     setUser(data.user);
   };
 
@@ -82,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post('/auth/logout', {});
     } finally {
       removeToken();
+      qc.clear();
       setUser(null);
     }
   };

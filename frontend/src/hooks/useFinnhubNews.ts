@@ -18,6 +18,7 @@ export function useFinnhubNews(category = 'general'): NewsState {
     }
 
     let cancelled = false;
+    setState(s => ({ ...s, loading: true, error: null }));
 
     getMarketNews(category)
       .then(items => {

@@ -10,7 +10,12 @@ import { predictionData } from '@/data/mockStockData';
 // A genuine AI forecast would require integrating an ML inference service.
 // ──────────────────────────────────────────────────────────────────────────────
 
-export function AIPredictionCard() {
+interface AIPredictionCardProps {
+  symbol?: string;
+}
+
+export function AIPredictionCard({ symbol = 'AAPL' }: AIPredictionCardProps) {
+  const normalizedSymbol = symbol.toUpperCase();
   const prices = predictionData.map(d => d.predicted);
   const min = Math.floor(Math.min(...prices) - 2);
   const max = Math.ceil(Math.max(...prices) + 2);
@@ -36,7 +41,7 @@ export function AIPredictionCard() {
           </Badge>
         </div>
         <p className="text-[9px] text-muted-foreground/40 mt-1 tracking-wider">
-          AAPL · 7-day illustrative forecast
+          {normalizedSymbol} · 7-day illustrative forecast
         </p>
       </div>
       <div className="relative px-1 pb-2">

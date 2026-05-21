@@ -2,10 +2,8 @@ import { useMarketQuote } from '@/hooks/useMarketQuote';
 import { useFinnhubProfile } from '@/hooks/useFinnhubProfile';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const SYMBOL = 'AAPL';
-
 /**
- * Shows the day trading range and 52-week range for AAPL.
+ * Shows the day trading range and 52-week range for the selected symbol.
  *
  * Data sources:
  *  - Day range (h, l, c, o, pc)  — Finnhub /quote   → useMarketQuote (shared cache)
@@ -13,12 +11,18 @@ const SYMBOL = 'AAPL';
  *
  * No data is hardcoded or simulated.
  */
-export function DailyRangeCard() {
+interface DailyRangeCardProps {
+  symbol?: string;
+}
+
+export function DailyRangeCard({ symbol = 'AAPL' }: DailyRangeCardProps) {
+  const normalizedSymbol = symbol.toUpperCase();
+
   // Shares the React Query cache with StatsCards (same queryKey)
-  const { data: quote, isLoading: quoteLoading, isLive } = useMarketQuote(SYMBOL);
+  const { data: quote, isLoading: quoteLoading, isLive } = useMarketQuote(normalizedSymbol);
 
   // Shares cache with StatsCards as well
-  const { data: profileData, loading: profileLoading } = useFinnhubProfile(SYMBOL);
+  const { data: profileData, loading: profileLoading } = useFinnhubProfile(normalizedSymbol);
   const metrics = profileData?.metrics ?? {};
 
   const loading = quoteLoading || profileLoading;

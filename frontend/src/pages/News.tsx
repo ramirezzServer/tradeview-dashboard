@@ -129,15 +129,21 @@ const News = () => {
   const { settings } = useSettings();
   const preferredNewsCategory = settings?.preferred_news_category ?? 'general';
   const [activeCategory, setActiveCategory] = useState<Category>('All');
-  const { data: liveNews, loading, isLive } = useFinnhubNews(preferredNewsCategory);
+  const preferredUiCategory = preferredCategoryMap[preferredNewsCategory] ?? 'All';
+  const activeFinnhubCategory = activeCategory === preferredUiCategory
+    ? preferredNewsCategory
+    : activeCategory === 'Crypto'
+      ? 'crypto'
+      : 'general';
+  const { data: liveNews, loading, isLive } = useFinnhubNews(activeFinnhubCategory);
   const { savedNews, isSaved, saveArticle, updateNotes, removeArticle, isSaving } = useSavedNews();
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
 
   useEffect(() => {
-    setActiveCategory(preferredCategoryMap[preferredNewsCategory] ?? 'All');
-  }, [preferredNewsCategory]);
+    setActiveCategory(preferredUiCategory);
+  }, [preferredUiCategory]);
 
   const newsItems = useMemo(() => {
     if (isLive && liveNews.length > 0) return mapFinnhubNews(liveNews);

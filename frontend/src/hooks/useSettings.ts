@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/services/api';
+import { api, getToken } from '@/services/api';
 import type { UserSettings, PartialSettings } from '@shared/schemas/settings';
 
 export type { UserSettings, PartialSettings };
@@ -89,10 +89,12 @@ function mergeSettingsUpdate(current: UserSettings | undefined, updates: Partial
  */
 export function useSettings() {
   const qc = useQueryClient();
+  const hasToken = Boolean(getToken());
 
   const query = useQuery<UserSettings>({
     queryKey: ['settings'],
     queryFn: () => api.get<UserSettings>('/settings'),
+    enabled: hasToken,
     retry: 1,
     staleTime: 60_000, // settings don't change often — cache for 1 min
   });

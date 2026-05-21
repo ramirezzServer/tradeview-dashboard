@@ -5,6 +5,7 @@ import { useFinnhubProfile } from '@/hooks/useFinnhubProfile';
 import { useFinnhubEarnings } from '@/hooks/useFinnhubEarnings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CompanyLogo } from '@/components/ui/CompanyLogo';
+import { SETTINGS_DEFAULTS, useSettings } from '@/hooks/useSettings';
 
 // ─── Fallback data (shown when Finnhub unavailable) ───────────────────────────
 
@@ -66,11 +67,11 @@ function quarterLabel(period: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const SYMBOL = 'AAPL';
-
 const FinancialSnapshot = () => {
-  const { data: profileData, loading: profileLoading, isLive: profileLive } = useFinnhubProfile(SYMBOL);
-  const { data: earnings,    loading: earningsLoading, isLive: earningsLive } = useFinnhubEarnings(SYMBOL);
+  const { settings } = useSettings();
+  const symbol = (settings?.default_symbol ?? SETTINGS_DEFAULTS.default_symbol ?? 'AAPL').toUpperCase();
+  const { data: profileData, loading: profileLoading, isLive: profileLive } = useFinnhubProfile(symbol);
+  const { data: earnings,    loading: earningsLoading, isLive: earningsLive } = useFinnhubEarnings(symbol);
 
   const loading = profileLoading || earningsLoading;
 
@@ -170,7 +171,7 @@ const FinancialSnapshot = () => {
                 {i === 0 && profileLive && profileData.profile && (
                   <CompanyLogo
                     logoUrl={profileData.profile.logo}
-                    symbol={SYMBOL}
+                    symbol={symbol}
                     size="sm"
                     className="mb-2"
                   />
@@ -191,7 +192,7 @@ const FinancialSnapshot = () => {
             <div className="glass-card rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart2 className="h-3.5 w-3.5 text-primary/70" />
-                <h2 className="section-header text-foreground/80">EPS History — {SYMBOL}</h2>
+                <h2 className="section-header text-foreground/80">EPS History — {symbol}</h2>
                 <span className="ml-auto text-[9px] text-muted-foreground/30">
                   {earningsLive ? 'Earnings per share (actual)' : 'Illustrative data'}
                 </span>

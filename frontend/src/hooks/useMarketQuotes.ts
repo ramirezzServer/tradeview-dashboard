@@ -35,8 +35,9 @@ export interface NormalizedQuote {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useMarketQuotes(symbols: string[], liveUpdates = true) {
-  const stockSymbols  = symbols.filter(s => !isCryptoSymbol(s));
-  const cryptoSymbols = symbols.filter(s => isCryptoSymbol(s));
+  const uniqueSymbols = [...new Set(symbols.map(s => s.toUpperCase().trim()).filter(Boolean))];
+  const stockSymbols  = uniqueSymbols.filter(s => !isCryptoSymbol(s));
+  const cryptoSymbols = uniqueSymbols.filter(s => isCryptoSymbol(s));
   const configured    = isFinnhubConfigured();
 
   // Individual queries for each stock symbol — React Query deduplicates

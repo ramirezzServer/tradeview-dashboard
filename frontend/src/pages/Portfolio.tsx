@@ -2,7 +2,7 @@ import { useState, useMemo, FormEvent } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Briefcase, TrendingUp, TrendingDown, Wallet,
-  PieChart, Award, AlertTriangle, Plus, X, Loader2, RefreshCw,
+  PieChart, Award, AlertTriangle, Plus, X, Loader2, RefreshCw, Pencil, Check,
 } from 'lucide-react';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
@@ -113,8 +113,11 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const Portfolio = () => {
-  const { items, isLoading, addHolding, removeHolding, isAdding, addError } = usePortfolio();
+  const { items, isLoading, addHolding, removeHolding, updateHolding, isAdding, addError } = usePortfolio();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editAvgCost, setEditAvgCost] = useState('');
   const qc = useQueryClient();
 
   // ── Unified live quotes (stocks via Finnhub, crypto via CoinGecko) ─────────
@@ -177,6 +180,20 @@ const Portfolio = () => {
   const handleAddHolding = async (symbol: string, quantity: number, avgCost: number) => {
     await addHolding({ symbol, quantity, average_cost: avgCost, notes: symbol });
     setShowAddForm(false);
+  };
+
+  const startEdit = (holding: { id: number; shares: number; avgCost: number }) => {
+    setEditingId(holding.id);
+    setEditQuantity(String(holding.shares));
+    setEditAvgCost(String(holding.avgCost));
+  };
+
+  const saveEdit = async (id: number) => {
+    const quantity = parseFloat(editQuantity);
+    const averageCost = parseFloat(editAvgCost);
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(averageCost) || averageCost <= 0) return;
+    await updateHolding(id, { quantity, average_cost: averageCost });
+    setEditingId(null);
   };
 
   const anyEstimated = holdings.some(h => h.isEstimated);
@@ -311,6 +328,7 @@ const Portfolio = () => {
                 const pnl      = (h.current - h.avgCost) * h.shares;
                 const pnlPct   = h.avgCost > 0 ? ((h.current - h.avgCost) / h.avgCost) * 100 : 0;
                 const positive = pnl >= 0;
+                const editing = editingId === h.id;
                 return (
                   <div
                     key={h.id}
@@ -323,8 +341,34 @@ const Portfolio = () => {
                         <p className="text-app-xs text-muted-foreground/35">{h.name !== h.symbol ? h.name : ''}</p>
                       </div>
                     </div>
-                    <p className="hidden md:block text-right text-app-sm text-foreground/70 tabular-nums">{h.shares}</p>
-                    <p className="hidden md:block text-right text-app-sm text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
+                    <div className="hidden md:flex justify-end">
+                      {editing ? (
+                        <Input
+                          type="number"
+                          value={editQuantity}
+                          onChange={e => setEditQuantity(e.target.value)}
+                          className="h-7 w-20 bg-secondary/30 border-border/20 text-app-xs text-right"
+                          min="0.000001"
+                          step="any"
+                        />
+                      ) : (
+                        <p className="text-app-sm text-foreground/70 tabular-nums">{h.shares}</p>
+                      )}
+                    </div>
+                    <div className="hidden md:flex justify-end">
+                      {editing ? (
+                        <Input
+                          type="number"
+                          value={editAvgCost}
+                          onChange={e => setEditAvgCost(e.target.value)}
+                          className="h-7 w-24 bg-secondary/30 border-border/20 text-app-xs text-right"
+                          min="0.0001"
+                          step="any"
+                        />
+                      ) : (
+                        <p className="text-app-sm text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
+                      )}
+                    </div>
                     <p className="text-right text-app-sm font-semibold text-foreground tabular-nums">
                       {h.isEstimated ? (
                         <span className="text-muted-foreground/40" title="Live price unavailable — showing cost basis">
@@ -358,9 +402,35 @@ const Portfolio = () => {
                     </div>
                     <div className="hidden md:flex items-center justify-end gap-1.5">
                       <span className="text-app-sm text-muted-foreground/40 tabular-nums">{h.allocation}%</span>
+                      {editing ? (
+                        <>
+                          <button
+                            onClick={() => saveEdit(h.id)}
+                            className="text-muted-foreground/30 hover:text-bull transition-colors ml-1"
+                            title="Save holding"
+                          >
+                            <Check className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="text-muted-foreground/30 hover:text-foreground transition-colors"
+                            title="Cancel edit"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(h)}
+                          className="text-muted-foreground/20 hover:text-primary transition-colors ml-1"
+                          title="Edit holding"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
                       <button
                         onClick={() => removeHolding(h.id)}
-                        className="text-muted-foreground/20 hover:text-bear transition-colors ml-1"
+                        className="text-muted-foreground/20 hover:text-bear transition-colors"
                         title="Remove holding"
                       >
                         <X className="h-3 w-3" />

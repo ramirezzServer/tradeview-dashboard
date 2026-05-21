@@ -58,8 +58,12 @@ export function useWatchlist() {
 
   // ── Add symbol ────────────────────────────────────────────────────────────
   const addSymbol = useMutation({
-    mutationFn: (symbol: string) =>
-      api.post<WatchlistItem>(`/watchlists/${watchlistId}/items`, { symbol }),
+    mutationFn: (symbol: string) => {
+      if (!watchlistId) {
+        throw new ApiError(0, 'Watchlist is still being created. Please try again.');
+      }
+      return api.post<WatchlistItem>(`/watchlists/${watchlistId}/items`, { symbol });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['watchlist', watchlistId] });
     },
@@ -77,11 +81,11 @@ export function useWatchlist() {
   return {
     items,
     watchlistId,
-    isLoading: listsQuery.isLoading || (!!watchlistId && itemsQuery.isLoading),
+    isLoading: listsQuery.isLoading || isCreating || (!!watchlistId && itemsQuery.isLoading),
     addSymbol: (symbol: string) => addSymbol.mutateAsync(symbol),
     removeItem: (itemId: number) => removeItem.mutateAsync(itemId),
     addError: addSymbol.error instanceof ApiError ? addSymbol.error.message : null,
-    isAdding: addSymbol.isPending,
+    isAdding: addSymbol.isPending || isCreating,
     isRemoving: removeItem.isPending,
   };
 }

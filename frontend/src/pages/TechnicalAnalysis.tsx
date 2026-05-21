@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Activity, TrendingUp, TrendingDown, Target, Shield, Zap,
-  BarChart2, ArrowUp, ArrowDown, Wifi, WifiOff, RefreshCw,
+  BarChart2, ArrowUp, ArrowDown, Wifi, WifiOff, RefreshCw, Search,
 } from 'lucide-react';
 import { ComposedChart, Area, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIndicators } from '@/hooks/useIndicators';
 import { SETTINGS_DEFAULTS, useSettings } from '@/hooks/useSettings';
 import { FreshnessBadge } from '@/components/ui/FreshnessBadge';
+import { Input } from '@/components/ui/input';
 import type { Timeframe } from '@/hooks/useFinnhubCandles';
 
 type ChartStyle = 'Candles' | 'Line' | 'Area';
-const SYMBOL = 'AAPL';
 
 // ─── Provider error messages ──────────────────────────────────────────────────
 function ProviderNotice({ error }: { error: string | null }) {
@@ -35,11 +35,19 @@ function ProviderNotice({ error }: { error: string | null }) {
 
 const TechnicalAnalysis = () => {
   const { settings, updateSettings } = useSettings();
+  const [symbol, setSymbol] = useState((settings?.default_symbol ?? SETTINGS_DEFAULTS.default_symbol ?? 'AAPL').toUpperCase());
+  const [symbolInput, setSymbolInput] = useState(symbol);
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
   const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
   const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
   const technicalSeriesType: Exclude<ChartStyle, 'Candles'> = seriesType === 'Line' ? 'Line' : 'Area';
-  const { indicators, loading, error, provider, isLive } = useIndicators(SYMBOL, timeframe, resolution);
+  const { indicators, loading, error, provider, isLive } = useIndicators(symbol, timeframe, resolution);
+
+  useEffect(() => {
+    const nextSymbol = (settings?.default_symbol ?? SETTINGS_DEFAULTS.default_symbol ?? 'AAPL').toUpperCase();
+    setSymbol(nextSymbol);
+    setSymbolInput(nextSymbol);
+  }, [settings?.default_symbol]);
 
   useEffect(() => {
     setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
@@ -61,6 +69,12 @@ const TechnicalAnalysis = () => {
         setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
       });
     }
+  };
+
+  const handleSymbolSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const nextSymbol = symbolInput.trim().toUpperCase();
+    if (nextSymbol) setSymbol(nextSymbol);
   };
 
   const p = indicators?.currentPrice ?? 0;
@@ -151,7 +165,7 @@ const TechnicalAnalysis = () => {
             <Skeleton className="h-4 w-32 bg-secondary/20 rounded" />
           ) : isLive ? (
             <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
-              <Wifi className="h-2.5 w-2.5" /> Live · {provider === 'finnhub' ? 'Finnhub' : 'Alpha Vantage'} — {SYMBOL}
+              <Wifi className="h-2.5 w-2.5" /> Live · {provider === 'finnhub' ? 'Finnhub' : 'Alpha Vantage'} — {symbol}
             </span>
           ) : (
             <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
@@ -159,7 +173,23 @@ const TechnicalAnalysis = () => {
             </span>
           )}
 
-          <div className="flex items-center gap-1 ml-auto">
+          <form onSubmit={handleSymbolSubmit} className="flex items-center gap-1 ml-auto">
+            <Input
+              value={symbolInput}
+              onChange={e => setSymbolInput(e.target.value.toUpperCase().replace(/[^A-Z0-9.-]/g, '').slice(0, 12))}
+              className="h-7 w-24 bg-secondary/30 border-border/20 text-app-xs uppercase"
+              aria-label="Symbol"
+            />
+            <button
+              type="submit"
+              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/40 hover:text-primary hover:bg-primary/8 transition-colors"
+              title="Load symbol"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
+          </form>
+
+          <div className="flex items-center gap-1">
             {(['1D', '1W', '1M', '3M'] as Timeframe[]).map(tf => (
               <button
                 key={tf}
@@ -215,7 +245,7 @@ const TechnicalAnalysis = () => {
           <div className="glass-card rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <BarChart2 className="h-3.5 w-3.5 text-primary/70" />
-              <h2 className="section-header text-foreground/80">Signal Summary — {SYMBOL}</h2>
+              <h2 className="section-header text-foreground/80">Signal Summary — {symbol}</h2>
             </div>
             <div className="grid grid-cols-3 gap-3 mb-4">
               {[
