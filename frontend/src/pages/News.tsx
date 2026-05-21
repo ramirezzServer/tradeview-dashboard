@@ -198,7 +198,7 @@ const News = () => {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-lg text-app-xs font-semibold transition-all duration-200 ${
                   activeCategory === cat
                     ? 'bg-primary/12 text-primary border border-primary/15 shadow-[0_0_8px_-2px_hsl(var(--primary)/0.15)]'
                     : 'text-muted-foreground/40 hover:text-foreground hover:bg-accent/30 border border-transparent'
@@ -210,11 +210,11 @@ const News = () => {
             <div className="ml-auto flex items-center gap-2">
               {!loading && <FreshnessBadge fetchedAt={newestFetchedAt} />}
               {loading ? null : isLive ? (
-                <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+                <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
                   <Wifi className="h-2.5 w-2.5" /> Live · Finnhub
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+                <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
                   <FlaskConical className="h-2.5 w-2.5" /> Demo
                 </span>
               )}
@@ -250,7 +250,7 @@ const News = () => {
                     >
                       <div className="flex items-center gap-2 mb-3">
                         <Flame className="h-3 w-3 text-primary/70" />
-                        <span className="text-[8px] uppercase tracking-[0.14em] text-primary/70 font-semibold">Featured</span>
+                        <span className="text-app-xs uppercase tracking-[0.14em] text-primary/70 font-semibold">Featured</span>
                         <button
                           onClick={e => toggleBookmark(e, n as Parameters<typeof toggleBookmark>[1])}
                           disabled={!url || isSaving}
@@ -266,20 +266,20 @@ const News = () => {
                             : <Bookmark className="h-3.5 w-3.5" />
                           }
                         </button>
-                        <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${categoryBadgeClass(n.category)}`}>
+                        <span className={`text-app-xs uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${categoryBadgeClass(n.category)}`}>
                           {n.category}
                         </span>
                       </div>
-                      <h3 className="text-[13px] font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
+                      <h3 className="text-app-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
                         {n.title}
                       </h3>
-                      <p className="text-[10px] text-muted-foreground/35 leading-relaxed mb-3 line-clamp-3">{n.summary}</p>
+                      <p className="text-app-xs text-muted-foreground/35 leading-relaxed mb-3 line-clamp-3">{n.summary}</p>
                       <div className="flex items-center gap-3">
-                        <span className="text-[9px] font-medium text-muted-foreground/50">{n.source}</span>
-                        <span className="flex items-center gap-1 text-[9px] text-muted-foreground/30">
+                        <span className="text-app-xs font-medium text-muted-foreground/50">{n.source}</span>
+                        <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30">
                           <Clock className="h-2.5 w-2.5" />{n.time}
                         </span>
-                        <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${
+                        <span className={`text-app-xs uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${
                           n.sentiment === 'bullish' ? 'text-bull bg-bull/8' : 'text-bear bg-bear/8'
                         }`}>{n.sentiment === 'bullish' ? 'Bullish' : 'Bearish'}</span>
                       </div>
@@ -298,9 +298,9 @@ const News = () => {
                     {activeCategory === 'All' ? 'All Headlines' : `${activeCategory} News`}
                   </h2>
                   {!isLive && (
-                    <span className="text-[8px] text-muted-foreground/25 ml-1 font-medium">(Illustrative)</span>
+                    <span className="text-app-xs text-muted-foreground/25 ml-1 font-medium">(Illustrative)</span>
                   )}
-                  <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums">{filtered.length} articles</span>
+                  <span className="ml-auto text-app-xs text-muted-foreground/30 tabular-nums">{filtered.length} articles</span>
                 </div>
                 <div className="divide-y divide-border/8">
                   {(activeCategory === 'All' ? latest : filtered).map((n, i) => {
@@ -316,18 +316,18 @@ const News = () => {
                         style={{ animationDelay: `${i * 40}ms` }}
                       >
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-[13px] font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
+                          <h3 className="text-app-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
                             {n.title}
                           </h3>
                           {n.summary && (
-                            <p className="text-[10px] text-muted-foreground/30 mt-1 line-clamp-2">{n.summary}</p>
+                            <p className="text-app-xs text-muted-foreground/30 mt-1 line-clamp-2">{n.summary}</p>
                           )}
                           <div className="flex items-center gap-3 mt-2">
-                            <span className="text-[9px] font-medium text-muted-foreground/45">{n.source}</span>
-                            <span className="flex items-center gap-1 text-[9px] text-muted-foreground/30">
+                            <span className="text-app-xs font-medium text-muted-foreground/45">{n.source}</span>
+                            <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30">
                               <Clock className="h-2.5 w-2.5" />{n.time}
                             </span>
-                            <span className={`text-[8px] uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${categoryBadgeClass(n.category)}`}>
+                            <span className={`text-app-xs uppercase tracking-[0.1em] font-semibold px-1.5 py-0.5 rounded-md ${categoryBadgeClass(n.category)}`}>
                               {n.category}
                             </span>
                           </div>
@@ -370,11 +370,11 @@ const News = () => {
                 <BookmarkCheck className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Saved Articles</h2>
                 {savedNews.length > 0 && (
-                  <span className="ml-auto text-[9px] text-muted-foreground/30 tabular-nums">{savedNews.length}</span>
+                  <span className="ml-auto text-app-xs text-muted-foreground/30 tabular-nums">{savedNews.length}</span>
                 )}
               </div>
               {savedNews.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground/30 text-center py-3 leading-relaxed">
+                <p className="text-app-xs text-muted-foreground/30 text-center py-3 leading-relaxed">
                   No saved articles yet. Click the bookmark icon on any article.
                 </p>
               ) : (
@@ -387,13 +387,13 @@ const News = () => {
                             href={item.article_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[11px] font-medium text-foreground/80 hover:text-primary transition-colors leading-snug line-clamp-2 block"
+                            className="text-app-sm font-medium text-foreground/80 hover:text-primary transition-colors leading-snug line-clamp-2 block"
                           >
                             {item.headline}
                           </a>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[8px] text-muted-foreground/40">{item.source}</span>
-                            <span className={`text-[8px] uppercase tracking-[0.08em] font-semibold px-1 py-0.5 rounded ${categoryBadgeClass(item.category)}`}>
+                            <span className="text-app-xs text-muted-foreground/40">{item.source}</span>
+                            <span className={`text-app-xs uppercase tracking-[0.08em] font-semibold px-1 py-0.5 rounded ${categoryBadgeClass(item.category)}`}>
                               {item.category}
                             </span>
                           </div>
@@ -402,7 +402,7 @@ const News = () => {
                               <input
                                 value={editingNotes}
                                 onChange={e => setEditingNotes(e.target.value)}
-                                className="flex-1 text-[10px] bg-secondary/20 border border-border/20 rounded px-1.5 py-0.5 text-foreground/80 outline-none focus:border-primary/30"
+                                className="flex-1 text-app-xs bg-secondary/20 border border-border/20 rounded px-1.5 py-0.5 text-foreground/80 outline-none focus:border-primary/30"
                                 placeholder="Add notes..."
                                 autoFocus
                                 onKeyDown={e => {
@@ -424,7 +424,7 @@ const News = () => {
                               </button>
                             </div>
                           ) : item.notes ? (
-                            <p className="text-[9px] text-muted-foreground/35 mt-0.5 italic line-clamp-2">{item.notes}</p>
+                            <p className="text-app-xs text-muted-foreground/35 mt-0.5 italic line-clamp-2">{item.notes}</p>
                           ) : null}
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
@@ -464,10 +464,10 @@ const News = () => {
                         n.sentiment === 'bullish' ? 'bg-bull/70' : 'bg-bear/70'
                       }`} />
                       <div>
-                        <p className="text-[11px] text-foreground/80 group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                        <p className="text-app-sm text-foreground/80 group-hover:text-primary transition-colors leading-snug line-clamp-2">
                           {n.title}
                         </p>
-                        <p className="text-[8px] text-muted-foreground/30 mt-1">{n.source} · {n.time}</p>
+                        <p className="text-app-xs text-muted-foreground/30 mt-1">{n.source} · {n.time}</p>
                       </div>
                     </div>
                     {i < 5 && <div className="border-b border-border/8 mt-3" />}
@@ -486,7 +486,7 @@ const News = () => {
                   <button
                     key={tag}
                     onClick={() => setActiveCategory('All')}
-                    className="px-2.5 py-1 rounded-md bg-secondary/25 border border-border/12 text-[9px] text-muted-foreground/45 hover:text-foreground hover:border-primary/15 hover:shadow-[0_0_8px_-3px_hsl(var(--primary)/0.1)] transition-all cursor-pointer"
+                    className="px-2.5 py-1 rounded-md bg-secondary/25 border border-border/12 text-app-xs text-muted-foreground/45 hover:text-foreground hover:border-primary/15 hover:shadow-[0_0_8px_-3px_hsl(var(--primary)/0.1)] transition-all cursor-pointer"
                   >
                     {tag}
                   </button>

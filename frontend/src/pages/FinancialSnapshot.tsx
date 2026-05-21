@@ -138,24 +138,24 @@ const FinancialSnapshot = () => {
         {/* Data source indicators */}
         <div className="flex items-center gap-3 px-1 flex-wrap">
           {profileLive ? (
-            <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+            <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
               <Wifi className="h-2.5 w-2.5" /> Fundamentals · Finnhub live
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+            <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
               <WifiOff className="h-2.5 w-2.5" /> Profile unavailable
             </span>
           )}
           {earningsLive ? (
-            <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+            <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
               <Wifi className="h-2.5 w-2.5" /> Earnings EPS · Finnhub live
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+            <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
               <FlaskConical className="h-2.5 w-2.5" /> Earnings illustrative
             </span>
           )}
-          <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+          <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
             <FlaskConical className="h-2.5 w-2.5" /> Analyst consensus illustrative
           </span>
         </div>
@@ -176,9 +176,9 @@ const FinancialSnapshot = () => {
                     className="mb-2"
                   />
                 )}
-                <p className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground/35 font-medium">{f.label}</p>
+                <p className="text-app-xs uppercase tracking-[0.14em] text-muted-foreground/35 font-medium">{f.label}</p>
                 <p className="text-sm font-bold text-foreground mt-1 tabular-nums truncate">{f.value}</p>
-                <p className={`text-[9px] font-semibold mt-1 ${f.neutral ? 'text-muted-foreground/40' : f.positive ? 'text-bull' : 'text-bear'}`}>
+                <p className={`text-app-xs font-semibold mt-1 ${f.neutral ? 'text-muted-foreground/40' : f.positive ? 'text-bull' : 'text-bear'}`}>
                   {f.change}
                 </p>
               </div>
@@ -193,7 +193,7 @@ const FinancialSnapshot = () => {
               <div className="flex items-center gap-2 mb-4">
                 <BarChart2 className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">EPS History — {symbol}</h2>
-                <span className="ml-auto text-[9px] text-muted-foreground/30">
+                <span className="ml-auto text-app-xs text-muted-foreground/30">
                   {earningsLive ? 'Earnings per share (actual)' : 'Illustrative data'}
                 </span>
               </div>
@@ -229,7 +229,7 @@ const FinancialSnapshot = () => {
                 </div>
               )}
               {earningsLive && (
-                <p className="text-[8px] text-muted-foreground/25 mt-2">
+                <p className="text-app-xs text-muted-foreground/25 mt-2">
                   Faded bars = estimate. Data: Finnhub /stock/earnings.
                 </p>
               )}
@@ -241,14 +241,14 @@ const FinancialSnapshot = () => {
                 <FileBarChart className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Earnings History</h2>
                 {earningsLive ? (
-                  <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium ml-1">
+                  <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium ml-1">
                     <Wifi className="h-2.5 w-2.5" /> Live
                   </span>
                 ) : (
-                  <span className="text-[8px] text-muted-foreground/25 ml-1 font-medium">(Illustrative)</span>
+                  <span className="text-app-xs text-muted-foreground/25 ml-1 font-medium">(Illustrative)</span>
                 )}
               </div>
-              <div className="hidden md:grid grid-cols-4 gap-2 px-5 py-2.5 text-[8px] uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10">
+              <div className="hidden md:grid grid-cols-4 gap-2 px-5 py-2.5 text-app-xs uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10">
                 <span>Quarter</span>
                 <span className="text-right">EPS Actual</span>
                 <span className="text-right">Estimate</span>
@@ -259,10 +259,10 @@ const FinancialSnapshot = () => {
                   ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 mx-5 my-2 rounded-lg bg-secondary/20" />)
                   : earningsTable.map((q, i) => (
                     <div key={q.quarter} className="grid grid-cols-2 md:grid-cols-4 gap-2 py-3 px-5 items-center hover:bg-accent/10 transition-colors animate-fade-up" style={{ animationDelay: `${i * 40}ms` }}>
-                      <span className="text-[13px] font-semibold text-foreground">{q.quarter}</span>
-                      <span className="hidden md:block text-right text-[11px] font-bold text-foreground tabular-nums">{q.eps}</span>
-                      <span className="text-right text-[11px] text-foreground/60 tabular-nums">{q.estimate}</span>
-                      <span className={`hidden md:block text-right text-[11px] font-semibold tabular-nums ${
+                      <span className="text-app-sm font-semibold text-foreground">{q.quarter}</span>
+                      <span className="hidden md:block text-right text-app-sm font-bold text-foreground tabular-nums">{q.eps}</span>
+                      <span className="text-right text-app-sm text-foreground/60 tabular-nums">{q.estimate}</span>
+                      <span className={`hidden md:block text-right text-app-sm font-semibold tabular-nums ${
                         q.positive ? 'text-bull' : 'text-bear'
                       }`}>{q.surprise}</span>
                     </div>
@@ -278,7 +278,7 @@ const FinancialSnapshot = () => {
                 <Activity className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Valuation & Fundamentals</h2>
                 {profileLive ? (
-                  <span className="ml-auto flex items-center gap-1 text-[8px] text-bull/60">
+                  <span className="ml-auto flex items-center gap-1 text-app-xs text-bull/60">
                     <Wifi className="h-2.5 w-2.5" />
                   </span>
                 ) : null}
@@ -291,11 +291,11 @@ const FinancialSnapshot = () => {
                 <div className="space-y-0">
                   {valuationData.map(m => (
                     <div key={m.label} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/10 transition-colors">
-                      <span className="text-[10px] text-muted-foreground/45">{m.label}</span>
+                      <span className="text-app-xs text-muted-foreground/45">{m.label}</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-bold text-foreground tabular-nums">{m.value}</span>
+                        <span className="text-app-sm font-bold text-foreground tabular-nums">{m.value}</span>
                         {!m.isLive && (
-                          <span className="text-[7px] text-muted-foreground/20">est.</span>
+                          <span className="text-app-xs text-muted-foreground/20">est.</span>
                         )}
                       </div>
                     </div>
@@ -309,7 +309,7 @@ const FinancialSnapshot = () => {
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Analyst Consensus</h2>
-                <span className="ml-auto flex items-center gap-1 text-[8px] text-muted-foreground/25 font-medium">
+                <span className="ml-auto flex items-center gap-1 text-app-xs text-muted-foreground/25 font-medium">
                   <FlaskConical className="h-2.5 w-2.5" /> Illustrative
                 </span>
               </div>
@@ -321,7 +321,7 @@ const FinancialSnapshot = () => {
                 ].map(s => (
                   <div key={s.label} className="text-center p-2 rounded-lg bg-secondary/15 border border-border/10">
                     <p className={`text-lg font-bold ${s.color}`}>{s.count}</p>
-                    <p className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground/35">{s.label}</p>
+                    <p className="text-app-xs uppercase tracking-[0.14em] text-muted-foreground/35">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -331,12 +331,12 @@ const FinancialSnapshot = () => {
                 <div className="bg-bear/70" style={{ width: '5.2%' }} />
               </div>
               <div className="flex items-center justify-between mt-3">
-                <span className="text-[9px] text-muted-foreground/35">Target Price</span>
-                <span className="text-[13px] font-bold text-foreground tabular-nums">$210.50</span>
+                <span className="text-app-xs text-muted-foreground/35">Target Price</span>
+                <span className="text-app-sm font-bold text-foreground tabular-nums">$210.50</span>
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[9px] text-muted-foreground/35">Upside</span>
-                <span className="text-[13px] font-bold text-bull tabular-nums value-bull">+10.9%</span>
+                <span className="text-app-xs text-muted-foreground/35">Upside</span>
+                <span className="text-app-sm font-bold text-bull tabular-nums value-bull">+10.9%</span>
               </div>
             </div>
           </div>

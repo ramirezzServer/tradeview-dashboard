@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CandleRequest;
 use App\Http\Traits\ApiResponse;
 use App\Services\CoinGeckoService;
 use Illuminate\Http\JsonResponse;
@@ -72,5 +73,34 @@ class CryptoController extends Controller
             CoinGeckoService::supportedSymbols(),
             'Supported crypto symbols.'
         );
+    }
+
+    /**
+     * GET /api/market/crypto/ohlcv/{symbol}?resolution=60&from=...&to=...
+     */
+    public function ohlcv(CandleRequest $request, string $symbol): JsonResponse
+    {
+        $symbol = strtoupper(trim($symbol));
+
+        if (! preg_match('/^[A-Z0-9]{1,15}$/', $symbol)) {
+            return $this->error('Invalid symbol format.', 422);
+        }
+
+        if (! CoinGeckoService::isSupported($symbol)) {
+            return $this->error("Crypto symbol '{$symbol}' is not supported.", 404);
+        }
+
+        $result = $this->coinGecko->getOhlcv(
+            $symbol,
+            (int) $request->validated('from'),
+            (int) $request->validated('to'),
+            $request->validated('resolution'),
+        );
+
+        return $this->success($result['data'], 'Crypto candles fetched.', 200, [
+            'symbol' => $symbol,
+            'source' => $result['source'],
+            'count' => count($result['data']['t'] ?? []),
+        ])->header('X-Data-Source', $result['source']);
     }
 }

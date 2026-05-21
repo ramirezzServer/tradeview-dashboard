@@ -2,7 +2,7 @@ import type { FinnhubCandle } from '@/services/finnhub'
 import type { OHLCVData } from '@/types/stock'
 
 export type Timeframe = '1D' | '1W' | '1M' | '3M'
-export type CandleProvider = 'finnhub' | 'alphavantage'
+export type CandleProvider = 'finnhub' | 'alphavantage' | 'coingecko'
 export type CandleResult = { data: OHLCVData[]; provider: CandleProvider }
 
 export type CandleDeps = {

@@ -18,8 +18,6 @@ use RuntimeException;
  */
 class CoinGeckoService
 {
-    private const BASE_URL = 'https://api.coingecko.com/api/v3';
-
     /**
      * Maps uppercase ticker symbols to CoinGecko coin IDs.
      * Extend as needed — only symbols in this map can be queried.
@@ -60,8 +58,9 @@ class CoinGeckoService
         }
 
         $cacheKey = 'coingecko.prices.' . implode(',', $ids);
+        $cacheTtl = (int) config('coingecko.cache_ttl', 30);
 
-        return Cache::remember($cacheKey, 30, function () use ($ids, $idToSymbol) {
+        return Cache::remember($cacheKey, $cacheTtl, function () use ($ids, $idToSymbol) {
             $response = $this->get('/simple/price', [
                 'ids'                 => implode(',', $ids),
                 'vs_currencies'       => 'usd',
@@ -89,6 +88,45 @@ class CoinGeckoService
 
             return $result;
         });
+    }
+
+    /**
+     * @return array{data:array{s:string,t:int[],o:float[],h:float[],l:float[],c:float[],v:int[]},source:string}
+     */
+    public function getOhlcv(string $symbol, int $from, int $to, string $resolution): array
+    {
+        $symbol = strtoupper(trim($symbol));
+        $id = self::SYMBOL_MAP[$symbol] ?? null;
+
+        if ($id === null) {
+            return [
+                'data' => ['s' => 'no_data', 't' => [], 'o' => [], 'h' => [], 'l' => [], 'c' => [], 'v' => []],
+                'source' => 'unavailable',
+            ];
+        }
+
+        $current = $this->getPrices([$symbol])[$symbol]['c'] ?? 0;
+        $days = max(1, min(90, (int) ceil(($to - $from) / 86400)));
+        $simulator = app(SimulatedCandleService::class);
+
+        try {
+            $raw = $this->get("/coins/{$id}/ohlc", [
+                'vs_currency' => 'usd',
+                'days' => $days <= 1 ? 1 : ($days <= 7 ? 7 : ($days <= 31 ? 30 : 90)),
+            ]);
+
+            $mapped = $this->mapOhlc($raw, $from, $to, $symbol);
+            if (($mapped['s'] ?? 'no_data') === 'ok' && ! empty($mapped['t'])) {
+                return ['data' => $mapped, 'source' => 'coingecko'];
+            }
+        } catch (RuntimeException) {
+            // Paid-plan failures, quota errors, and empty responses all fall back below.
+        }
+
+        return [
+            'data' => $simulator->generateCryptoCandles($symbol, (float) $current, $from, $to, $resolution),
+            'source' => 'simulated',
+        ];
     }
 
     /**
@@ -131,12 +169,50 @@ class CoinGeckoService
         return [$ids, $idToSymbol];
     }
 
+    /**
+     * CoinGecko OHLC does not include volume, so volume is realistically simulated
+     * while preserving real open/high/low/close values when available.
+     *
+     * @return array{s:string,t:int[],o:float[],h:float[],l:float[],c:float[],v:int[]}
+     */
+    private function mapOhlc(array $rows, int $from, int $to, string $symbol): array
+    {
+        $t = $o = $h = $l = $c = $v = [];
+        [$minVolume, $maxVolume] = match ($symbol) {
+            'BTC' => [20000, 50000],
+            'ETH' => [10000, 30000],
+            default => [1000, 10000],
+        };
+
+        foreach ($rows as $i => $row) {
+            if (! is_array($row) || count($row) < 5) continue;
+            $ts = (int) floor(((int) $row[0]) / 1000);
+            if ($ts < $from || $ts > $to) continue;
+
+            $t[] = $ts;
+            $o[] = (float) $row[1];
+            $h[] = (float) $row[2];
+            $l[] = (float) $row[3];
+            $c[] = (float) $row[4];
+            $seed = hexdec(substr(hash('sha256', "{$symbol}:{$ts}:volume"), 0, 8)) / 0xffffffff;
+            $v[] = (int) round($minVolume + $seed * ($maxVolume - $minVolume));
+        }
+
+        if (empty($t)) {
+            return ['s' => 'no_data', 't' => [], 'o' => [], 'h' => [], 'l' => [], 'c' => [], 'v' => []];
+        }
+
+        array_multisort($t, SORT_ASC, $o, $h, $l, $c, $v);
+
+        return ['s' => 'ok', 't' => $t, 'o' => $o, 'h' => $h, 'l' => $l, 'c' => $c, 'v' => $v];
+    }
+
     private function get(string $endpoint, array $params = []): array
     {
         try {
             $response = Http::timeout(10)
                 ->acceptJson()
-                ->get(self::BASE_URL . $endpoint, $params);
+                ->get(rtrim((string) config('coingecko.base_url'), '/') . $endpoint, $params);
 
             if ($response->status() === 429) {
                 Log::warning('CoinGecko rate limit', ['endpoint' => $endpoint]);

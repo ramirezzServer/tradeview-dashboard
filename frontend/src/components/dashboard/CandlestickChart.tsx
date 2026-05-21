@@ -161,7 +161,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
             ) : isLive ? (
               <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
                 <Wifi className="h-2.5 w-2.5" />
-                {provider === 'alphavantage' ? 'Alpha Vantage' : 'Live'}
+                {provider === 'alphavantage' ? 'Alpha Vantage' : provider === 'coingecko' ? 'CoinGecko' : 'Live'}
               </span>
             ) : isPlanRestriction ? (
               <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">

@@ -28,21 +28,28 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
   const [symbol,   setSymbol]   = useState('');
   const [quantity, setQuantity] = useState('');
   const [avgCost,  setAvgCost]  = useState('');
-  const [localError, setLocalError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const next: Record<string, string> = {};
+    const qty  = parseFloat(quantity);
+    const cost = parseFloat(avgCost);
+    if (!symbol.trim()) next.symbol = 'Symbol is required.';
+    if (!Number.isFinite(qty) || qty <= 0) next.quantity = 'Quantity must be a positive number.';
+    if (!Number.isFinite(cost) || cost <= 0) next.avgCost = 'Average cost must be a positive number.';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLocalError('');
+    if (!validate()) return;
     const qty  = parseFloat(quantity);
     const cost = parseFloat(avgCost);
-    if (!symbol.trim() || isNaN(qty) || qty <= 0 || isNaN(cost) || cost <= 0) {
-      setLocalError('Please fill in all fields with valid values.');
-      return;
-    }
     try {
       await onAdd(symbol.trim().toUpperCase(), qty, cost);
     } catch {
-      setLocalError(error ?? 'Failed to add holding.');
+      setErrors({ form: error ?? 'Failed to add holding.' });
     }
   };
 
@@ -54,12 +61,13 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
           <label className="text-app-xs text-muted-foreground/40 mb-1 block">Symbol</label>
           <Input
             value={symbol}
-            onChange={e => setSymbol(e.target.value.toUpperCase())}
+            onChange={e => setSymbol(e.target.value.toUpperCase().replace(/[^A-Z0-9.-]/g, '').slice(0, 12))}
             placeholder="AAPL"
             className="h-8 w-24 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25 uppercase"
             required
             autoFocus
           />
+          {errors.symbol && <p className="text-app-xs text-bear mt-1">{errors.symbol}</p>}
         </div>
         <div>
           <label className="text-app-xs text-muted-foreground/40 mb-1 block">Shares</label>
@@ -73,6 +81,7 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
             className="h-8 w-24 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25"
             required
           />
+          {errors.quantity && <p className="text-app-xs text-bear mt-1">{errors.quantity}</p>}
         </div>
         <div>
           <label className="text-app-xs text-muted-foreground/40 mb-1 block">Avg Cost ($)</label>
@@ -86,6 +95,7 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
             className="h-8 w-28 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25"
             required
           />
+          {errors.avgCost && <p className="text-app-xs text-bear mt-1">{errors.avgCost}</p>}
         </div>
         <button
           type="submit"
@@ -102,8 +112,8 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
         >
           Cancel
         </button>
-        {(localError || error) && (
-          <p className="text-app-xs text-bear w-full">{localError || error}</p>
+        {(errors.form || error) && (
+          <p className="text-app-xs text-bear w-full">{errors.form || error}</p>
         )}
       </div>
     </form>
@@ -118,6 +128,7 @@ const Portfolio = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editQuantity, setEditQuantity] = useState('');
   const [editAvgCost, setEditAvgCost] = useState('');
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const qc = useQueryClient();
 
   // ── Unified live quotes (stocks via Finnhub, crypto via CoinGecko) ─────────
@@ -186,14 +197,20 @@ const Portfolio = () => {
     setEditingId(holding.id);
     setEditQuantity(String(holding.shares));
     setEditAvgCost(String(holding.avgCost));
+    setEditErrors({});
   };
 
   const saveEdit = async (id: number) => {
     const quantity = parseFloat(editQuantity);
     const averageCost = parseFloat(editAvgCost);
-    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(averageCost) || averageCost <= 0) return;
+    const nextErrors: Record<string, string> = {};
+    if (!Number.isFinite(quantity) || quantity <= 0) nextErrors.quantity = 'Quantity must be positive.';
+    if (!Number.isFinite(averageCost) || averageCost <= 0) nextErrors.averageCost = 'Average cost must be positive.';
+    setEditErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     await updateHolding(id, { quantity, average_cost: averageCost });
     setEditingId(null);
+    setEditErrors({});
   };
 
   const anyEstimated = holdings.some(h => h.isEstimated);
@@ -347,7 +364,7 @@ const Portfolio = () => {
                           type="number"
                           value={editQuantity}
                           onChange={e => setEditQuantity(e.target.value)}
-                          className="h-7 w-20 bg-secondary/30 border-border/20 text-app-xs text-right"
+                          className={`h-7 w-20 bg-secondary/30 text-app-xs text-right ${editErrors.quantity ? 'border-bear/50' : 'border-border/20'}`}
                           min="0.000001"
                           step="any"
                         />
@@ -361,7 +378,7 @@ const Portfolio = () => {
                           type="number"
                           value={editAvgCost}
                           onChange={e => setEditAvgCost(e.target.value)}
-                          className="h-7 w-24 bg-secondary/30 border-border/20 text-app-xs text-right"
+                          className={`h-7 w-24 bg-secondary/30 text-app-xs text-right ${editErrors.averageCost ? 'border-bear/50' : 'border-border/20'}`}
                           min="0.0001"
                           step="any"
                         />
@@ -440,6 +457,11 @@ const Portfolio = () => {
                 );
               })}
             </div>
+            {editingId !== null && (editErrors.quantity || editErrors.averageCost) && (
+              <p className="px-density-card py-density-row text-app-xs text-bear border-t border-border/10">
+                {editErrors.quantity ?? editErrors.averageCost}
+              </p>
+            )}
           </div>
 
           {/* Right Column */}

@@ -72,6 +72,25 @@ export interface FinnhubBasicFinancials {
   symbol: string;
 }
 
+export interface MarketIndexQuote {
+  name: string;
+  symbol: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  previousClose: number;
+  source: 'finnhub';
+}
+
+export interface SectorPerformance {
+  name: string;
+  symbol: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  source: 'finnhub';
+}
+
 // ─── Internal HTTP helper ─────────────────────────────────────────────────────
 
 /**
@@ -175,6 +194,19 @@ export async function getAlternativeCandles(
   );
 }
 
+/** Crypto OHLCV via Laravel â†’ CoinGecko with simulated fallback. */
+export async function getCryptoCandles(
+  symbol: string,
+  resolution: string,
+  from: number,
+  to: number
+): Promise<FinnhubCandle> {
+  return fetchFromBackend<FinnhubCandle>(
+    `/market/crypto/ohlcv/${encodeURIComponent(symbol)}`,
+    { resolution, from, to }
+  );
+}
+
 /** General market news via Laravel → Finnhub /news */
 export async function getMarketNews(
   category = 'general',
@@ -205,4 +237,12 @@ export async function getBasicFinancials(symbol: string): Promise<FinnhubBasicFi
   return fetchFromBackend<FinnhubBasicFinancials>(
     `/market/financials/${encodeURIComponent(symbol)}`
   );
+}
+
+export async function getMarketIndices(): Promise<MarketIndexQuote[]> {
+  return fetchFromBackend<MarketIndexQuote[]>('/market/indices');
+}
+
+export async function getSectorPerformance(): Promise<SectorPerformance[]> {
+  return fetchFromBackend<SectorPerformance[]>('/market/sectors');
 }

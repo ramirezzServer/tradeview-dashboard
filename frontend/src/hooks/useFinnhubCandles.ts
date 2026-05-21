@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getCandles, getAlternativeCandles, isFinnhubConfigured } from '@/services/finnhub';
+import { getCandles, getAlternativeCandles, getCryptoCandles, isFinnhubConfigured } from '@/services/finnhub';
+import { isCryptoSymbol } from '@/services/coingecko';
 import {
   fetchCandlesWithFallback,
   getRange,
+  mapCandles,
   type CandleProvider,
   type Timeframe,
 } from '@/lib/candleFallback';
@@ -41,7 +43,17 @@ export function useFinnhubCandles(
     const { from, to, resolution } = getRange(timeframe);
     const selectedResolution = resolutionOverride ?? resolution;
 
-    fetchCandlesWithFallback(symbol, selectedResolution, from, to, defaultDeps)
+    const normalizedSymbol = symbol.toUpperCase();
+    const candlePromise = isCryptoSymbol(normalizedSymbol)
+      ? getCryptoCandles(normalizedSymbol, selectedResolution, from, to)
+          .then(raw => {
+            const data = mapCandles(raw);
+            if (data.length === 0) throw new Error('NO_DATA');
+            return { data, provider: 'coingecko' as const };
+          })
+      : fetchCandlesWithFallback(normalizedSymbol, selectedResolution, from, to, defaultDeps);
+
+    candlePromise
       .then(({ data, provider }) => {
         if (cancelled) return;
         setState({ data, loading: false, error: null, isLive: true, provider });

@@ -23,11 +23,34 @@ use App\Http\Requests\MarketNewsRequest;
 use App\Http\Traits\ApiResponse;
 use App\Services\AlphaVantageService;
 use App\Services\FinnhubService;
+use App\Services\SimulatedCandleService;
 use Illuminate\Http\JsonResponse;
 
 class MarketController extends Controller
 {
     use ApiResponse;
+
+    private const INDEX_ETFS = [
+        ['name' => 'S&P 500', 'symbol' => 'SPY'],
+        ['name' => 'NASDAQ', 'symbol' => 'QQQ'],
+        ['name' => 'DOW', 'symbol' => 'DIA'],
+        ['name' => 'Russell 2000', 'symbol' => 'IWM'],
+        ['name' => 'VIX', 'symbol' => 'UVXY'],
+    ];
+
+    private const SECTOR_ETFS = [
+        ['name' => 'Technology', 'symbol' => 'XLK'],
+        ['name' => 'Healthcare', 'symbol' => 'XLV'],
+        ['name' => 'Financials', 'symbol' => 'XLF'],
+        ['name' => 'Energy', 'symbol' => 'XLE'],
+        ['name' => 'Consumer Discretionary', 'symbol' => 'XLY'],
+        ['name' => 'Consumer Staples', 'symbol' => 'XLP'],
+        ['name' => 'Industrials', 'symbol' => 'XLI'],
+        ['name' => 'Materials', 'symbol' => 'XLB'],
+        ['name' => 'Utilities', 'symbol' => 'XLU'],
+        ['name' => 'Real Estate', 'symbol' => 'XLRE'],
+        ['name' => 'Communication Services', 'symbol' => 'XLC'],
+    ];
 
     public function __construct(private readonly FinnhubService $finnhub) {}
 
@@ -189,6 +212,57 @@ class MarketController extends Controller
         }
     }
 
+    public function indices(): JsonResponse
+    {
+        try {
+            $data = array_map(function (array $item) {
+                $quote = $this->finnhub->getQuote($item['symbol']);
+
+                return [
+                    'name' => $item['name'],
+                    'symbol' => $item['symbol'],
+                    'price' => (float) ($quote['c'] ?? 0),
+                    'change' => (float) ($quote['d'] ?? 0),
+                    'changePercent' => (float) ($quote['dp'] ?? 0),
+                    'previousClose' => (float) ($quote['pc'] ?? 0),
+                    'source' => 'finnhub',
+                ];
+            }, self::INDEX_ETFS);
+
+            return $this->success($data, 'Market indices fetched successfully.', 200, [
+                'provider' => 'finnhub',
+                'count' => count($data),
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
+        }
+    }
+
+    public function sectors(): JsonResponse
+    {
+        try {
+            $data = array_map(function (array $item) {
+                $quote = $this->finnhub->getQuote($item['symbol']);
+
+                return [
+                    'name' => $item['name'],
+                    'symbol' => $item['symbol'],
+                    'changePercent' => (float) ($quote['dp'] ?? 0),
+                    'change' => (float) ($quote['d'] ?? 0),
+                    'price' => (float) ($quote['c'] ?? 0),
+                    'source' => 'finnhub',
+                ];
+            }, self::SECTOR_ETFS);
+
+            return $this->success($data, 'Sector performance fetched successfully.', 200, [
+                'provider' => 'finnhub',
+                'count' => count($data),
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
+        }
+    }
+
     public function earnings(string $symbol): JsonResponse
     {
         $symbol = strtoupper(trim($symbol));
@@ -238,15 +312,9 @@ class MarketController extends Controller
             ]);
 
         } catch (AvNotConfiguredException) {
-            return $this->error(
-                'Alternative candle provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
-                503
-            );
+            return $this->calculatedCandles($symbol, $request);
         } catch (AvRateLimitedException) {
-            return $this->error(
-                'Alpha Vantage rate limit reached (25 req/day on free tier). Try again tomorrow.',
-                429
-            );
+            return $this->calculatedCandles($symbol, $request);
         } catch (AvInvalidSymbolException) {
             return $this->error(
                 "Symbol '{$symbol}' was not recognised by the alternative provider.",
@@ -254,6 +322,34 @@ class MarketController extends Controller
             );
         } catch (AvRequestFailedException) {
             return $this->error('Alternative candle provider request failed.', 503);
+        }
+    }
+
+    private function calculatedCandles(string $symbol, CandleRequest $request): JsonResponse
+    {
+        try {
+            $quote = $this->finnhub->getQuote($symbol);
+            $price = (float) ($quote['c'] ?? $quote['pc'] ?? 0);
+
+            if ($price <= 0) {
+                return $this->error('Could not calculate candle fallback without a current quote.', 503);
+            }
+
+            $data = app(SimulatedCandleService::class)->generateEquityCandles(
+                $symbol,
+                $price,
+                (int) $request->validated('from'),
+                (int) $request->validated('to'),
+                $request->validated('resolution'),
+            );
+
+            return $this->success($data, 'Candles calculated from live quote fallback.', 200, [
+                'symbol' => $symbol,
+                'provider' => 'calculated',
+                'count' => count($data['t'] ?? []),
+            ])->header('X-Data-Source', 'calculated');
+        } catch (\RuntimeException $e) {
+            return $this->finnhubError($e);
         }
     }
 

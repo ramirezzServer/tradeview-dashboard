@@ -26,7 +26,7 @@ function ProviderNotice({ error }: { error: string | null }) {
   };
   const msg = messages[error] ?? `Chart data unavailable (${error})`;
   return (
-    <div className="flex items-center gap-2 p-3 rounded-lg bg-chart-accent/8 border border-chart-accent/15 text-[10px] text-muted-foreground/60">
+    <div className="flex items-center gap-2 p-3 rounded-lg bg-chart-accent/8 border border-chart-accent/15 text-app-xs text-muted-foreground/60">
       <WifiOff className="h-3 w-3 text-chart-accent/60 shrink-0" />
       {msg}
     </div>
@@ -164,11 +164,11 @@ const TechnicalAnalysis = () => {
           {loading ? (
             <Skeleton className="h-4 w-32 bg-secondary/20 rounded" />
           ) : isLive ? (
-            <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
-              <Wifi className="h-2.5 w-2.5" /> Live · {provider === 'finnhub' ? 'Finnhub' : 'Alpha Vantage'} — {symbol}
+            <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
+              <Wifi className="h-2.5 w-2.5" /> Live · {provider === 'finnhub' ? 'Finnhub' : provider === 'coingecko' ? 'CoinGecko' : 'Alpha Vantage'} — {symbol}
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
+            <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium border border-border/20 rounded-md px-1.5 py-0.5">
               <WifiOff className="h-2.5 w-2.5" /> Candles unavailable
             </span>
           )}
@@ -194,7 +194,7 @@ const TechnicalAnalysis = () => {
               <button
                 key={tf}
                 onClick={() => handleTimeframeChange(tf)}
-                className={`px-2.5 py-1 rounded-md text-[9px] font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded-md text-app-xs font-semibold transition-all ${
                   timeframe === tf
                     ? 'bg-primary/12 text-primary border border-primary/15'
                     : 'text-muted-foreground/40 hover:text-foreground border border-transparent'
@@ -231,10 +231,10 @@ const TechnicalAnalysis = () => {
             ].map((c, i) => (
               <div key={c.label} className="glass-card-hover rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
                 <div className="flex items-center justify-between">
-                  <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{c.label}</p>
+                  <p className="text-app-xs uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{c.label}</p>
                   <c.icon className={`h-3.5 w-3.5 ${c.color.split(' ')[0]}/70`} />
                 </div>
-                <p className={`text-[15px] font-bold mt-2 ${c.color}`}>{c.value}</p>
+                <p className={`text-app-base font-bold mt-2 ${c.color}`}>{c.value}</p>
               </div>
             ))
           )}
@@ -255,7 +255,7 @@ const TechnicalAnalysis = () => {
               ].map(s => (
                 <div key={s.label} className="text-center p-3 rounded-lg bg-secondary/15 border border-border/10">
                   <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
-                  <p className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground/35 mt-1">{s.label}</p>
+                  <p className="text-app-xs uppercase tracking-[0.14em] text-muted-foreground/35 mt-1">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -277,12 +277,12 @@ const TechnicalAnalysis = () => {
                 <Activity className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Price & Moving Averages</h2>
                 {isLive && indicators?.lastDate && (
-                  <span className="ml-auto text-[8px] text-muted-foreground/30">
+                  <span className="ml-auto text-app-xs text-muted-foreground/30">
                     As of {indicators.lastDate}
                   </span>
                 )}
                 {seriesType === 'Candles' && (
-                  <span className="text-[8px] text-muted-foreground/30">
+                  <span className="text-app-xs text-muted-foreground/30">
                     Candles shown as Area
                   </span>
                 )}
@@ -319,14 +319,14 @@ const TechnicalAnalysis = () => {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="h-56 flex items-center justify-center text-[11px] text-muted-foreground/30">
+                <div className="h-56 flex items-center justify-center text-app-sm text-muted-foreground/30">
                   Insufficient data for chart
                 </div>
               )}
               <div className="flex items-center gap-5 mt-3 justify-center">
-                <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-primary rounded" /><span className="text-[8px] text-muted-foreground/35 uppercase tracking-wider">Price</span></div>
-                <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-bull rounded" /><span className="text-[8px] text-muted-foreground/35 uppercase tracking-wider">SMA20</span></div>
-                <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-bear rounded" /><span className="text-[8px] text-muted-foreground/35 uppercase tracking-wider">SMA50</span></div>
+                <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-primary rounded" /><span className="text-app-xs text-muted-foreground/35 uppercase tracking-wider">Price</span></div>
+                <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-bull rounded" /><span className="text-app-xs text-muted-foreground/35 uppercase tracking-wider">SMA20</span></div>
+                <div className="flex items-center gap-1.5"><div className="h-0.5 w-5 bg-bear rounded" /><span className="text-app-xs text-muted-foreground/35 uppercase tracking-wider">SMA50</span></div>
               </div>
             </div>
 
@@ -336,7 +336,7 @@ const TechnicalAnalysis = () => {
                 <Activity className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Oscillators & Indicators</h2>
                 {isLive && (
-                  <span className="ml-auto flex items-center gap-1 text-[8px] text-bull/60">
+                  <span className="ml-auto flex items-center gap-1 text-app-xs text-bull/60">
                     <Wifi className="h-2.5 w-2.5" /> Calculated from live candles
                   </span>
                 )}
@@ -350,12 +350,12 @@ const TechnicalAnalysis = () => {
                   {oscRows.map((ind, i) => (
                     <div key={ind.name} className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-accent/10 transition-colors animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
                       <div>
-                        <span className="text-[13px] text-foreground">{ind.name}</span>
-                        <p className="text-[8px] text-muted-foreground/30 tracking-wider">{ind.desc}</p>
+                        <span className="text-app-sm text-foreground">{ind.name}</span>
+                        <p className="text-app-xs text-muted-foreground/30 tracking-wider">{ind.desc}</p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="text-[13px] font-bold text-foreground tabular-nums">{ind.value}</span>
-                        <span className={`text-[8px] font-semibold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md ${ind.color} ${
+                        <span className="text-app-sm font-bold text-foreground tabular-nums">{ind.value}</span>
+                        <span className={`text-app-xs font-semibold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md ${ind.color} ${
                           ind.color === 'text-bull' ? 'bg-bull/8' : ind.color === 'text-bear' ? 'bg-bear/8' : 'bg-chart-accent/8'
                         }`}>{ind.signal}</span>
                       </div>
@@ -363,7 +363,7 @@ const TechnicalAnalysis = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-muted-foreground/30 text-center py-4">
+                <p className="text-app-sm text-muted-foreground/30 text-center py-4">
                   Insufficient candle data for indicator calculations
                 </p>
               )}
@@ -383,22 +383,22 @@ const TechnicalAnalysis = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-0.5">
                   {maRows.map(ma => (
                     <div key={ma.name} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/10 transition-colors">
-                      <span className="text-[11px] text-foreground/70">{ma.name}</span>
+                      <span className="text-app-sm text-foreground/70">{ma.name}</span>
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] font-bold text-foreground tabular-nums">{ma.value}</span>
+                        <span className="text-app-sm font-bold text-foreground tabular-nums">{ma.value}</span>
                         {ma.signal !== 'N/A' ? (
-                          <span className={`text-[9px] font-semibold flex items-center gap-0.5 ${ma.positive ? 'text-bull' : 'text-bear'}`}>
+                          <span className={`text-app-xs font-semibold flex items-center gap-0.5 ${ma.positive ? 'text-bull' : 'text-bear'}`}>
                             {ma.positive ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
                             {ma.signal}
                           </span>
                         ) : (
-                          <span className="text-[9px] text-muted-foreground/30">N/A</span>
+                          <span className="text-app-xs text-muted-foreground/30">N/A</span>
                         )}
                       </div>
                     </div>
                   ))}
                   {maRows.length === 0 && (
-                    <p className="col-span-2 text-[11px] text-muted-foreground/30 text-center py-2">
+                    <p className="col-span-2 text-app-sm text-muted-foreground/30 text-center py-2">
                       Need more candle history for MA(200). Try 3M timeframe.
                     </p>
                   )}
@@ -413,7 +413,7 @@ const TechnicalAnalysis = () => {
               <Target className="h-3.5 w-3.5 text-primary/70" />
               <h2 className="section-header text-foreground/80">Pivot Points</h2>
               {isLive && (
-                <span className="ml-auto flex items-center gap-1 text-[8px] text-bull/60">
+                <span className="ml-auto flex items-center gap-1 text-app-xs text-bull/60">
                   <Wifi className="h-2.5 w-2.5" />
                 </span>
               )}
@@ -439,15 +439,15 @@ const TechnicalAnalysis = () => {
                       p.highlight ? 'bg-primary/8 border border-primary/15 shadow-[0_0_12px_-4px_hsl(var(--primary)/0.15)]' : 'hover:bg-accent/10'
                     }`}
                   >
-                    <span className={`text-[11px] font-semibold ${
+                    <span className={`text-app-sm font-semibold ${
                       p.label.startsWith('R') ? 'text-bear/80' : p.label.startsWith('S') ? 'text-bull/80' : 'text-primary'
                     }`}>{p.label}</span>
-                    <span className="text-[13px] font-bold text-foreground tabular-nums">${p.value.toFixed(2)}</span>
+                    <span className="text-app-sm font-bold text-foreground tabular-nums">${p.value.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[11px] text-muted-foreground/30 text-center py-4">
+              <p className="text-app-sm text-muted-foreground/30 text-center py-4">
                 Pivot data requires candle history
               </p>
             )}

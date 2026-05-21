@@ -16,7 +16,7 @@ return [
     */
 
     'key'      => env('ALPHA_VANTAGE_KEY', ''),
-    'base_url' => 'https://www.alphavantage.co/query',
+    'base_url' => env('ALPHA_VANTAGE_BASE_URL', 'https://www.alphavantage.co/query'),
 
     'cache_ttl' => [
         // Daily candles — AV free data refreshes once per trading day; cache for 30 min.

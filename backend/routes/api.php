@@ -54,6 +54,8 @@ Route::prefix('market')->group(function () {
 
     // Market movers — top gainers, losers, most active (Alpha Vantage, free plan)
     Route::get('/movers', [MarketController::class, 'movers']);
+    Route::get('/indices', [MarketController::class, 'indices']);
+    Route::get('/sectors', [MarketController::class, 'sectors']);
 
     // Quarterly earnings history — EPS actual vs estimate (Finnhub, free plan)
     Route::get('/earnings/{symbol}', [MarketController::class, 'earnings']);
@@ -61,6 +63,7 @@ Route::prefix('market')->group(function () {
     // Crypto spot prices via CoinGecko (free plan, no key needed)
     // query param: symbols=BTC,ETH,SOL
     Route::get('/crypto/prices',    [CryptoController::class, 'prices']);
+    Route::get('/crypto/ohlcv/{symbol}', [CryptoController::class, 'ohlcv']);
     Route::get('/crypto/supported', [CryptoController::class, 'supported']);
 
 });
