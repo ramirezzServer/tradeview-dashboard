@@ -94,7 +94,6 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
   const [resolution, setResolution] = useState(SETTINGS_DEFAULTS.default_resolution!);
   const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
-  const [retryKey, setRetryKey]   = useState(0);
 
   useEffect(() => {
     setTimeframe((settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe) as Timeframe);
@@ -118,10 +117,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
     }
   };
 
-  const { data: liveData, loading, error, isLive, provider } = useFinnhubCandles(normalizedSymbol, timeframe, resolution);
-
-  // Retry by changing the key so the parent re-mounts the hook's effect
-  const retry = () => setRetryKey(k => k + 1);
+  const { data: liveData, loading, error, isLive, provider, refetch } = useFinnhubCandles(normalizedSymbol, timeframe, resolution);
 
   // ── Error routing ──────────────────────────────────────────────────────────
   const isPlanRestriction = error === 'PLAN_RESTRICTION' || error === 'ACCESS_FORBIDDEN';
@@ -147,7 +143,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
       };
     });
     return { chartData: mapped, minPrice: min, maxPrice: max };
-  }, [liveData, retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [liveData]);
 
   return (
     <div className="glass-card rounded-xl overflow-hidden gradient-border">
@@ -226,7 +222,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
             icon={AlertCircle}
             title="No candle data available"
             body="Finnhub returned no candle data for this symbol and timeframe. Try a different timeframe or check that the market is open."
-            onRetry={retry}
+            onRetry={refetch}
           />
         )}
 
@@ -236,7 +232,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
             icon={AlertCircle}
             title="Alternative provider rate-limited"
             body="Alpha Vantage free tier allows 25 requests/day. Quota reached — chart data will be available again tomorrow."
-            onRetry={retry}
+            onRetry={refetch}
           />
         )}
 
@@ -246,7 +242,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
             icon={AlertCircle}
             title="Could not load chart"
             body={`Data fetch failed: ${error}. Check your network and backend configuration.`}
-            onRetry={retry}
+            onRetry={refetch}
           />
         )}
 

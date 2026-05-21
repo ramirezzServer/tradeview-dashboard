@@ -42,24 +42,33 @@ class AlphaVantageService
         $cacheKey = "av:daily:{$symbol}";
         $cacheTtl = config('alphavantage.cache_ttl.daily_candles', 1800);
 
-        $raw = Cache::remember($cacheKey, $cacheTtl, function () use ($symbol) {
-            $response = Http::timeout(20)->get(config('alphavantage.base_url'), [
-                'function'   => 'TIME_SERIES_DAILY',
-                'symbol'     => strtoupper($symbol),
-                'outputsize' => 'compact',
-                'apikey'     => config('alphavantage.key'),
-            ]);
-
-            if (! $response->ok()) {
-                Log::warning('AlphaVantage HTTP error', [
-                    'symbol' => $symbol,
-                    'status' => $response->status(),
+        try {
+            $raw = Cache::remember($cacheKey, $cacheTtl, function () use ($symbol) {
+                $response = Http::timeout(20)->get(config('alphavantage.base_url'), [
+                    'function'   => 'TIME_SERIES_DAILY',
+                    'symbol'     => strtoupper($symbol),
+                    'outputsize' => 'compact',
+                    'apikey'     => config('alphavantage.key'),
                 ]);
-                return null;
-            }
 
-            return $response->json();
-        });
+                if (! $response->ok()) {
+                    Log::warning('AlphaVantage HTTP error', [
+                        'symbol' => $symbol,
+                        'status' => $response->status(),
+                    ]);
+                    return null;
+                }
+
+                return $response->json();
+            });
+        } catch (\Throwable $e) {
+            Log::warning('AlphaVantage daily candles request failed', [
+                'symbol' => $symbol,
+                'class' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+            throw new RequestFailedException(previous: $e);
+        }
 
         if ($raw === null) {
             throw new RequestFailedException();
@@ -98,19 +107,27 @@ class AlphaVantageService
         $cacheKey = 'av:top_movers';
         $cacheTtl = (int) config('alphavantage.cache_ttl.movers', 900);
 
-        $raw = Cache::remember($cacheKey, $cacheTtl, function () {
-            $response = Http::timeout(20)->get(config('alphavantage.base_url'), [
-                'function' => 'TOP_GAINERS_LOSERS',
-                'apikey'   => config('alphavantage.key'),
+        try {
+            $raw = Cache::remember($cacheKey, $cacheTtl, function () {
+                $response = Http::timeout(20)->get(config('alphavantage.base_url'), [
+                    'function' => 'TOP_GAINERS_LOSERS',
+                    'apikey'   => config('alphavantage.key'),
+                ]);
+
+                if (! $response->ok()) {
+                    Log::warning('AlphaVantage TOP_GAINERS_LOSERS HTTP error', ['status' => $response->status()]);
+                    return null;
+                }
+
+                return $response->json();
+            });
+        } catch (\Throwable $e) {
+            Log::warning('AlphaVantage TOP_GAINERS_LOSERS request failed', [
+                'class' => get_class($e),
+                'message' => $e->getMessage(),
             ]);
-
-            if (! $response->ok()) {
-                Log::warning('AlphaVantage TOP_GAINERS_LOSERS HTTP error', ['status' => $response->status()]);
-                return null;
-            }
-
-            return $response->json();
-        });
+            throw new RequestFailedException(previous: $e);
+        }
 
         if ($raw === null) {
             throw new RequestFailedException();

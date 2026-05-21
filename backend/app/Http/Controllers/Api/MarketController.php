@@ -198,18 +198,28 @@ class MarketController extends Controller
             ]);
 
         } catch (AvNotConfiguredException) {
-            return $this->error(
-                'Market movers provider (Alpha Vantage) is not configured. Set ALPHA_VANTAGE_KEY in .env.',
-                503
-            );
+            return $this->emptyMovers('Alpha Vantage is not configured.');
         } catch (AvRateLimitedException) {
-            return $this->error(
-                'Alpha Vantage rate limit reached. Market movers will be available again soon.',
-                429
-            );
+            return $this->emptyMovers('Alpha Vantage rate limit reached.');
         } catch (AvInvalidResponseException|AvRequestFailedException) {
-            return $this->error('Could not fetch market movers.', 503);
+            return $this->emptyMovers('Could not fetch market movers.');
+        } catch (\Throwable) {
+            return $this->emptyMovers('Could not fetch market movers.');
         }
+    }
+
+    private function emptyMovers(string $reason): JsonResponse
+    {
+        return $this->success([
+            'top_gainers' => [],
+            'top_losers' => [],
+            'most_actively_traded' => [],
+            'last_updated' => null,
+        ], 'Market movers unavailable.', 200, [
+            'provider' => 'alphavantage',
+            'source' => 'unavailable',
+            'reason' => $reason,
+        ]);
     }
 
     public function indices(): JsonResponse
@@ -321,7 +331,9 @@ class MarketController extends Controller
                 404
             );
         } catch (AvRequestFailedException) {
-            return $this->error('Alternative candle provider request failed.', 503);
+            return $this->calculatedCandles($symbol, $request);
+        } catch (\Throwable) {
+            return $this->calculatedCandles($symbol, $request);
         }
     }
 

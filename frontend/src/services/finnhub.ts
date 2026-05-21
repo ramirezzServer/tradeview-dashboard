@@ -185,12 +185,13 @@ export async function getCandles(
  */
 export async function getAlternativeCandles(
   symbol: string,
+  resolution: string,
   from: number,
   to: number
 ): Promise<FinnhubCandle> {
   return fetchFromBackend<FinnhubCandle>(
     `/market/candles-alt/${encodeURIComponent(symbol)}`,
-    { from, to }
+    { resolution, from, to }
   );
 }
 

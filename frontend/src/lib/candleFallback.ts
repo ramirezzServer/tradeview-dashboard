@@ -7,7 +7,7 @@ export type CandleResult = { data: OHLCVData[]; provider: CandleProvider }
 
 export type CandleDeps = {
   getCandles: (symbol: string, resolution: string, from: number, to: number) => Promise<FinnhubCandle>
-  getAlternativeCandles: (symbol: string, from: number, to: number) => Promise<FinnhubCandle>
+  getAlternativeCandles: (symbol: string, resolution: string, from: number, to: number) => Promise<FinnhubCandle>
 }
 
 export function mapCandles(raw: FinnhubCandle): OHLCVData[] {
@@ -52,7 +52,7 @@ export async function fetchCandlesWithFallback(
     const msg = e instanceof Error ? e.message : String(e)
     if (!FALLBACK_TRIGGERS.has(msg)) throw e
 
-    const raw  = await deps.getAlternativeCandles(symbol, from, to)
+    const raw  = await deps.getAlternativeCandles(symbol, resolution, from, to)
     const data = mapCandles(raw)
     if (data.length === 0) throw new Error('NO_DATA')
     return { data, provider: 'alphavantage' }

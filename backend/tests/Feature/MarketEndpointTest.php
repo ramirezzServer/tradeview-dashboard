@@ -106,6 +106,48 @@ class MarketEndpointTest extends TestCase
             ->assertStatus(404);
     }
 
+    public function test_alternative_candles_accepts_primary_candle_params(): void
+    {
+        config([
+            'alphavantage.key' => 'test-key',
+            'alphavantage.base_url' => 'https://www.alphavantage.co/query',
+        ]);
+
+        Http::fake([
+            'https://www.alphavantage.co/query*' => Http::response([
+                'Time Series (Daily)' => [
+                    now()->subDay()->toDateString() => [
+                        '1. open' => '100.00',
+                        '2. high' => '110.00',
+                        '3. low' => '90.00',
+                        '4. close' => '105.00',
+                        '5. volume' => '1000',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $from = now()->subDays(30)->timestamp;
+        $to = now()->timestamp;
+
+        $this->getJson("/api/market/candles-alt/AAPL?resolution=D&from={$from}&to={$to}")
+            ->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.s', 'ok');
+    }
+
+    public function test_market_movers_returns_empty_response_when_provider_unavailable(): void
+    {
+        config(['alphavantage.key' => '']);
+
+        $this->getJson('/api/market/movers')
+            ->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.top_gainers', [])
+            ->assertJsonPath('data.top_losers', [])
+            ->assertJsonPath('data.most_actively_traded', []);
+    }
+
     // ─── News ─────────────────────────────────────────────────────────────────
 
     public function test_news_returns_success(): void
