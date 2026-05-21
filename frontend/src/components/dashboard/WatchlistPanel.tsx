@@ -29,27 +29,27 @@ export function WatchlistPanel() {
 
   return (
     <div className="glass-card rounded-xl overflow-hidden">
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      <div className="px-density-card py-density-row flex items-center justify-between">
         <h3 className="section-header text-foreground/80">Watchlist</h3>
         <div className="flex items-center gap-2">
           {isLoading ? (
             <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground/30" />
           ) : isLive ? (
-            <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+            <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
               <Wifi className="h-2.5 w-2.5" /> Live
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">
+            <span className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium">
               <WifiOff className="h-2.5 w-2.5" /> Offline
             </span>
           )}
-          <span className="text-[9px] text-muted-foreground/30 tabular-nums">{symbols.length} assets</span>
+          <span className="text-app-xs text-muted-foreground/30 tabular-nums">{symbols.length} assets</span>
         </div>
       </div>
 
       {/* Empty state */}
       {!listLoading && items.length === 0 && (
-        <p className="px-4 pb-4 text-[11px] text-muted-foreground/30">
+        <p className="px-density-card pb-4 text-app-sm text-muted-foreground/30">
           No symbols in your watchlist yet.
         </p>
       )}
@@ -69,27 +69,27 @@ export function WatchlistPanel() {
           return (
             <div
               key={sym}
-              className="group flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-250 hover:bg-accent/30 cursor-pointer"
+              className="group flex items-center justify-between rounded-lg px-3 py-density-row transition-all duration-250 hover:bg-accent/30 cursor-pointer"
             >
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-foreground">{sym}</p>
-                <p className="text-[9px] text-muted-foreground/40 truncate">{name}</p>
+                <p className="text-app-sm font-semibold text-foreground">{sym}</p>
+                <p className="text-app-xs text-muted-foreground/40 truncate">{name}</p>
               </div>
               <div className="text-right flex items-center gap-2">
                 <div>
                   {isSymbolLive ? (
                     <>
-                      <p className="text-[13px] font-bold text-foreground tabular-nums">
+                      <p className="text-app-sm font-bold text-foreground tabular-nums">
                         {isCrypto
                           ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
                           : `$${price.toFixed(2)}`}
                       </p>
-                      <p className={`text-[10px] font-semibold tabular-nums ${positive ? 'text-bull value-bull' : 'text-bear value-bear'}`}>
+                      <p className={`text-app-xs font-semibold tabular-nums ${positive ? 'text-bull value-bull' : 'text-bear value-bear'}`}>
                         {positive ? '+' : ''}{changePercent.toFixed(2)}%
                       </p>
                     </>
                   ) : (
-                    <p className="text-[11px] text-muted-foreground/30">—</p>
+                    <p className="text-app-sm text-muted-foreground/30">—</p>
                   )}
                 </div>
                 {isSymbolLive && (

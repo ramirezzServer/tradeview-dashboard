@@ -86,42 +86,42 @@ export function StatsCards() {
   ];
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-density-section">
       <div className="flex items-center gap-2 px-1">
         {loading ? (
-          <div className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">
+          <div className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium">
             <Loader2 className="h-2.5 w-2.5 animate-spin" /> Loading…
           </div>
         ) : isLive ? (
-          <div className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
+          <div className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
             <Wifi className="h-2.5 w-2.5" /> Live · AAPL
           </div>
         ) : (
-          <div className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">
+          <div className="flex items-center gap-1 text-app-xs text-muted-foreground/30 font-medium">
             <WifiOff className="h-2.5 w-2.5" /> Unavailable
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-density-section lg:grid-cols-5">
         {cards.map((c, i) => (
           <div
             key={c.label}
-            className="glass-card-hover rounded-xl p-4 animate-fade-up"
+            className="glass-card-hover rounded-xl p-density-card animate-fade-up"
             style={{ animationDelay: `${i * 60}ms` }}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-density-row">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <c.icon className="h-4 w-4 text-primary/70" />
               </div>
               <div className="min-w-0">
-                <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/50 font-medium">
+                <p className="text-app-xs uppercase tracking-[0.12em] text-muted-foreground/50 font-medium">
                   {c.label}
                 </p>
                 {loading ? (
                   <Skeleton className="h-5 w-20 mt-1 bg-secondary/30" />
                 ) : c.value !== null ? (
-                  <p className={`text-base font-bold text-foreground truncate mt-1 tabular-nums ${
+                  <p className={`text-app-base font-bold text-foreground truncate mt-1 tabular-nums ${
                     c.accent && c.positive !== undefined
                       ? (c.positive ? 'value-bull text-bull' : 'value-bear text-bear')
                       : ''
@@ -129,10 +129,10 @@ export function StatsCards() {
                     {c.value}
                   </p>
                 ) : (
-                  <p className="text-base font-bold text-muted-foreground/25 mt-1">—</p>
+                  <p className="text-app-base font-bold text-muted-foreground/25 mt-1">—</p>
                 )}
                 {c.sub && (
-                  <p className={`text-[11px] font-medium mt-0.5 tabular-nums ${
+                  <p className={`text-app-sm font-medium mt-0.5 tabular-nums ${
                     c.positive !== undefined && c.value !== null
                       ? (c.positive ? 'text-bull/80' : 'text-bear/80')
                       : c.unavailable

@@ -37,6 +37,41 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --font-xs: 0.75rem;
+    --font-sm: 0.875rem;
+    --font-base: 1rem;
+    --font-md: 0.9375rem;
+
+    --spacing-card: 1rem;
+    --spacing-row: 0.5rem;
+    --spacing-section: 1.5rem;
+  }
+
+  :root[data-font-size="small"] {
+    --font-xs: 0.6875rem;
+    --font-sm: 0.75rem;
+    --font-base: 0.875rem;
+    --font-md: 0.8125rem;
+  }
+
+  :root[data-font-size="large"] {
+    --font-xs: 0.875rem;
+    --font-sm: 1rem;
+    --font-base: 1.125rem;
+    --font-md: 1.0625rem;
+  }
+
+  :root[data-density="compact"] {
+    --spacing-card: 0.5rem;
+    --spacing-row: 0.25rem;
+    --spacing-section: 0.75rem;
+  }
+
+  :root[data-density="relaxed"] {
+    --spacing-card: 1.5rem;
+    --spacing-row: 0.75rem;
+    --spacing-section: 2rem;
   }
 
   .dark {
@@ -172,8 +207,59 @@
 
   /* Premium section header */
   .section-header {
-    @apply text-[10px] uppercase tracking-[0.12em] font-semibold;
+    @apply uppercase tracking-[0.12em] font-semibold;
+    font-size: var(--font-xs);
     letter-spacing: 0.12em;
+  }
+
+  .text-app-xs {
+    font-size: var(--font-xs);
+    line-height: 1.25;
+  }
+
+  .text-app-sm {
+    font-size: var(--font-sm);
+    line-height: 1.35;
+  }
+
+  .text-app-base {
+    font-size: var(--font-base);
+    line-height: 1.5;
+  }
+
+  .text-app-md {
+    font-size: var(--font-md);
+    line-height: 1.35;
+  }
+
+  .p-density-card {
+    padding: var(--spacing-card);
+  }
+
+  .px-density-card {
+    padding-left: var(--spacing-card);
+    padding-right: var(--spacing-card);
+  }
+
+  .py-density-row {
+    padding-top: var(--spacing-row);
+    padding-bottom: var(--spacing-row);
+  }
+
+  .pb-density-card {
+    padding-bottom: var(--spacing-card);
+  }
+
+  .gap-density-row {
+    gap: var(--spacing-row);
+  }
+
+  .gap-density-section {
+    gap: var(--spacing-section);
+  }
+
+  .space-density-section > * + * {
+    margin-top: var(--spacing-section);
   }
 
   /* Ambient glow background orbs */
@@ -247,26 +333,26 @@
 
 /* ─── Density ────────────────────────────────────────────────────────────── */
 
-:root[data-density="compact"] .p-3    { padding: 0.5rem !important; }
-:root[data-density="compact"] .p-4    { padding: 0.625rem !important; }
-:root[data-density="compact"] .p-5    { padding: 0.75rem !important; }
+:root[data-density="compact"] .p-3    { padding: var(--spacing-card) !important; }
+:root[data-density="compact"] .p-4    { padding: calc(var(--spacing-card) + 0.125rem) !important; }
+:root[data-density="compact"] .p-5    { padding: calc(var(--spacing-card) + 0.25rem) !important; }
 :root[data-density="compact"] .lg\:p-6 { padding: 0.875rem !important; }
 :root[data-density="compact"] .px-5   { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
 :root[data-density="compact"] .py-3,
-:root[data-density="compact"] .py-2\.5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+:root[data-density="compact"] .py-2\.5 { padding-top: var(--spacing-row) !important; padding-bottom: var(--spacing-row) !important; }
 :root[data-density="compact"] .gap-5  { gap: 0.75rem !important; }
 :root[data-density="compact"] .gap-4  { gap: 0.625rem !important; }
 :root[data-density="compact"] .gap-3  { gap: 0.5rem !important; }
 :root[data-density="compact"] .space-y-4 > * + * { margin-top: 0.625rem !important; }
 :root[data-density="compact"] .space-y-3 > * + * { margin-top: 0.5rem !important; }
 
-:root[data-density="relaxed"] .p-3    { padding: 1rem !important; }
-:root[data-density="relaxed"] .p-4    { padding: 1.5rem !important; }
-:root[data-density="relaxed"] .p-5    { padding: 1.75rem !important; }
+:root[data-density="relaxed"] .p-3    { padding: calc(var(--spacing-card) - 0.5rem) !important; }
+:root[data-density="relaxed"] .p-4    { padding: var(--spacing-card) !important; }
+:root[data-density="relaxed"] .p-5    { padding: calc(var(--spacing-card) + 0.25rem) !important; }
 :root[data-density="relaxed"] .lg\:p-6 { padding: 2rem !important; }
 :root[data-density="relaxed"] .px-5   { padding-left: 1.75rem !important; padding-right: 1.75rem !important; }
 :root[data-density="relaxed"] .py-3,
-:root[data-density="relaxed"] .py-2\.5 { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+:root[data-density="relaxed"] .py-2\.5 { padding-top: var(--spacing-row) !important; padding-bottom: var(--spacing-row) !important; }
 :root[data-density="relaxed"] .gap-5  { gap: 1.5rem !important; }
 :root[data-density="relaxed"] .gap-4  { gap: 1.25rem !important; }
 :root[data-density="relaxed"] .gap-3  { gap: 1rem !important; }
@@ -275,16 +361,31 @@
 
 /* ─── Font size ──────────────────────────────────────────────────────────── */
 
-:root[data-font-size="small"]  { font-size: 14px; --tv-font-scale: 0.9; }
-:root[data-font-size="medium"] { font-size: 16px; --tv-font-scale: 1; }
-:root[data-font-size="large"]  { font-size: 18px; --tv-font-scale: 1.1; }
+:root[data-font-size] .text-\[8px\],
+:root[data-font-size] .text-\[9px\],
+:root[data-font-size] .text-\[10px\],
+:root[data-font-size] .text-xs {
+  font-size: var(--font-xs) !important;
+}
 
-:root[data-font-size] .text-\[8px\]  { font-size: calc(8px * var(--tv-font-scale)) !important; }
-:root[data-font-size] .text-\[9px\]  { font-size: calc(9px * var(--tv-font-scale)) !important; }
-:root[data-font-size] .text-\[10px\] { font-size: calc(10px * var(--tv-font-scale)) !important; }
-:root[data-font-size] .text-\[11px\] { font-size: calc(11px * var(--tv-font-scale)) !important; }
-:root[data-font-size] .text-\[13px\] { font-size: calc(13px * var(--tv-font-scale)) !important; }
-:root[data-font-size] .text-\[15px\] { font-size: calc(15px * var(--tv-font-scale)) !important; }
+:root[data-font-size] .text-\[11px\],
+:root[data-font-size] .text-\[12px\],
+:root[data-font-size] .text-\[13px\],
+:root[data-font-size] .text-sm {
+  font-size: var(--font-sm) !important;
+}
+
+:root[data-font-size] .text-base {
+  font-size: var(--font-base) !important;
+}
+
+:root[data-font-size] .text-\[15px\] {
+  font-size: var(--font-md) !important;
+}
+
+:root[data-font-size] .text-lg {
+  font-size: calc(var(--font-base) * 1.125) !important;
+}
 
 /* ─── No glow ────────────────────────────────────────────────────────────── */
 

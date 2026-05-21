@@ -21,10 +21,10 @@ interface ToggleProps {
 
 function Toggle({ label, desc, value, onChange, isSaving }: ToggleProps) {
   return (
-    <div className="flex items-center justify-between py-3">
+    <div className="flex items-center justify-between py-density-row">
       <div>
-        <p className="text-[13px] text-foreground">{label}</p>
-        <p className="text-[9px] text-muted-foreground/35">{desc}</p>
+        <p className="text-app-sm text-foreground">{label}</p>
+        <p className="text-app-xs text-muted-foreground/35">{desc}</p>
       </div>
       <div className="flex items-center gap-1.5">
         {isSaving && <Loader2 className="h-2.5 w-2.5 animate-spin text-primary/40" />}
@@ -54,10 +54,10 @@ interface SelectProps {
 
 function SelectOption({ label, desc, options, value, onChange, isSaving }: SelectProps) {
   return (
-    <div className="flex items-center justify-between py-3">
+    <div className="flex items-center justify-between py-density-row">
       <div>
-        <p className="text-[13px] text-foreground">{label}</p>
-        <p className="text-[9px] text-muted-foreground/35">{desc}</p>
+        <p className="text-app-sm text-foreground">{label}</p>
+        <p className="text-app-xs text-muted-foreground/35">{desc}</p>
       </div>
       <div className="flex gap-0.5 items-center">
         {isSaving && <Loader2 className="h-2.5 w-2.5 animate-spin text-primary/40 mr-1" />}
@@ -65,7 +65,7 @@ function SelectOption({ label, desc, options, value, onChange, isSaving }: Selec
           <button
             key={opt}
             onClick={() => onChange(opt)}
-            className={`px-2.5 py-1 rounded-md text-[9px] font-semibold transition-all ${
+            className={`px-2.5 py-1 rounded-md text-app-xs font-semibold transition-all ${
               value === opt
                 ? 'bg-primary/12 text-primary border border-primary/15 shadow-[0_0_8px_-2px_hsl(var(--primary)/0.15)]'
                 : 'text-muted-foreground/40 hover:text-foreground bg-secondary/20 border border-transparent'
@@ -157,38 +157,38 @@ const Settings = () => {
 
   return (
     <DashboardLayout title="Settings">
-      <div className="p-4 lg:p-6 space-y-4">
+      <div className="p-density-card space-density-section">
         {/* Header */}
-        <div className="glass-card rounded-xl p-5">
+        <div className="glass-card rounded-xl p-density-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <SettingsIcon className="h-4 w-4 text-primary/70" />
               </div>
               <div>
-                <h2 className="text-[15px] font-bold text-foreground">Preferences</h2>
-                <p className="text-[9px] text-muted-foreground/35 tracking-wider">Customize your trading terminal experience</p>
+                <h2 className="text-app-md font-bold text-foreground">Preferences</h2>
+                <p className="text-app-xs text-muted-foreground/35 tracking-wider">Customize your trading terminal experience</p>
               </div>
             </div>
             {isLoading && <Loader2 className="h-4 w-4 animate-spin text-primary/40" />}
           </div>
 
           {saveStatus === 'saved' && (
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-bull/70">
+            <div className="mt-3 flex items-center gap-2 text-app-sm text-bull/70">
               <CheckCircle2 className="h-3.5 w-3.5" /> Settings saved.
             </div>
           )}
           {saveStatus === 'error' && saveError && (
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-bear/70">
+            <div className="mt-3 flex items-center gap-2 text-app-sm text-bear/70">
               <AlertCircle className="h-3.5 w-3.5" /> {saveError}
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-density-section">
 
           {/* Account */}
-          <div className="glass-card rounded-xl p-5 animate-fade-up">
+          <div className="glass-card rounded-xl p-density-card animate-fade-up">
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <User className="h-3.5 w-3.5 text-primary/70" />
@@ -196,16 +196,16 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Account</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <div className="flex items-center justify-between py-3">
+              <div className="flex items-center justify-between py-density-row">
                 <div>
-                  <p className="text-[13px] text-foreground">{user?.name ?? '—'}</p>
-                  <p className="text-[9px] text-muted-foreground/35">{user?.email ?? '—'}</p>
+                  <p className="text-app-sm text-foreground">{user?.name ?? '—'}</p>
+                  <p className="text-app-xs text-muted-foreground/35">{user?.email ?? '—'}</p>
                 </div>
               </div>
-              <div className="py-3">
+              <div className="py-density-row">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 text-[11px] font-semibold text-bear/70 hover:text-bear transition-colors"
+                  className="flex items-center gap-2 text-app-sm font-semibold text-bear/70 hover:text-bear transition-colors"
                 >
                   <LogOut className="h-3.5 w-3.5" /> Sign out
                 </button>
@@ -214,7 +214,7 @@ const Settings = () => {
           </div>
 
           {/* Display */}
-          <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '50ms' }}>
+          <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '50ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <Monitor className="h-3.5 w-3.5 text-primary/70" />
@@ -242,7 +242,7 @@ const Settings = () => {
           </div>
 
           {/* Notifications */}
-          <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '100ms' }}>
+          <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '100ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <Bell className="h-3.5 w-3.5 text-primary/70" />
@@ -250,7 +250,7 @@ const Settings = () => {
               <h3 className="section-header text-foreground/80">Notifications</h3>
             </div>
             <div className="divide-y divide-border/8">
-              <div className="py-3">
+              <div className="py-density-row">
                 {push.isSupported ? (
                   <>
                     <Toggle
@@ -261,13 +261,13 @@ const Settings = () => {
                       isSaving={push.isBusy}
                     />
                     {push.error && (
-                      <p className="text-[10px] text-bear/70 pb-2">{push.error}</p>
+                      <p className="text-app-xs text-bear/70 pb-2">{push.error}</p>
                     )}
                   </>
                 ) : (
                   <div>
-                    <p className="text-[13px] text-foreground">Enable Push Notifications</p>
-                    <p className="text-[9px] text-muted-foreground/35">Not supported by your browser</p>
+                    <p className="text-app-sm text-foreground">Enable Push Notifications</p>
+                    <p className="text-app-xs text-muted-foreground/35">Not supported by your browser</p>
                   </div>
                 )}
               </div>
@@ -303,7 +303,7 @@ const Settings = () => {
           </div>
 
           {/* Watchlist */}
-          <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '150ms' }}>
+          <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '150ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <Eye className="h-3.5 w-3.5 text-primary/70" />
@@ -344,7 +344,7 @@ const Settings = () => {
           </div>
 
           {/* Default Timeframe */}
-          <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '200ms' }}>
+          <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '200ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <Clock className="h-3.5 w-3.5 text-primary/70" />
@@ -372,7 +372,7 @@ const Settings = () => {
           </div>
 
           {/* Dashboard */}
-          <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '250ms' }}>
+          <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '250ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <Layout className="h-3.5 w-3.5 text-primary/70" />
@@ -412,7 +412,7 @@ const Settings = () => {
           </div>
 
           {/* Appearance */}
-          <div className="glass-card rounded-xl p-5 animate-fade-up" style={{ animationDelay: '300ms' }}>
+          <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '300ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <Palette className="h-3.5 w-3.5 text-primary/70" />
@@ -464,15 +464,15 @@ const Settings = () => {
         </div>
 
         {/* Reset to Defaults */}
-        <div className="glass-card rounded-xl p-5 flex items-center justify-between animate-fade-up" style={{ animationDelay: '350ms' }}>
+        <div className="glass-card rounded-xl p-density-card flex items-center justify-between animate-fade-up" style={{ animationDelay: '350ms' }}>
           <div>
-            <p className="text-[13px] text-foreground font-medium">Reset to Defaults</p>
-            <p className="text-[9px] text-muted-foreground/35 mt-0.5">Restore all settings to their original values</p>
+            <p className="text-app-sm text-foreground font-medium">Reset to Defaults</p>
+            <p className="text-app-xs text-muted-foreground/35 mt-0.5">Restore all settings to their original values</p>
           </div>
           <button
             onClick={handleReset}
             disabled={isResetting}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-bear/70 hover:text-bear border border-bear/15 hover:border-bear/30 hover:bg-bear/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-app-sm font-semibold text-bear/70 hover:text-bear border border-bear/15 hover:border-bear/30 hover:bg-bear/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isResetting
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

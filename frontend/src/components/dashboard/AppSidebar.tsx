@@ -60,7 +60,7 @@ function NavGroup({
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground/40 font-semibold mb-1">
+      <SidebarGroupLabel className="text-app-xs uppercase tracking-[0.14em] text-muted-foreground/40 font-semibold mb-1">
         {label}
       </SidebarGroupLabel>
       <SidebarGroupContent>
@@ -71,7 +71,7 @@ function NavGroup({
                 <NavLink
                   to={item.url}
                   end={item.url === '/'}
-                  className="group/nav relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-muted-foreground/70 transition-all duration-250 hover:text-foreground hover:bg-accent/50"
+                  className="group/nav relative flex items-center gap-density-row rounded-lg px-2.5 py-density-row text-app-sm text-muted-foreground/70 transition-all duration-250 hover:text-foreground hover:bg-accent/50"
                   activeClassName="bg-primary/12 text-primary font-medium shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.15),0_0_12px_-3px_hsl(var(--primary)/0.12)]"
                 >
                   <item.icon className="h-[15px] w-[15px] shrink-0" />
@@ -114,24 +114,24 @@ function WatchlistMiniPanel() {
   return (
     <div className="px-2 pb-1">
       {/* Header */}
-      <div className="flex items-center justify-between px-1 py-1.5">
-        <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground/40 font-semibold">
+      <div className="flex items-center justify-between px-1 py-density-row">
+        <span className="text-app-xs uppercase tracking-[0.14em] text-muted-foreground/40 font-semibold">
           Watchlist
         </span>
-        <span className="text-[9px] text-muted-foreground/25 tabular-nums">{items.length}</span>
+        <span className="text-app-xs text-muted-foreground/25 tabular-nums">{items.length}</span>
       </div>
 
       {/* Items (max 5) */}
       {items.length === 0 ? (
-        <p className="px-1 py-1 text-[9px] text-muted-foreground/25 italic">No symbols yet</p>
+        <p className="px-1 py-density-row text-app-xs text-muted-foreground/25 italic">No symbols yet</p>
       ) : (
         <div className="space-y-0.5">
           {items.slice(0, 5).map(item => (
             <div
               key={item.id}
-              className="group flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-accent/40 transition-colors"
+              className="group flex items-center justify-between rounded-lg px-2 py-density-row hover:bg-accent/40 transition-colors"
             >
-              <span className="text-[12px] font-semibold text-foreground/80">{item.symbol}</span>
+              <span className="text-app-sm font-semibold text-foreground/80">{item.symbol}</span>
               <button
                 onClick={() => removeItem(item.id)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-bear/10"
@@ -145,13 +145,13 @@ function WatchlistMiniPanel() {
       )}
 
       {/* Add input */}
-      <div className="flex items-center gap-1 mt-2 px-1">
+      <div className="flex items-center gap-density-row mt-2 px-1">
         <input
           value={newSymbol}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Add symbol..."
-          className="flex-1 min-w-0 bg-secondary/20 border border-border/20 rounded-md px-2 py-1 text-[10px] text-foreground/80 placeholder:text-muted-foreground/25 outline-none focus:border-primary/30 transition-colors"
+          className="flex-1 min-w-0 bg-secondary/20 border border-border/20 rounded-md px-2 py-1 text-app-xs text-foreground/80 placeholder:text-muted-foreground/25 outline-none focus:border-primary/30 transition-colors"
         />
         <button
           onClick={handleAdd}
@@ -167,7 +167,7 @@ function WatchlistMiniPanel() {
       </div>
 
       {addError && (
-        <p className="px-1 mt-1 text-[9px] text-bear/60">{addError}</p>
+        <p className="px-1 mt-1 text-app-xs text-bear/60">{addError}</p>
       )}
     </div>
   );
@@ -181,17 +181,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/20 bg-sidebar/80 backdrop-blur-xl">
-      <SidebarHeader className="px-4 py-5">
+      <SidebarHeader className="px-density-card py-density-row">
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/12 glow-border">
               <Zap className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <span className="text-[15px] font-bold tracking-tight text-foreground glow-text">
+              <span className="text-app-md font-bold tracking-tight text-foreground glow-text">
                 PersonalProject
               </span>
-              <p className="text-[9px] text-muted-foreground/40 leading-none tracking-wider uppercase">PERSONAL DASHBOARD</p>
+              <p className="text-app-xs text-muted-foreground/40 leading-none tracking-wider uppercase">PERSONAL DASHBOARD</p>
             </div>
           </div>
         ) : (
@@ -217,11 +217,11 @@ export function AppSidebar() {
         <NavGroup label="System" items={settingsNav} collapsed={collapsed} />
       </SidebarContent>
 
-      <SidebarFooter className="px-4 py-3 border-t border-border/15">
+      <SidebarFooter className="px-density-card py-density-row border-t border-border/15">
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-bull animate-pulse-glow" />
-            <p className="text-[9px] text-muted-foreground/40 tracking-wider uppercase">Markets Open</p>
+            <p className="text-app-xs text-muted-foreground/40 tracking-wider uppercase">Markets Open</p>
           </div>
         )}
       </SidebarFooter>

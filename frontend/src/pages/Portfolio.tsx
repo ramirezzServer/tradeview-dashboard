@@ -47,22 +47,22 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="px-5 py-4 border-b border-border/10 bg-accent/5">
-      <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-semibold mb-3">New Holding</p>
-      <div className="flex flex-wrap items-end gap-2">
+    <form onSubmit={handleSubmit} className="px-density-card py-density-row border-b border-border/10 bg-accent/5">
+      <p className="text-app-xs text-muted-foreground/50 uppercase tracking-widest font-semibold mb-3">New Holding</p>
+      <div className="flex flex-wrap items-end gap-density-row">
         <div>
-          <label className="text-[9px] text-muted-foreground/40 mb-1 block">Symbol</label>
+          <label className="text-app-xs text-muted-foreground/40 mb-1 block">Symbol</label>
           <Input
             value={symbol}
             onChange={e => setSymbol(e.target.value.toUpperCase())}
             placeholder="AAPL"
-            className="h-8 w-24 bg-secondary/30 border-border/20 text-sm placeholder:text-muted-foreground/25 uppercase"
+            className="h-8 w-24 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25 uppercase"
             required
             autoFocus
           />
         </div>
         <div>
-          <label className="text-[9px] text-muted-foreground/40 mb-1 block">Shares</label>
+          <label className="text-app-xs text-muted-foreground/40 mb-1 block">Shares</label>
           <Input
             type="number"
             value={quantity}
@@ -70,12 +70,12 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
             placeholder="10"
             min="0.000001"
             step="any"
-            className="h-8 w-24 bg-secondary/30 border-border/20 text-sm placeholder:text-muted-foreground/25"
+            className="h-8 w-24 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25"
             required
           />
         </div>
         <div>
-          <label className="text-[9px] text-muted-foreground/40 mb-1 block">Avg Cost ($)</label>
+          <label className="text-app-xs text-muted-foreground/40 mb-1 block">Avg Cost ($)</label>
           <Input
             type="number"
             value={avgCost}
@@ -83,14 +83,14 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
             placeholder="150.00"
             min="0.0001"
             step="any"
-            className="h-8 w-28 bg-secondary/30 border-border/20 text-sm placeholder:text-muted-foreground/25"
+            className="h-8 w-28 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25"
             required
           />
         </div>
         <button
           type="submit"
           disabled={isAdding}
-          className="h-8 px-3 rounded-lg bg-primary/90 hover:bg-primary text-primary-foreground text-[11px] font-semibold transition-all disabled:opacity-50 flex items-center gap-1"
+          className="h-8 px-3 rounded-lg bg-primary/90 hover:bg-primary text-primary-foreground text-app-sm font-semibold transition-all disabled:opacity-50 flex items-center gap-1"
         >
           {isAdding ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
           {isAdding ? 'Adding…' : 'Add'}
@@ -98,12 +98,12 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
         <button
           type="button"
           onClick={onCancel}
-          className="h-8 px-3 rounded-lg text-muted-foreground/40 hover:text-foreground text-[11px] transition-colors"
+          className="h-8 px-3 rounded-lg text-muted-foreground/40 hover:text-foreground text-app-sm transition-colors"
         >
           Cancel
         </button>
         {(localError || error) && (
-          <p className="text-[10px] text-bear w-full">{localError || error}</p>
+          <p className="text-app-xs text-bear w-full">{localError || error}</p>
         )}
       </div>
     </form>
@@ -183,9 +183,9 @@ const Portfolio = () => {
 
   return (
     <DashboardLayout title="Portfolio">
-      <div className="p-4 lg:p-6 space-y-4">
+      <div className="p-density-card space-density-section">
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-density-section">
           {[
             {
               label: 'Total Value',
@@ -211,36 +211,36 @@ const Portfolio = () => {
               icon: Wallet,
             },
           ].map((c, i) => (
-            <div key={c.label} className="glass-card-hover rounded-xl p-4 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+            <div key={c.label} className="glass-card-hover rounded-xl p-density-card animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
               <div className="flex items-center justify-between">
-                <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{c.label}</p>
+                <p className="text-app-xs uppercase tracking-[0.12em] text-muted-foreground/40 font-medium">{c.label}</p>
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                   <c.icon className="h-3.5 w-3.5 text-primary/70" />
                 </div>
               </div>
               <p className={`text-lg font-bold mt-2 tabular-nums ${c.color || 'text-foreground'}`}>{c.value}</p>
-              {c.sub && <p className="text-[9px] text-muted-foreground/30 mt-0.5">{c.sub}</p>}
+              {c.sub && <p className="text-app-xs text-muted-foreground/30 mt-0.5">{c.sub}</p>}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-density-section">
           {/* Holdings Table */}
           <div className="glass-card rounded-xl overflow-hidden">
-            <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border/15">
+            <div className="px-density-card py-density-row flex items-center gap-density-row border-b border-border/15">
               <Briefcase className="h-3.5 w-3.5 text-primary/70" />
               <h2 className="section-header text-foreground/80">Holdings</h2>
 
               {/* Live/estimated price badge */}
               <div className="flex items-center gap-1 ml-1">
                 {quotesLoading ? (
-                  <span className="flex items-center gap-1 text-[8px] text-muted-foreground/40">
+                  <span className="flex items-center gap-1 text-app-xs text-muted-foreground/40">
                     <Loader2 className="h-2.5 w-2.5 animate-spin" /> Fetching prices…
                   </span>
                 ) : quotesLive ? (
-                  <span className="text-[8px] text-bull/60 font-medium">● Live prices</span>
+                  <span className="text-app-xs text-bull/60 font-medium">● Live prices</span>
                 ) : items.length > 0 ? (
-                  <span className="text-[8px] text-muted-foreground/40 font-medium">● Prices unavailable — showing cost basis</span>
+                  <span className="text-app-xs text-muted-foreground/40 font-medium">● Prices unavailable — showing cost basis</span>
                 ) : null}
               </div>
 
@@ -256,7 +256,7 @@ const Portfolio = () => {
                 )}
                 <button
                   onClick={() => setShowAddForm(v => !v)}
-                  className="flex items-center gap-1 text-[9px] font-semibold text-primary/60 hover:text-primary border border-primary/12 hover:border-primary/25 rounded-md px-2 py-1 transition-all"
+                  className="flex items-center gap-1 text-app-xs font-semibold text-primary/60 hover:text-primary border border-primary/12 hover:border-primary/25 rounded-md px-2 py-1 transition-all"
                 >
                   <Plus className="h-3 w-3" />
                   Add
@@ -266,8 +266,8 @@ const Portfolio = () => {
 
             {/* Disclaimer when any price is estimated */}
             {anyEstimated && !quotesLoading && (
-              <div className="px-5 py-2 border-b border-border/10 bg-bear/5">
-                <p className="text-[9px] text-bear/60">
+              <div className="px-density-card py-density-row border-b border-border/10 bg-bear/5">
+                <p className="text-app-xs text-bear/60">
                   Some prices could not be fetched (marked ~). Current value and P/L use your average cost for those positions.
                 </p>
               </div>
@@ -282,7 +282,7 @@ const Portfolio = () => {
               />
             )}
 
-            <div className="hidden md:grid grid-cols-7 gap-2 px-5 py-2.5 text-[8px] uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10">
+            <div className="hidden md:grid grid-cols-7 gap-density-row px-density-card py-density-row text-app-xs uppercase tracking-[0.14em] text-muted-foreground/30 font-semibold border-b border-border/10">
               <span>Asset</span>
               <span className="text-right">Shares</span>
               <span className="text-right">Avg Cost</span>
@@ -301,8 +301,8 @@ const Portfolio = () => {
             {!isLoading && holdings.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/30">
                 <Briefcase className="h-6 w-6 mb-2 opacity-30" />
-                <p className="text-[11px]">No holdings yet</p>
-                <p className="text-[9px] mt-0.5">Click "Add" to track a position</p>
+                <p className="text-app-sm">No holdings yet</p>
+                <p className="text-app-xs mt-0.5">Click "Add" to track a position</p>
               </div>
             )}
 
@@ -314,18 +314,18 @@ const Portfolio = () => {
                 return (
                   <div
                     key={h.id}
-                    className="grid grid-cols-3 md:grid-cols-7 gap-2 items-center px-5 py-3 hover:bg-accent/15 transition-colors animate-fade-up"
+                    className="grid grid-cols-3 md:grid-cols-7 gap-density-row items-center px-density-card py-density-row hover:bg-accent/15 transition-colors animate-fade-up"
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
                     <div className="flex items-center gap-2">
                       <div>
-                        <p className="text-[13px] font-semibold text-foreground">{h.symbol}</p>
-                        <p className="text-[9px] text-muted-foreground/35">{h.name !== h.symbol ? h.name : ''}</p>
+                        <p className="text-app-sm font-semibold text-foreground">{h.symbol}</p>
+                        <p className="text-app-xs text-muted-foreground/35">{h.name !== h.symbol ? h.name : ''}</p>
                       </div>
                     </div>
-                    <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">{h.shares}</p>
-                    <p className="hidden md:block text-right text-[11px] text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
-                    <p className="text-right text-[11px] font-semibold text-foreground tabular-nums">
+                    <p className="hidden md:block text-right text-app-sm text-foreground/70 tabular-nums">{h.shares}</p>
+                    <p className="hidden md:block text-right text-app-sm text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
+                    <p className="text-right text-app-sm font-semibold text-foreground tabular-nums">
                       {h.isEstimated ? (
                         <span className="text-muted-foreground/40" title="Live price unavailable — showing cost basis">
                           ~${isCryptoSymbol(h.symbol)
@@ -338,26 +338,26 @@ const Portfolio = () => {
                           : `$${h.current.toLocaleString()}`
                       )}
                     </p>
-                    <p className="hidden md:block text-right text-[11px] text-foreground/70 tabular-nums">
+                    <p className="hidden md:block text-right text-app-sm text-foreground/70 tabular-nums">
                       ${h.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </p>
                     <div className="text-right flex items-center justify-end gap-1">
                       {h.isEstimated ? (
-                        <span className="text-[11px] text-muted-foreground/30 tabular-nums">—</span>
+                        <span className="text-app-sm text-muted-foreground/30 tabular-nums">—</span>
                       ) : (
                         <>
                           {positive
                             ? <TrendingUp   className="h-3 w-3 text-bull/60" />
                             : <TrendingDown className="h-3 w-3 text-bear/60" />
                           }
-                          <span className={`text-[11px] font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
+                          <span className={`text-app-sm font-semibold tabular-nums ${positive ? 'text-bull' : 'text-bear'}`}>
                             {positive ? '+' : ''}{pnlPct.toFixed(1)}%
                           </span>
                         </>
                       )}
                     </div>
                     <div className="hidden md:flex items-center justify-end gap-1.5">
-                      <span className="text-[11px] text-muted-foreground/40 tabular-nums">{h.allocation}%</span>
+                      <span className="text-app-sm text-muted-foreground/40 tabular-nums">{h.allocation}%</span>
                       <button
                         onClick={() => removeHolding(h.id)}
                         className="text-muted-foreground/20 hover:text-bear transition-colors ml-1"
@@ -373,9 +373,9 @@ const Portfolio = () => {
           </div>
 
           {/* Right Column */}
-          <div className="space-y-4">
+          <div className="space-density-section">
             {/* Allocation */}
-            <div className="glass-card rounded-xl p-5">
+            <div className="glass-card rounded-xl p-density-card">
               <div className="flex items-center gap-2 mb-4">
                 <PieChart className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Allocation</h2>
@@ -396,30 +396,30 @@ const Portfolio = () => {
                     {holdingsWithAlloc.map((h, i) => (
                       <div key={h.symbol} className="flex items-center gap-2 py-0.5">
                         <div className={`h-2 w-2 rounded-full ${allocationColors[i % allocationColors.length]}`} />
-                        <span className="text-[9px] text-muted-foreground/40">{h.symbol}</span>
-                        <span className="text-[10px] font-semibold text-foreground ml-auto tabular-nums">{h.allocation}%</span>
+                        <span className="text-app-xs text-muted-foreground/40">{h.symbol}</span>
+                        <span className="text-app-xs font-semibold text-foreground ml-auto tabular-nums">{h.allocation}%</span>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
-                <p className="text-[11px] text-muted-foreground/30 text-center py-4">No holdings</p>
+                <p className="text-app-sm text-muted-foreground/30 text-center py-4">No holdings</p>
               )}
             </div>
 
             {/* Best & Worst — only show when we have live prices */}
             {best && !best.isEstimated && (
-              <div className="glass-card rounded-xl p-5">
+              <div className="glass-card rounded-xl p-density-card">
                 <div className="flex items-center gap-2 mb-3">
                   <Award className="h-3.5 w-3.5 text-bull/70" />
                   <h2 className="section-header text-foreground/80">Best Performer</h2>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[13px] font-bold text-foreground">{best.symbol}</p>
-                    <p className="text-[9px] text-muted-foreground/35">{best.name !== best.symbol ? best.name : ''}</p>
+                    <p className="text-app-sm font-bold text-foreground">{best.symbol}</p>
+                    <p className="text-app-xs text-muted-foreground/35">{best.name !== best.symbol ? best.name : ''}</p>
                   </div>
-                  <span className="text-[15px] font-bold text-bull tabular-nums value-bull">
+                  <span className="text-app-md font-bold text-bull tabular-nums value-bull">
                     +{(((best.current - best.avgCost) / best.avgCost) * 100).toFixed(1)}%
                   </span>
                 </div>
@@ -427,17 +427,17 @@ const Portfolio = () => {
             )}
 
             {worst && worst.symbol !== best?.symbol && !worst.isEstimated && (
-              <div className="glass-card rounded-xl p-5">
+              <div className="glass-card rounded-xl p-density-card">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="h-3.5 w-3.5 text-bear/70" />
                   <h2 className="section-header text-foreground/80">Weakest Position</h2>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[13px] font-bold text-foreground">{worst.symbol}</p>
-                    <p className="text-[9px] text-muted-foreground/35">{worst.name !== worst.symbol ? worst.name : ''}</p>
+                    <p className="text-app-sm font-bold text-foreground">{worst.symbol}</p>
+                    <p className="text-app-xs text-muted-foreground/35">{worst.name !== worst.symbol ? worst.name : ''}</p>
                   </div>
-                  <span className={`text-[15px] font-bold tabular-nums ${((worst.current - worst.avgCost) / worst.avgCost) >= 0 ? 'text-bull value-bull' : 'text-bear value-bear'}`}>
+                  <span className={`text-app-md font-bold tabular-nums ${((worst.current - worst.avgCost) / worst.avgCost) >= 0 ? 'text-bull value-bull' : 'text-bear value-bear'}`}>
                     {((worst.current - worst.avgCost) / worst.avgCost) >= 0 ? '+' : ''}
                     {(((worst.current - worst.avgCost) / worst.avgCost) * 100).toFixed(1)}%
                   </span>
