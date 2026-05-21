@@ -10,7 +10,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   return (
-    <div className="dark">
+    <div>
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           {/* Ambient background glow */}

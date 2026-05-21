@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Newspaper, Clock, ExternalLink, TrendingUp, TrendingDown, Flame, Wifi, FlaskConical,
@@ -129,7 +129,6 @@ const News = () => {
   const { settings } = useSettings();
   const preferredNewsCategory = settings?.preferred_news_category ?? 'general';
   const [activeCategory, setActiveCategory] = useState<Category>('All');
-  const initializedFromSettings = useRef(false);
   const { data: liveNews, loading, isLive } = useFinnhubNews(preferredNewsCategory);
   const { savedNews, isSaved, saveArticle, updateNotes, removeArticle, isSaving } = useSavedNews();
 
@@ -137,10 +136,8 @@ const News = () => {
   const [editingNotes, setEditingNotes] = useState('');
 
   useEffect(() => {
-    if (initializedFromSettings.current || !settings?.preferred_news_category) return;
-    setActiveCategory(preferredCategoryMap[settings.preferred_news_category] ?? 'All');
-    initializedFromSettings.current = true;
-  }, [settings?.preferred_news_category]);
+    setActiveCategory(preferredCategoryMap[preferredNewsCategory] ?? 'All');
+  }, [preferredNewsCategory]);
 
   const newsItems = useMemo(() => {
     if (isLive && liveNews.length > 0) return mapFinnhubNews(liveNews);

@@ -401,17 +401,26 @@
 :root.no-glow .glow-border { box-shadow: none !important; }
 :root.no-glow .value-bull,
 :root.no-glow .value-bear  { text-shadow: none !important; }
-:root.no-glow [class*="shadow-[0_0_"] { box-shadow: none !important; }
+:root.no-glow [class*="shadow-"],
+:root.no-glow [class*="hover:shadow-"],
+:root.no-glow [class*="drop-shadow"] {
+  box-shadow: none !important;
+  filter: none !important;
+}
 
 /* ─── No animations ──────────────────────────────────────────────────────── */
 
 :root.no-animations *,
 :root.no-animations *::before,
 :root.no-animations *::after {
+  animation: none !important;
   animation-duration:        0s !important;
   animation-delay:           0s !important;
+  transition: none !important;
+  transition-property:       none !important;
   transition-duration:       0s !important;
   transition-delay:          0s !important;
+  scroll-behavior:           auto !important;
 }
 
 /* Scrollbar styling */

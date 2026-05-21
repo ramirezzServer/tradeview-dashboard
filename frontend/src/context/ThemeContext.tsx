@@ -3,11 +3,11 @@ import { useSettings } from '@/hooks/useSettings';
 
 // ─── Accent color → HSL mapping ──────────────────────────────────────────────
 
-const ACCENT_COLORS: Record<string, string> = {
-  Blue:   '217 91% 60%',
-  Cyan:   '188 91% 45%',
-  Green:  '142 71% 45%',
-  Purple: '270 70% 60%',
+const ACCENT_COLORS: Record<string, { primary: string; accent: string }> = {
+  Blue:   { primary: '217 91% 60%', accent: '217 45% 16%' },
+  Cyan:   { primary: '188 91% 45%', accent: '188 55% 14%' },
+  Green:  { primary: '142 71% 45%', accent: '142 45% 14%' },
+  Purple: { primary: '270 70% 60%', accent: '270 45% 16%' },
 };
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -61,13 +61,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // ── Accent color ──────────────────────────────────────────────────────────
   useEffect(() => {
     const accent = settings?.appearance_prefs?.accent_color ?? 'Blue';
-    const hsl = ACCENT_COLORS[accent] ?? ACCENT_COLORS.Blue;
+    const color = ACCENT_COLORS[accent] ?? ACCENT_COLORS.Blue;
     const root = document.documentElement;
-    root.style.setProperty('--primary', hsl);
-    root.style.setProperty('--ring', hsl);
-    root.style.setProperty('--chart-accent', hsl);
-    root.style.setProperty('--sidebar-primary', hsl);
-    root.style.setProperty('--sidebar-ring', hsl);
+    root.style.setProperty('--primary', color.primary);
+    root.style.setProperty('--primary-foreground', '230 25% 3.5%');
+    root.style.setProperty('--ring', color.primary);
+    root.style.setProperty('--chart-accent', color.primary);
+    root.style.setProperty('--card-glow', color.primary);
+    root.style.setProperty('--accent', color.accent);
+    root.style.setProperty('--accent-foreground', '210 40% 96%');
+    root.style.setProperty('--sidebar-primary', color.primary);
+    root.style.setProperty('--sidebar-ring', color.primary);
+    root.style.setProperty('--sidebar-accent', color.accent);
+    root.style.setProperty('--sidebar-accent-foreground', '210 40% 96%');
   }, [settings?.appearance_prefs?.accent_color]);
 
   return (
