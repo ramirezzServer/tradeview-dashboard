@@ -2,12 +2,14 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Settings as SettingsIcon, Monitor, Bell, Eye, Clock, Palette,
   Layout, User, LogOut, Loader2, AlertCircle, CheckCircle2, RotateCcw,
+  Search,
 } from 'lucide-react';
 import { SETTINGS_DEFAULTS, useSettings, PartialSettings } from '@/hooks/useSettings';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Input } from '@/components/ui/input';
 
 // ─── Controlled Toggle ────────────────────────────────────────────────────────
 
@@ -93,6 +95,11 @@ const Settings = () => {
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [saveError, setSaveError]   = useState<string | null>(null);
+  const [defaultSymbolInput, setDefaultSymbolInput] = useState(SETTINGS_DEFAULTS.default_symbol ?? 'AAPL');
+  const [defaultSymbolError, setDefaultSymbolError] = useState<string | null>(null);
+  const [symbolSaveStatus, setSymbolSaveStatus] = useState<SaveStatus>('idle');
+  const symbolSaveTimer = useRef<number | null>(null);
+  const symbolStatusTimer = useRef<number | null>(null);
 
   // ── Derived display values from settings ──────────────────────────────────
 
@@ -105,6 +112,7 @@ const Settings = () => {
 
   const density        = settings?.density        ?? SETTINGS_DEFAULTS.density!;
   const fontSize       = settings?.font_size      ?? SETTINGS_DEFAULTS.font_size!;
+  const defaultSymbol  = settings?.default_symbol ?? SETTINGS_DEFAULTS.default_symbol!;
   const chartTimeframe = settings?.chart_timeframe ?? SETTINGS_DEFAULTS.chart_timeframe!;
   const resolution     = resMap[settings?.default_resolution ?? SETTINGS_DEFAULTS.default_resolution!] ?? '1D';
   const newsCategory   = settings?.preferred_news_category ?? SETTINGS_DEFAULTS.preferred_news_category!;
@@ -113,6 +121,54 @@ const Settings = () => {
   const wlPrefs = settings?.watchlist_prefs ?? SETTINGS_DEFAULTS.watchlist_prefs!;
   const dashP   = settings?.dashboard_prefs ?? SETTINGS_DEFAULTS.dashboard_prefs!;
   const appP    = settings?.appearance_prefs ?? SETTINGS_DEFAULTS.appearance_prefs!;
+
+  useEffect(() => {
+    setDefaultSymbolInput(defaultSymbol);
+  }, [defaultSymbol]);
+
+  useEffect(() => {
+    if (symbolSaveTimer.current) {
+      window.clearTimeout(symbolSaveTimer.current);
+    }
+
+    if (defaultSymbolError || defaultSymbolInput === defaultSymbol) {
+      return;
+    }
+
+    symbolSaveTimer.current = window.setTimeout(async () => {
+      const nextSymbol = defaultSymbolInput.trim() || (SETTINGS_DEFAULTS.default_symbol ?? 'AAPL');
+      setSymbolSaveStatus('saving');
+      setSaveError(null);
+
+      try {
+        await updateSettings({ default_symbol: nextSymbol });
+        setSymbolSaveStatus('saved');
+        setDefaultSymbolInput(nextSymbol);
+        if (symbolStatusTimer.current) {
+          window.clearTimeout(symbolStatusTimer.current);
+        }
+        symbolStatusTimer.current = window.setTimeout(() => setSymbolSaveStatus('idle'), 1800);
+      } catch (err: unknown) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save default symbol.');
+        setSymbolSaveStatus('error');
+      }
+    }, 800);
+
+    return () => {
+      if (symbolSaveTimer.current) {
+        window.clearTimeout(symbolSaveTimer.current);
+      }
+    };
+  }, [defaultSymbol, defaultSymbolError, defaultSymbolInput, updateSettings]);
+
+  useEffect(() => () => {
+    if (symbolSaveTimer.current) {
+      window.clearTimeout(symbolSaveTimer.current);
+    }
+    if (symbolStatusTimer.current) {
+      window.clearTimeout(symbolStatusTimer.current);
+    }
+  }, []);
 
   // ── Unified save wrapper (surfaces status in the banner) ─────────────────
 
@@ -153,6 +209,25 @@ const Settings = () => {
     } else {
       await push.unsubscribe();
     }
+  };
+
+  const handleDefaultSymbolChange = (value: string) => {
+    const upper = value.toUpperCase();
+    const sanitized = upper.replace(/[^A-Z0-9]/g, '').slice(0, 10);
+
+    setDefaultSymbolInput(sanitized);
+
+    if (/[^A-Z0-9]/.test(upper)) {
+      setDefaultSymbolError('Use letters and numbers only.');
+      return;
+    }
+
+    if (upper.length > 10) {
+      setDefaultSymbolError('Use 10 characters or fewer.');
+      return;
+    }
+
+    setDefaultSymbolError(null);
   };
 
   return (
@@ -213,8 +288,48 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Display */}
+          {/* Trading Defaults */}
           <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '50ms' }}>
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
+                <Search className="h-3.5 w-3.5 text-primary/70" />
+              </div>
+              <h3 className="section-header text-foreground/80">Trading Defaults</h3>
+            </div>
+            <div className="py-density-row">
+              <div className="flex items-center justify-between gap-density-section">
+                <div>
+                  <p className="text-app-sm text-foreground">Default Symbol</p>
+                  <p className="text-app-xs text-muted-foreground/35">
+                    Primary symbol shown on Dashboard, Technical Analysis, and Financial Snapshot
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5">
+                    {symbolSaveStatus === 'saving' && <Loader2 className="h-2.5 w-2.5 animate-spin text-primary/40" />}
+                    {symbolSaveStatus === 'saved' && (
+                      <span className="flex items-center gap-1 text-app-xs text-bull/70">
+                        <CheckCircle2 className="h-3 w-3" /> Saved
+                      </span>
+                    )}
+                    <Input
+                      value={defaultSymbolInput}
+                      onChange={e => handleDefaultSymbolChange(e.target.value)}
+                      placeholder="e.g. AAPL"
+                      maxLength={10}
+                      className="h-8 w-28 bg-secondary/30 border-border/20 text-app-sm uppercase text-right placeholder:text-muted-foreground/25"
+                    />
+                  </div>
+                  {defaultSymbolError && (
+                    <p className="text-app-xs text-bear/70">{defaultSymbolError}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Display */}
+          <div className="glass-card rounded-xl p-density-card animate-fade-up" style={{ animationDelay: '100ms' }}>
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/12">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/8 border border-primary/10">
                 <Monitor className="h-3.5 w-3.5 text-primary/70" />
