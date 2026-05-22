@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::get('/healthz', fn () => response()->json(['status' => 'ok']));
+
 // ═══════════════════════════════════════════════════════════════════════
 // PHASE 1 — Finnhub Proxy (public)
 // ═══════════════════════════════════════════════════════════════════════

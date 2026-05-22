@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.git
+.github
+node_modules
+vendor
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+.phpunit.result.cache
+tests
+README.md
+npm-debug.log
+yarn-error.log

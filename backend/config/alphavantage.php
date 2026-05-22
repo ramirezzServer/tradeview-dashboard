@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'key'      => env('ALPHA_VANTAGE_KEY', ''),
+    'key'      => env('ALPHA_VANTAGE_API_KEY', env('ALPHA_VANTAGE_KEY', '')),
     'base_url' => env('ALPHA_VANTAGE_BASE_URL', 'https://www.alphavantage.co/query'),
 
     'cache_ttl' => [
