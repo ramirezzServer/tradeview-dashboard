@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getToken } from '@/services/api';
 import type { UserSettings, PartialSettings } from '@shared/schemas/settings';
@@ -90,6 +91,15 @@ function mergeSettingsUpdate(current: UserSettings | undefined, updates: Partial
 export function useSettings() {
   const qc = useQueryClient();
   const hasToken = Boolean(getToken());
+  const [isDebouncedSaving, setIsDebouncedSaving] = useState(false);
+  const [savingKeys, setSavingKeys] = useState<Set<string>>(() => new Set());
+  const pendingUpdates = useRef<PartialSettings>({});
+  const previousForPending = useRef<UserSettings | undefined>(undefined);
+  const pendingResolvers = useRef<Array<{
+    resolve: (settings: UserSettings) => void;
+    reject: (error: unknown) => void;
+  }>>([]);
+  const saveTimer = useRef<number | null>(null);
 
   const query = useQuery<UserSettings>({
     queryKey: ['settings'],
@@ -99,28 +109,104 @@ export function useSettings() {
     staleTime: 60_000, // settings don't change often — cache for 1 min
   });
 
-  const updateMutation = useMutation({
-    mutationFn: (updates: PartialSettings) =>
-      api.put<UserSettings>('/settings', mergeSettingsUpdate(qc.getQueryData<UserSettings>(['settings']), updates)),
-    onMutate: async (updates) => {
-      await qc.cancelQueries({ queryKey: ['settings'] });
-      const previous = qc.getQueryData<UserSettings>(['settings']);
-      const optimistic = withSettingsDefaults({
-        ...previous,
-        ...mergeSettingsUpdate(previous, updates),
-      });
-      qc.setQueryData(['settings'], optimistic);
-      return { previous };
-    },
-    onError: (_error, _updates, context) => {
-      if (context?.previous) {
-        qc.setQueryData(['settings'], context.previous);
+  const flushPending = useCallback(async () => {
+    if (saveTimer.current) {
+      window.clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+
+    const updates = pendingUpdates.current;
+    const resolvers = pendingResolvers.current;
+    const previous = previousForPending.current;
+
+    pendingUpdates.current = {};
+    pendingResolvers.current = [];
+    previousForPending.current = undefined;
+
+    if (Object.keys(updates).length === 0) {
+      setIsDebouncedSaving(false);
+      return;
+    }
+
+    try {
+      const merged = mergeSettingsUpdate(qc.getQueryData<UserSettings>(['settings']), updates);
+      const updated = withSettingsDefaults(await api.put<UserSettings>('/settings', merged));
+      qc.setQueryData(['settings'], updated);
+      resolvers.forEach(({ resolve }) => resolve(updated));
+    } catch (error) {
+      if (previous) {
+        qc.setQueryData<UserSettings>(['settings'], current => {
+          const rollback = { ...(current ?? previous) } as UserSettings;
+          for (const key of Object.keys(updates) as Array<keyof PartialSettings>) {
+            rollback[key] = previous[key] as never;
+          }
+          return withSettingsDefaults(rollback);
+        });
       }
-    },
-    onSuccess: (updated) => {
-      qc.setQueryData(['settings'], withSettingsDefaults(updated));
-    },
-  });
+      resolvers.forEach(({ reject }) => reject(error));
+    } finally {
+      setIsDebouncedSaving(false);
+      setSavingKeys(current => {
+        const next = new Set(current);
+        for (const key of Object.keys(updates)) {
+          next.delete(key);
+        }
+        return next;
+      });
+    }
+  }, [qc]);
+
+  const updateSettings = useCallback((updates: PartialSettings) => {
+    setIsDebouncedSaving(true);
+    const touchedKeys = Object.keys(updates);
+    setSavingKeys(current => {
+      const next = new Set(current);
+      touchedKeys.forEach(key => next.add(key));
+      return next;
+    });
+
+    void qc.cancelQueries({ queryKey: ['settings'] });
+
+    const previous = qc.getQueryData<UserSettings>(['settings']);
+    if (!previousForPending.current) {
+      previousForPending.current = previous;
+    }
+
+    pendingUpdates.current = mergeSettingsUpdate(
+      withSettingsDefaults({
+        ...qc.getQueryData<UserSettings>(['settings']),
+        ...pendingUpdates.current,
+      }),
+      {
+        ...pendingUpdates.current,
+        ...updates,
+      }
+    );
+
+    qc.setQueryData(['settings'], withSettingsDefaults({
+      ...previous,
+      ...mergeSettingsUpdate(previous, pendingUpdates.current),
+    }));
+
+    const promise = new Promise<UserSettings>((resolve, reject) => {
+      pendingResolvers.current.push({ resolve, reject });
+    });
+
+    if (saveTimer.current) {
+      window.clearTimeout(saveTimer.current);
+    }
+    saveTimer.current = window.setTimeout(() => {
+      void flushPending();
+    }, 600);
+
+    return promise;
+  }, [flushPending, qc]);
+
+  useEffect(() => () => {
+    if (saveTimer.current) {
+      window.clearTimeout(saveTimer.current);
+    }
+  }, []);
 
   const resetMutation = useMutation({
     mutationFn: () =>
@@ -133,9 +219,10 @@ export function useSettings() {
   return {
     settings:       query.data ? withSettingsDefaults(query.data) : undefined,
     isLoading:      query.isLoading,
-    updateSettings: (updates: PartialSettings) => updateMutation.mutateAsync(updates),
+    updateSettings,
     resetSettings:  () => resetMutation.mutateAsync(),
-    isSaving:       updateMutation.isPending,
+    isSaving:       isDebouncedSaving,
+    isSavingKey:    (key: keyof PartialSettings) => savingKeys.has(String(key)),
     isResetting:    resetMutation.isPending,
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/services/api';
 import { shouldAutoCreate } from '@/lib/defaultResource';
@@ -18,6 +18,8 @@ export type { Watchlist, WatchlistItem };
  */
 export function useWatchlist() {
   const qc = useQueryClient();
+  const optimisticId = useRef(-1);
+  const pendingSymbols = useRef(new Set<string>());
 
   // ── Fetch all watchlists ──────────────────────────────────────────────────
   const listsQuery = useQuery<Watchlist[]>({
@@ -62,10 +64,46 @@ export function useWatchlist() {
       if (!watchlistId) {
         throw new ApiError(0, 'Watchlist is still being created. Please try again.');
       }
-      return api.post<WatchlistItem>(`/watchlists/${watchlistId}/items`, { symbol });
+      const normalized = symbol.toUpperCase().trim();
+      if (items.some(item => item.symbol === normalized)) {
+        throw new ApiError(409, `'${normalized}' is already in this watchlist.`);
+      }
+      return api.post<WatchlistItem>(`/watchlists/${watchlistId}/items`, { symbol: normalized });
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['watchlist', watchlistId] });
+    onMutate: async (symbol) => {
+      const normalized = symbol.toUpperCase().trim();
+      if (items.some(item => item.symbol === normalized) || pendingSymbols.current.has(normalized)) {
+        throw new ApiError(409, `'${normalized}' is already in this watchlist.`);
+      }
+      pendingSymbols.current.add(normalized);
+      await qc.cancelQueries({ queryKey: ['watchlist', watchlistId] });
+      const previous = qc.getQueryData<Watchlist>(['watchlist', watchlistId]);
+      const optimisticItem: WatchlistItem = {
+        id: optimisticId.current--,
+        watchlist_id: watchlistId!,
+        symbol: normalized,
+        notes: null,
+        sort_order: previous?.items?.length ?? 0,
+      };
+      qc.setQueryData<Watchlist>(['watchlist', watchlistId], current => ({
+        ...(current ?? previous ?? { id: watchlistId!, user_id: 0, name: 'My Watchlist' }),
+        items: [...(current?.items ?? previous?.items ?? []), optimisticItem],
+      }));
+      return { previous, symbol: normalized, optimisticId: optimisticItem.id };
+    },
+    onError: (_error, _symbol, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['watchlist', watchlistId], context.previous);
+      }
+    },
+    onSuccess: (created, _symbol, context) => {
+      qc.setQueryData<Watchlist>(['watchlist', watchlistId], current => ({
+        ...(current ?? context?.previous ?? { id: watchlistId!, user_id: 0, name: 'My Watchlist' }),
+        items: (current?.items ?? []).map(item => item.id === context?.optimisticId ? created : item),
+      }));
+    },
+    onSettled: (_data, _error, _symbol, context) => {
+      if (context?.symbol) pendingSymbols.current.delete(context.symbol);
     },
   });
 
@@ -73,8 +111,19 @@ export function useWatchlist() {
   const removeItem = useMutation({
     mutationFn: (itemId: number) =>
       api.delete(`/watchlist-items/${itemId}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['watchlist', watchlistId] });
+    onMutate: async (itemId) => {
+      await qc.cancelQueries({ queryKey: ['watchlist', watchlistId] });
+      const previous = qc.getQueryData<Watchlist>(['watchlist', watchlistId]);
+      qc.setQueryData<Watchlist>(['watchlist', watchlistId], current => ({
+        ...(current ?? previous ?? { id: watchlistId!, user_id: 0, name: 'My Watchlist' }),
+        items: (current?.items ?? previous?.items ?? []).filter(item => item.id !== itemId),
+      }));
+      return { previous };
+    },
+    onError: (_error, _itemId, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['watchlist', watchlistId], context.previous);
+      }
     },
   });
 
@@ -82,7 +131,13 @@ export function useWatchlist() {
     items,
     watchlistId,
     isLoading: listsQuery.isLoading || isCreating || (!!watchlistId && itemsQuery.isLoading),
-    addSymbol: (symbol: string) => addSymbol.mutateAsync(symbol),
+    addSymbol: (symbol: string) => {
+      const normalized = symbol.toUpperCase().trim();
+      if (items.some(item => item.symbol === normalized) || pendingSymbols.current.has(normalized)) {
+        return Promise.reject(new ApiError(409, `'${normalized}' is already in this watchlist.`));
+      }
+      return addSymbol.mutateAsync(normalized);
+    },
     removeItem: (itemId: number) => removeItem.mutateAsync(itemId),
     addError: addSymbol.error instanceof ApiError ? addSymbol.error.message : null,
     isAdding: addSymbol.isPending || isCreating,

@@ -12,11 +12,12 @@ const sentimentIndicators = [
 ];
 
 const MarketOverview = () => {
-  const indicesQuery = useQuery({ queryKey: ['market-indices'], queryFn: getMarketIndices, staleTime: 60_000, retry: 1 });
-  const sectorsQuery = useQuery({ queryKey: ['market-sectors'], queryFn: getSectorPerformance, staleTime: 60_000, retry: 1 });
+  const indicesQuery = useQuery({ queryKey: ['market-indices'], queryFn: getMarketIndices, staleTime: 60_000, retry: 1, placeholderData: previous => previous });
+  const sectorsQuery = useQuery({ queryKey: ['market-sectors'], queryFn: getSectorPerformance, staleTime: 10 * 60_000, retry: 1, placeholderData: previous => previous });
   const indices = indicesQuery.data ?? [];
   const sectors = sectorsQuery.data ?? [];
   const isLive = indices.length > 0 || sectors.length > 0;
+  const hasFallback = [...indices, ...sectors].some(item => item.source === 'simulated');
 
   return (
     <DashboardLayout title="Market Overview">
@@ -24,7 +25,7 @@ const MarketOverview = () => {
         <div className="flex items-center gap-2 px-1">
           <span className={`flex items-center gap-1.5 text-app-xs font-medium border border-border/20 rounded-md px-2 py-1 ${isLive ? 'text-bull/60' : 'text-muted-foreground/30'}`}>
             {isLive ? <Wifi className="h-2.5 w-2.5" /> : <WifiOff className="h-2.5 w-2.5" />}
-            {isLive ? 'Live ETF proxies from Finnhub' : 'Market overview unavailable'}
+            {isLive ? (hasFallback ? 'Partial fallback market overview' : 'Live ETF proxies from Finnhub') : 'Market overview unavailable'}
           </span>
         </div>
 
@@ -57,6 +58,11 @@ const MarketOverview = () => {
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="h-3.5 w-3.5 text-primary/70" />
                 <h2 className="section-header text-foreground/80">Sector Performance</h2>
+                {sectors.some(s => s.source === 'simulated') && (
+                  <span className="ml-auto text-app-xs text-chart-accent/70 border border-chart-accent/15 rounded-md px-1.5 py-0.5">
+                    Fallback data
+                  </span>
+                )}
               </div>
               <div className="space-y-1.5">
                 {sectors.map((s, i) => {

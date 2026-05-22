@@ -88,7 +88,7 @@ export function MarketMovers() {
             <>
               <FreshnessBadge fetchedAt={fetchedAt} />
               <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
-                <Wifi className="h-2.5 w-2.5" /> Live · AV
+                <Wifi className="h-2.5 w-2.5" /> {data?.source === 'simulated' ? 'Simulated fallback' : 'Live AV'}
               </span>
             </>
           ) : (

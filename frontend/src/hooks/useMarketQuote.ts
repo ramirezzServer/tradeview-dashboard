@@ -30,13 +30,14 @@ export function useMarketQuote(
 
   const query = useQuery<FinnhubQuote, Error>({
     queryKey: ['quote', symbol.toUpperCase()],
-    queryFn:  () => getQuote(symbol.toUpperCase()),
+    queryFn:  ({ signal }) => getQuote(symbol.toUpperCase(), { signal }),
     enabled:  enabled && isFinnhubConfigured() && !!symbol,
     staleTime: 10_000,                    // 10s — data is considered fresh
     refetchInterval: refetchIntervalMs,   // auto-refresh in foreground
     refetchIntervalInBackground: false,   // pause when tab is hidden
     retry: 2,
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 8_000),
+    placeholderData: previous => previous,
   });
 
   const data    = query.data;

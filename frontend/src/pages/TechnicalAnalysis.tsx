@@ -18,9 +18,9 @@ type ChartStyle = 'Candles' | 'Line' | 'Area';
 function ProviderNotice({ error }: { error: string | null }) {
   if (!error) return null;
   const messages: Record<string, string> = {
-    PROVIDER_FORBIDDEN: 'The primary provider denied candle data and fallback recovery failed.',
-    PLAN_RESTRICTION: 'The primary provider denied candle data and fallback recovery failed.',
-    AV_RATE_LIMITED:  'Alternative provider quota reached and fallback recovery failed.',
+    PROVIDER_FORBIDDEN: 'The primary provider denied candle data. Showing fallback when available.',
+    PLAN_RESTRICTION: 'The primary provider denied candle data. Showing fallback when available.',
+    AV_RATE_LIMITED:  'Alternative provider quota reached. Showing calculated candles when available.',
     AV_NOT_CONFIGURED: 'Alpha Vantage key not configured (ALPHA_VANTAGE_KEY). Set it in backend .env.',
     FINNHUB_KEY_MISSING: 'Finnhub API key not configured on the server.',
     NO_DATA:          'No candle data available for the selected timeframe.',
@@ -44,7 +44,7 @@ const TechnicalAnalysis = () => {
   const [timeframe, setTimeframe] = useState<Timeframe>(SETTINGS_DEFAULTS.chart_timeframe as Timeframe);
   const [seriesType, setSeriesType] = useState<ChartStyle>(SETTINGS_DEFAULTS.appearance_prefs?.chart_style as ChartStyle);
   const technicalSeriesType: Exclude<ChartStyle, 'Candles'> = seriesType === 'Line' ? 'Line' : 'Area';
-  const { indicators, loading, error, provider, isLive } = useIndicators(symbol, timeframe);
+  const { indicators, loading, refreshing, error, provider, isLive, candleCount } = useIndicators(symbol, timeframe);
 
   useEffect(() => {
     const nextSymbol = (settings?.default_symbol ?? SETTINGS_DEFAULTS.default_symbol ?? 'AAPL').toUpperCase();
@@ -78,6 +78,10 @@ const TechnicalAnalysis = () => {
 
   const p = indicators?.currentPrice ?? 0;
   const fmt = (v: number | null) => v !== null ? `$${v.toFixed(2)}` : '—';
+  const hasChartData = (indicators?.chartData.length ?? 0) >= 2;
+  const ma50Notice = !loading && isLive && candleCount < 50
+    ? 'Need more candle history for MA(50). Try 3M timeframe.'
+    : null;
 
   // Moving average rows
   const maRows = indicators ? [
@@ -162,6 +166,10 @@ const TechnicalAnalysis = () => {
         <div className="flex items-center gap-3 px-1 flex-wrap">
           {loading ? (
             <Skeleton className="h-4 w-32 bg-secondary/20 rounded" />
+          ) : refreshing ? (
+            <span className="flex items-center gap-1 text-app-xs text-muted-foreground/40 font-medium">
+              <RefreshCw className="h-2.5 w-2.5 animate-spin" /> Refreshing
+            </span>
           ) : isLive ? (
             <span className="flex items-center gap-1 text-app-xs text-bull/60 font-medium">
               <Wifi className="h-2.5 w-2.5" /> Live · {provider === 'finnhub' ? 'Finnhub' : provider === 'coingecko' ? 'CoinGecko' : 'Fallback data'} — {symbol}
@@ -206,7 +214,19 @@ const TechnicalAnalysis = () => {
         </div>
 
         {/* Provider error notice */}
-        {!loading && <ProviderNotice error={error} />}
+        {!loading && !isLive && <ProviderNotice error={error} />}
+        {!loading && isLive && (provider === 'calculated' || provider === 'simulated') && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-chart-accent/8 border border-chart-accent/15 text-app-xs text-muted-foreground/60">
+            <Wifi className="h-3 w-3 text-chart-accent/60 shrink-0" />
+            Calculated fallback candles are being used because external providers were unavailable.
+          </div>
+        )}
+        {ma50Notice && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-chart-accent/8 border border-chart-accent/15 text-app-xs text-muted-foreground/60">
+            <WifiOff className="h-3 w-3 text-chart-accent/60 shrink-0" />
+            {ma50Notice}
+          </div>
+        )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -288,7 +308,7 @@ const TechnicalAnalysis = () => {
               </div>
               {loading ? (
                 <Skeleton className="h-56 w-full rounded-lg bg-secondary/20" />
-              ) : indicators?.chartData.length ? (
+              ) : hasChartData ? (
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={indicators.chartData}>
@@ -319,7 +339,7 @@ const TechnicalAnalysis = () => {
                 </div>
               ) : (
                 <div className="h-56 flex items-center justify-center text-app-sm text-muted-foreground/30">
-                  Insufficient data for chart
+                  Need at least 2 valid candle points to render the chart
                 </div>
               )}
               <div className="flex items-center gap-5 mt-3 justify-center">

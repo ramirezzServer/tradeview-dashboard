@@ -2,7 +2,7 @@ import type { FinnhubCandle } from '@/services/finnhub'
 import type { OHLCVData } from '@/types/stock'
 
 export type Timeframe = '1D' | '1W' | '1M' | '3M'
-export type CandleProvider = 'finnhub' | 'alphavantage' | 'coingecko'
+export type CandleProvider = 'finnhub' | 'alphavantage' | 'coingecko' | 'calculated' | 'simulated'
 export type CandleResult = { data: OHLCVData[]; provider: CandleProvider }
 
 export type CandleDeps = {
@@ -72,9 +72,11 @@ export async function fetchCandlesWithFallback(
       const raw  = await deps.getAlternativeCandles(symbol, resolution, from, to, options)
       const data = mapCandles(raw)
       if (data.length === 0) throw new Error('EMPTY_CANDLES')
-      return { data, provider: 'alphavantage' }
-    } catch {
-      throw new Error('FALLBACK_FAILED')
+      const provider = raw.meta?.provider ?? 'alphavantage'
+      return { data, provider }
+    } catch (fallbackError) {
+      const msg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+      throw new Error(msg === 'EMPTY_CANDLES' ? 'EMPTY_CANDLES' : 'FALLBACK_FAILED')
     }
   }
 }

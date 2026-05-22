@@ -18,6 +18,7 @@ interface CandleState {
   error:    string | null;
   isLive:   boolean;
   provider: CandleProvider | null;
+  refreshing: boolean;
   refetch:  () => void;
 }
 
@@ -29,7 +30,7 @@ export function useFinnhubCandles(
   resolutionOverride?: string
 ): CandleState {
   const [state, setState] = useState<CandleState>({
-    data: [], loading: true, error: null, isLive: false, provider: null, refetch: () => {},
+    data: [], loading: true, error: null, isLive: false, provider: null, refreshing: false, refetch: () => {},
   });
   const [requestKey, setRequestKey] = useState(0);
   const refetch = useCallback(() => setRequestKey(key => key + 1), []);
@@ -37,7 +38,7 @@ export function useFinnhubCandles(
 
   useEffect(() => {
     if (!isFinnhubConfigured()) {
-      setState({ data: [], loading: false, error: 'FINNHUB_KEY_MISSING', isLive: false, provider: null, refetch });
+      setState({ data: [], loading: false, error: 'FINNHUB_KEY_MISSING', isLive: false, provider: null, refreshing: false, refetch });
       return;
     }
 
@@ -46,7 +47,7 @@ export function useFinnhubCandles(
     const requestId = requestSeq.current + 1;
     requestSeq.current = requestId;
 
-    setState(s => ({ ...s, loading: true, error: null }));
+    setState(s => ({ ...s, loading: s.data.length === 0, refreshing: s.data.length > 0, error: null }));
 
     const { from, to, resolution } = getRange(timeframe);
     const selectedResolution = resolutionOverride ?? resolution;
@@ -71,14 +72,17 @@ export function useFinnhubCandles(
     candlePromise
       .then(({ data, provider }) => {
         if (cancelled || requestSeq.current !== requestId) return;
-        setState({ data, loading: false, error: null, isLive: true, provider, refetch });
+        setState({ data, loading: false, error: null, isLive: true, provider, refreshing: false, refetch });
       })
       .catch((e: unknown) => {
         if (cancelled || controller.signal.aborted || requestSeq.current !== requestId) return;
         const msg = e instanceof Error ? e.message : String(e);
         // Map AV rate-limit to a distinct error code so the UI can show a specific message.
         const error = msg === 'RATE_LIMITED' ? 'AV_RATE_LIMITED' : msg;
-        setState({ data: [], loading: false, error, isLive: false, provider: null, refetch });
+        setState(s => s.data.length > 0
+          ? { ...s, loading: false, refreshing: false, error, refetch }
+          : { data: [], loading: false, error, isLive: false, provider: null, refreshing: false, refetch }
+        );
       });
 
     return () => {

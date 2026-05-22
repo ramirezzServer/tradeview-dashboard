@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/services/api';
 import { shouldAutoCreate } from '@/lib/defaultResource';
@@ -18,6 +18,7 @@ export type { Portfolio, PortfolioItem, AddHoldingInput };
  */
 export function usePortfolio() {
   const qc = useQueryClient();
+  const optimisticId = useRef(-1);
 
   // ── Fetch all portfolios ──────────────────────────────────────────────────
   const listsQuery = useQuery<Portfolio[]>({
@@ -63,8 +64,35 @@ export function usePortfolio() {
       }
       return api.post<PortfolioItem>(`/portfolios/${portfolioId}/items`, input);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['portfolio', portfolioId] });
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ['portfolio', portfolioId] });
+      const previous = qc.getQueryData<Portfolio>(['portfolio', portfolioId]);
+      const optimisticItem: PortfolioItem = {
+        id: optimisticId.current--,
+        portfolio_id: portfolioId!,
+        symbol: input.symbol.toUpperCase().trim(),
+        quantity: input.quantity,
+        average_cost: input.average_cost,
+        currency: input.currency ?? 'USD',
+        purchased_at: input.purchased_at ?? null,
+        notes: input.notes ?? null,
+      };
+      qc.setQueryData<Portfolio>(['portfolio', portfolioId], current => ({
+        ...(current ?? previous ?? { id: portfolioId!, user_id: 0, name: 'My Portfolio' }),
+        items: [...(current?.items ?? previous?.items ?? []), optimisticItem],
+      }));
+      return { previous, optimisticId: optimisticItem.id };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['portfolio', portfolioId], context.previous);
+      }
+    },
+    onSuccess: (created, _input, context) => {
+      qc.setQueryData<Portfolio>(['portfolio', portfolioId], current => ({
+        ...(current ?? context?.previous ?? { id: portfolioId!, user_id: 0, name: 'My Portfolio' }),
+        items: (current?.items ?? []).map(item => item.id === context?.optimisticId ? created : item),
+      }));
     },
   });
 
@@ -72,8 +100,19 @@ export function usePortfolio() {
   const removeHolding = useMutation({
     mutationFn: (itemId: number) =>
       api.delete(`/portfolio-items/${itemId}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['portfolio', portfolioId] });
+    onMutate: async (itemId) => {
+      await qc.cancelQueries({ queryKey: ['portfolio', portfolioId] });
+      const previous = qc.getQueryData<Portfolio>(['portfolio', portfolioId]);
+      qc.setQueryData<Portfolio>(['portfolio', portfolioId], current => ({
+        ...(current ?? previous ?? { id: portfolioId!, user_id: 0, name: 'My Portfolio' }),
+        items: (current?.items ?? previous?.items ?? []).filter(item => item.id !== itemId),
+      }));
+      return { previous };
+    },
+    onError: (_error, _itemId, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['portfolio', portfolioId], context.previous);
+      }
     },
   });
 
@@ -81,8 +120,27 @@ export function usePortfolio() {
   const updateHolding = useMutation({
     mutationFn: ({ itemId, data }: { itemId: number; data: Partial<AddHoldingInput> }) =>
       api.put<PortfolioItem>(`/portfolio-items/${itemId}`, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['portfolio', portfolioId] });
+    onMutate: async ({ itemId, data }) => {
+      await qc.cancelQueries({ queryKey: ['portfolio', portfolioId] });
+      const previous = qc.getQueryData<Portfolio>(['portfolio', portfolioId]);
+      qc.setQueryData<Portfolio>(['portfolio', portfolioId], current => ({
+        ...(current ?? previous ?? { id: portfolioId!, user_id: 0, name: 'My Portfolio' }),
+        items: (current?.items ?? previous?.items ?? []).map(item =>
+          item.id === itemId ? { ...item, ...data } : item
+        ),
+      }));
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['portfolio', portfolioId], context.previous);
+      }
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData<Portfolio>(['portfolio', portfolioId], current => ({
+        ...(current ?? { id: portfolioId!, user_id: 0, name: 'My Portfolio' }),
+        items: (current?.items ?? []).map(item => item.id === updated.id ? updated : item),
+      }));
     },
   });
 
@@ -97,5 +155,6 @@ export function usePortfolio() {
     addError: addHolding.error instanceof ApiError ? addHolding.error.message : null,
     isAdding: addHolding.isPending || isCreating,
     isRemoving: removeHolding.isPending,
+    isUpdating: updateHolding.isPending,
   };
 }

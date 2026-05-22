@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { isFinnhubConfigured } from '@/services/finnhub';
+import { dedupeMarketRequest, getCachedMarketData, setCachedMarketData } from '@/lib/marketCache';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '');
 
@@ -17,9 +18,38 @@ export interface MarketMoversData {
   mostActive:     LiveMover[];
   lastUpdated:    string | null;
   fetchedAt:      number;
+  source:         'alphavantage' | 'simulated';
+  reason?:        string;
 }
 
+const FALLBACK_MOVERS: MarketMoversData = {
+  topGainers: [
+    { symbol: 'NVDA', price: 126.42, change: 4.81, changePercent: 3.96, volume: 58200000 },
+    { symbol: 'MSFT', price: 429.18, change: 8.44, changePercent: 2.01, volume: 25100000 },
+    { symbol: 'AAPL', price: 212.63, change: 3.12, changePercent: 1.49, volume: 44100000 },
+  ],
+  topLosers: [
+    { symbol: 'TSLA', price: 178.91, change: -5.22, changePercent: -2.84, volume: 77400000 },
+    { symbol: 'NFLX', price: 612.24, change: -11.66, changePercent: -1.87, volume: 6100000 },
+    { symbol: 'INTC', price: 31.62, change: -0.46, changePercent: -1.43, volume: 38900000 },
+  ],
+  mostActive: [
+    { symbol: 'TSLA', price: 178.91, change: -5.22, changePercent: -2.84, volume: 77400000 },
+    { symbol: 'NVDA', price: 126.42, change: 4.81, changePercent: 3.96, volume: 58200000 },
+    { symbol: 'AAPL', price: 212.63, change: 3.12, changePercent: 1.49, volume: 44100000 },
+  ],
+  lastUpdated: null,
+  fetchedAt: Date.now(),
+  source: 'simulated',
+  reason: 'frontend fallback',
+};
+
 async function fetchMovers(): Promise<MarketMoversData> {
+  const cacheKey = 'market:movers';
+  const cached = getCachedMarketData<MarketMoversData>(cacheKey);
+  if (cached) return cached;
+
+  return dedupeMarketRequest(cacheKey, async () => {
   const res = await fetch(`${API_BASE}/market/movers`, {
     headers: { Accept: 'application/json' },
   });
@@ -36,6 +66,10 @@ async function fetchMovers(): Promise<MarketMoversData> {
       top_losers:           LiveMover[];
       most_actively_traded: LiveMover[];
       last_updated:         string | null;
+      meta?: {
+        provider?: string;
+        reason?: string;
+      };
     };
   };
 
@@ -47,7 +81,13 @@ async function fetchMovers(): Promise<MarketMoversData> {
     mostActive:  json.data.most_actively_traded  ?? [],
     lastUpdated: json.data.last_updated          ?? null,
     fetchedAt:   Date.now(),
+    source:      json.data.meta?.provider === 'simulated' ? 'simulated' : 'alphavantage',
+    reason:      json.data.meta?.reason,
   };
+  }).then(data => setCachedMarketData(cacheKey, data, 5 * 60_000)).catch(() => ({
+    ...FALLBACK_MOVERS,
+    fetchedAt: Date.now(),
+  }));
 }
 
 /**
@@ -66,6 +106,7 @@ export function useMarketMovers() {
     refetchInterval: 5 * 60_000,
     refetchIntervalInBackground: false,
     retry: 1,
+    placeholderData: previous => previous,
   });
 
   return {

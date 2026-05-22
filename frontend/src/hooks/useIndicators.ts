@@ -144,10 +144,10 @@ export function useIndicators(
   timeframe: Timeframe = '3M',
   resolutionOverride?: string
 ) {
-  const { data: candles, loading, error, provider } = useFinnhubCandles(symbol, timeframe, resolutionOverride);
+  const { data: candles, loading, error, provider, refreshing } = useFinnhubCandles(symbol, timeframe, resolutionOverride);
 
   const indicators = useMemo<IndicatorSummary | null>(() => {
-    if (!candles || candles.length < 14) return null;
+    if (!candles || candles.length < 2) return null;
     return calcIndicators(candles);
   }, [candles]);
 
@@ -155,9 +155,11 @@ export function useIndicators(
     indicators,
     candles,
     loading,
+    refreshing,
     error,
     provider,
-    isLive: !!indicators && !error,
-    hasData: candles.length >= 14,
+    isLive: !!indicators,
+    hasData: candles.length >= 2,
+    candleCount: candles.length,
   };
 }

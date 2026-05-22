@@ -45,12 +45,13 @@ export function useMarketQuotes(symbols: string[], liveUpdates = true) {
   const stockQueries = useQueries({
     queries: stockSymbols.map(sym => ({
       queryKey: ['quote', sym.toUpperCase()],
-      queryFn:  () => getQuote(sym.toUpperCase()),
+      queryFn:  ({ signal }) => getQuote(sym.toUpperCase(), { signal }),
       enabled:  configured && !!sym,
       staleTime:     10_000,
       refetchInterval: liveUpdates ? 15_000 : false,
       refetchIntervalInBackground: false,
       retry: 1,
+      placeholderData: previous => previous,
     })),
   });
 
@@ -63,6 +64,7 @@ export function useMarketQuotes(symbols: string[], liveUpdates = true) {
     refetchInterval: liveUpdates ? 30_000 : false,
     refetchIntervalInBackground: false,
     retry: 1,
+    placeholderData: previous => previous,
   });
 
   // ── Normalize into a unified map ──────────────────────────────────────────

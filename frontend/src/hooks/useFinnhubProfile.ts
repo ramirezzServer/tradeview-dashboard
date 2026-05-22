@@ -30,6 +30,7 @@ export function useFinnhubProfile(symbol: string): ProfileState {
     enabled: configured && Boolean(normalizedSymbol),
     staleTime: 15 * 60_000,
     retry: 1,
+    placeholderData: previous => previous,
   });
 
   if (!configured) {

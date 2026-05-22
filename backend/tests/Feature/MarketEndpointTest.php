@@ -125,6 +125,9 @@ class MarketEndpointTest extends TestCase
                     ],
                 ],
             ], 200),
+            "{$this->finnhubBase}/*" => Http::response([
+                'c' => 150.0, 'pc' => 149.0, 't' => 1700000000,
+            ], 200),
         ]);
 
         $from = now()->subDays(30)->timestamp;
@@ -161,16 +164,17 @@ class MarketEndpointTest extends TestCase
             ->assertJsonCount(168, 'data.t');
     }
 
-    public function test_market_movers_returns_empty_response_when_provider_unavailable(): void
+    public function test_market_movers_returns_fallback_response_when_provider_unavailable(): void
     {
         config(['alphavantage.key' => '']);
 
         $this->getJson('/api/market/movers')
             ->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.top_gainers', [])
-            ->assertJsonPath('data.top_losers', [])
-            ->assertJsonPath('data.most_actively_traded', []);
+            ->assertJsonPath('data.meta.provider', 'simulated')
+            ->assertJsonCount(3, 'data.top_gainers')
+            ->assertJsonCount(3, 'data.top_losers')
+            ->assertJsonCount(3, 'data.most_actively_traded');
     }
 
     // ─── News ─────────────────────────────────────────────────────────────────

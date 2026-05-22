@@ -24,12 +24,13 @@ const colors = [
 ];
 
 const SectorCounter = () => {
-  const query = useQuery({ queryKey: ['market-sectors'], queryFn: getSectorPerformance, staleTime: 60_000, retry: 1 });
+  const query = useQuery({ queryKey: ['market-sectors'], queryFn: getSectorPerformance, staleTime: 10 * 60_000, retry: 1, placeholderData: previous => previous });
   const sectors = (query.data ?? []).map((sector, index) => ({
     ...sector,
-    weight: sectorWeights[sector.name] ?? 0,
+    weight: sector.weight ?? sectorWeights[sector.name] ?? 0,
     color: colors[index % colors.length],
   }));
+  const hasFallback = sectors.some(s => s.source === 'simulated');
 
   const advancers = sectors.filter(s => s.changePercent > 0).length;
   const decliners = sectors.filter(s => s.changePercent < 0).length;
@@ -43,8 +44,11 @@ const SectorCounter = () => {
         <div className="flex items-center gap-2 px-1">
           <span className={`flex items-center gap-1.5 text-app-xs font-medium border border-border/20 rounded-md px-2 py-1 ${sectors.length ? 'text-bull/60' : 'text-muted-foreground/30'}`}>
             {sectors.length ? <Wifi className="h-2.5 w-2.5" /> : <WifiOff className="h-2.5 w-2.5" />}
-            {sectors.length ? 'Live sector ETF performance' : 'Sector data unavailable'}
+            {sectors.length ? (hasFallback ? 'Fallback sector data' : 'Live sector ETF performance') : 'Sector data unavailable'}
           </span>
+          {query.isFetching && sectors.length > 0 && (
+            <span className="text-app-xs text-muted-foreground/35">Refreshing...</span>
+          )}
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -99,6 +103,11 @@ const SectorCounter = () => {
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-3.5 w-3.5 text-primary/70" />
             <h2 className="section-header text-foreground/80">Sector Heatmap</h2>
+            {hasFallback && (
+              <span className="ml-auto text-app-xs text-chart-accent/70 border border-chart-accent/15 rounded-md px-1.5 py-0.5">
+                Simulated fallback
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {sectors.map((s, i) => {

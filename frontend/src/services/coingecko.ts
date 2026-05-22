@@ -6,6 +6,8 @@
 // stocks and crypto uniformly without special-casing the asset class.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { dedupeMarketRequest, getCachedMarketData, setCachedMarketData } from '@/lib/marketCache';
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '');
 
 // ─── Crypto symbols that this backend proxy can price ────────────────────────
@@ -50,23 +52,28 @@ export async function getCryptoPrices(
 
   const url = new URL(`${API_BASE}/market/crypto/prices`);
   url.searchParams.set('symbols', clean.join(','));
+  const cacheKey = `coingecko:${url.pathname}?${url.searchParams.toString()}`;
+  const cached = getCachedMarketData<Record<string, CryptoQuote>>(cacheKey);
+  if (cached) return cached;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  return dedupeMarketRequest(cacheKey, async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
 
-  try {
-    const res = await fetch(url.toString(), {
-      headers: { Accept: 'application/json' },
-      signal: controller.signal,
-    });
+    try {
+      const res = await fetch(url.toString(), {
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
 
-    if (!res.ok) return {};
+      if (!res.ok) return {};
 
-    const json = await res.json() as { success: boolean; data: Record<string, CryptoQuote> };
-    return json.success ? json.data : {};
-  } catch {
-    return {};
-  } finally {
-    clearTimeout(timeout);
-  }
+      const json = await res.json() as { success: boolean; data: Record<string, CryptoQuote> };
+      return json.success ? setCachedMarketData(cacheKey, json.data, 25_000) : {};
+    } catch {
+      return {};
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
 }

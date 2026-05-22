@@ -88,7 +88,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 // ─── Settings page ─────────────────────────────────────────────────────────────
 
 const Settings = () => {
-  const { settings, isLoading, updateSettings, resetSettings, isSaving, isResetting } = useSettings();
+  const { settings, isLoading, updateSettings, resetSettings, isSavingKey, isResetting } = useSettings();
   const push = usePushNotifications();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -343,7 +343,7 @@ const Settings = () => {
                 options={['Compact', 'Normal', 'Relaxed']}
                 value={density}
                 onChange={v => save({ density: v as PartialSettings['density'] })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('density')}
               />
               <SelectOption
                 label="Font Size"
@@ -351,7 +351,7 @@ const Settings = () => {
                 options={['Small', 'Medium', 'Large']}
                 value={fontSize}
                 onChange={v => save({ font_size: v as PartialSettings['font_size'] })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('font_size')}
               />
             </div>
           </div>
@@ -391,28 +391,28 @@ const Settings = () => {
                 desc="Get notified when assets hit target prices"
                 value={notifs.price_alerts ?? true}
                 onChange={v => save({ notifications: { ...notifs, price_alerts: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('notifications')}
               />
               <Toggle
                 label="News Updates"
                 desc="Breaking market news notifications"
                 value={notifs.news_updates ?? true}
                 onChange={v => save({ notifications: { ...notifs, news_updates: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('notifications')}
               />
               <Toggle
                 label="Portfolio Changes"
                 desc="Significant P&L movement alerts"
                 value={notifs.portfolio_changes ?? true}
                 onChange={v => save({ notifications: { ...notifs, portfolio_changes: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('notifications')}
               />
               <Toggle
                 label="Earnings Reminders"
                 desc="Upcoming earnings date alerts"
                 value={notifs.earnings_reminders ?? false}
                 onChange={v => save({ notifications: { ...notifs, earnings_reminders: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('notifications')}
               />
             </div>
           </div>
@@ -431,21 +431,21 @@ const Settings = () => {
                 desc="Real-time ticker simulation"
                 value={wlPrefs.live_price_updates ?? true}
                 onChange={v => save({ watchlist_prefs: { ...wlPrefs, live_price_updates: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('watchlist_prefs')}
               />
               <Toggle
                 label="Flash Animations"
                 desc="Price change flash effects"
                 value={wlPrefs.flash_animations ?? true}
                 onChange={v => save({ watchlist_prefs: { ...wlPrefs, flash_animations: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('watchlist_prefs')}
               />
               <Toggle
                 label="Show Sparklines"
                 desc="Mini trend charts in watchlist"
                 value={wlPrefs.show_sparklines ?? true}
                 onChange={v => save({ watchlist_prefs: { ...wlPrefs, show_sparklines: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('watchlist_prefs')}
               />
               <SelectOption
                 label="Sort By"
@@ -453,7 +453,7 @@ const Settings = () => {
                 options={['Symbol', 'Change']}
                 value={wlPrefs.sort_by === 'Volume' ? 'Change' : (wlPrefs.sort_by ?? SETTINGS_DEFAULTS.watchlist_prefs!.sort_by!)}
                 onChange={v => save({ watchlist_prefs: { ...wlPrefs, sort_by: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('watchlist_prefs')}
               />
             </div>
           </div>
@@ -473,7 +473,7 @@ const Settings = () => {
                 options={['1D', '1W', '1M', '3M']}
                 value={chartTimeframe}
                 onChange={v => save({ chart_timeframe: v as PartialSettings['chart_timeframe'] })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('chart_timeframe')}
               />
               <SelectOption
                 label="Candle Interval"
@@ -481,7 +481,7 @@ const Settings = () => {
                 options={['1m', '5m', '15m', '1h', '1D', '1W', '1M']}
                 value={resolution}
                 onChange={v => save({ default_resolution: (resMapBack[v] ?? 'D') as PartialSettings['default_resolution'] })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('default_resolution')}
               />
             </div>
           </div>
@@ -500,28 +500,28 @@ const Settings = () => {
                 desc="Show AI forecast card"
                 value={dashP.ai_predictions ?? true}
                 onChange={v => save({ dashboard_prefs: { ...dashP, ai_predictions: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('dashboard_prefs')}
               />
               <Toggle
                 label="Market Movers"
                 desc="Show top gainers/losers"
                 value={dashP.market_movers ?? true}
                 onChange={v => save({ dashboard_prefs: { ...dashP, market_movers: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('dashboard_prefs')}
               />
               <Toggle
                 label="Daily Range"
                 desc="Show daily range indicator"
                 value={dashP.daily_range ?? true}
                 onChange={v => save({ dashboard_prefs: { ...dashP, daily_range: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('dashboard_prefs')}
               />
               <Toggle
                 label="Volume Bars"
                 desc="Show volume on chart"
                 value={dashP.volume_bars ?? true}
                 onChange={v => save({ dashboard_prefs: { ...dashP, volume_bars: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('dashboard_prefs')}
               />
             </div>
           </div>
@@ -541,7 +541,7 @@ const Settings = () => {
                 options={['Blue', 'Cyan', 'Green', 'Purple']}
                 value={appP.accent_color ?? 'Blue'}
                 onChange={v => save({ appearance_prefs: { ...appP, accent_color: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('appearance_prefs')}
               />
               <SelectOption
                 label="Chart Style"
@@ -549,21 +549,21 @@ const Settings = () => {
                 options={['Candles', 'Line', 'Area']}
                 value={appP.chart_style ?? 'Candles'}
                 onChange={v => save({ appearance_prefs: { ...appP, chart_style: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('appearance_prefs')}
               />
               <Toggle
                 label="Glow Effects"
                 desc="Card glow on hover"
                 value={appP.glow_effects ?? true}
                 onChange={v => save({ appearance_prefs: { ...appP, glow_effects: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('appearance_prefs')}
               />
               <Toggle
                 label="Animations"
                 desc="Entrance and transition effects"
                 value={appP.animations ?? true}
                 onChange={v => save({ appearance_prefs: { ...appP, animations: v } })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('appearance_prefs')}
               />
               <SelectOption
                 label="News Category"
@@ -571,7 +571,7 @@ const Settings = () => {
                 options={['general', 'forex', 'crypto', 'merger']}
                 value={newsCategory}
                 onChange={v => save({ preferred_news_category: v as PartialSettings['preferred_news_category'] })}
-                isSaving={isSaving}
+                isSaving={isSavingKey('preferred_news_category')}
               />
             </div>
           </div>

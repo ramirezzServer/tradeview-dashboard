@@ -112,7 +112,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
     }
   };
 
-  const { data: liveData, loading, error, isLive, provider, refetch } = useFinnhubCandles(normalizedSymbol, timeframe);
+  const { data: liveData, loading, refreshing, error, isLive, provider, refetch } = useFinnhubCandles(normalizedSymbol, timeframe);
 
   // ── Error routing ──────────────────────────────────────────────────────────
   const isPlanRestriction = error === 'PLAN_RESTRICTION' || error === 'ACCESS_FORBIDDEN' || error === 'PROVIDER_FORBIDDEN';
@@ -149,10 +149,14 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
             <h2 className="text-base font-bold text-foreground tracking-tight">{normalizedSymbol}</h2>
             {loading ? (
               <span className="text-[8px] text-muted-foreground/30 font-medium">Loading…</span>
+            ) : refreshing ? (
+              <span className="flex items-center gap-1 text-[8px] text-muted-foreground/40 font-medium">
+                <RefreshCw className="h-2.5 w-2.5 animate-spin" /> Refreshing
+              </span>
             ) : isLive ? (
               <span className="flex items-center gap-1 text-[8px] text-bull/60 font-medium">
                 <Wifi className="h-2.5 w-2.5" />
-                {provider === 'alphavantage' ? 'Fallback data' : provider === 'coingecko' ? 'CoinGecko' : 'Live'}
+                {provider === 'alphavantage' ? 'Alpha Vantage fallback' : provider === 'calculated' || provider === 'simulated' ? 'Calculated fallback' : provider === 'coingecko' ? 'CoinGecko' : 'Live'}
               </span>
             ) : isPlanRestriction ? (
               <span className="flex items-center gap-1 text-[8px] text-muted-foreground/30 font-medium">

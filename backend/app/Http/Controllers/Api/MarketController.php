@@ -40,17 +40,36 @@ class MarketController extends Controller
     ];
 
     private const SECTOR_ETFS = [
-        ['name' => 'Technology', 'symbol' => 'XLK'],
-        ['name' => 'Healthcare', 'symbol' => 'XLV'],
-        ['name' => 'Financials', 'symbol' => 'XLF'],
-        ['name' => 'Energy', 'symbol' => 'XLE'],
-        ['name' => 'Consumer Discretionary', 'symbol' => 'XLY'],
-        ['name' => 'Consumer Staples', 'symbol' => 'XLP'],
-        ['name' => 'Industrials', 'symbol' => 'XLI'],
-        ['name' => 'Materials', 'symbol' => 'XLB'],
-        ['name' => 'Utilities', 'symbol' => 'XLU'],
-        ['name' => 'Real Estate', 'symbol' => 'XLRE'],
-        ['name' => 'Communication Services', 'symbol' => 'XLC'],
+        ['name' => 'Technology', 'symbol' => 'XLK', 'weight' => 28.5],
+        ['name' => 'Healthcare', 'symbol' => 'XLV', 'weight' => 13.2],
+        ['name' => 'Financials', 'symbol' => 'XLF', 'weight' => 12.8],
+        ['name' => 'Consumer Discretionary', 'symbol' => 'XLY', 'weight' => 10.4],
+        ['name' => 'Communication Services', 'symbol' => 'XLC', 'weight' => 6.8],
+        ['name' => 'Industrials', 'symbol' => 'XLI', 'weight' => 8.9],
+        ['name' => 'Consumer Staples', 'symbol' => 'XLP', 'weight' => 5.3],
+        ['name' => 'Energy', 'symbol' => 'XLE', 'weight' => 7.6],
+        ['name' => 'Utilities', 'symbol' => 'XLU', 'weight' => 4.2],
+        ['name' => 'Real Estate', 'symbol' => 'XLRE', 'weight' => 3.8],
+        ['name' => 'Materials', 'symbol' => 'XLB', 'weight' => 2.5],
+    ];
+
+    private const FALLBACK_MOVERS = [
+        'top_gainers' => [
+            ['symbol' => 'NVDA', 'price' => 126.42, 'change' => 4.81, 'changePercent' => 3.96, 'volume' => 58200000],
+            ['symbol' => 'MSFT', 'price' => 429.18, 'change' => 8.44, 'changePercent' => 2.01, 'volume' => 25100000],
+            ['symbol' => 'AAPL', 'price' => 212.63, 'change' => 3.12, 'changePercent' => 1.49, 'volume' => 44100000],
+        ],
+        'top_losers' => [
+            ['symbol' => 'TSLA', 'price' => 178.91, 'change' => -5.22, 'changePercent' => -2.84, 'volume' => 77400000],
+            ['symbol' => 'NFLX', 'price' => 612.24, 'change' => -11.66, 'changePercent' => -1.87, 'volume' => 6100000],
+            ['symbol' => 'INTC', 'price' => 31.62, 'change' => -0.46, 'changePercent' => -1.43, 'volume' => 38900000],
+        ],
+        'most_actively_traded' => [
+            ['symbol' => 'TSLA', 'price' => 178.91, 'change' => -5.22, 'changePercent' => -2.84, 'volume' => 77400000],
+            ['symbol' => 'NVDA', 'price' => 126.42, 'change' => 4.81, 'changePercent' => 3.96, 'volume' => 58200000],
+            ['symbol' => 'AAPL', 'price' => 212.63, 'change' => 3.12, 'changePercent' => 1.49, 'volume' => 44100000],
+        ],
+        'last_updated' => null,
     ];
 
     public function __construct(private readonly FinnhubService $finnhub) {}
@@ -211,22 +230,21 @@ class MarketController extends Controller
 
     private function emptyMovers(string $reason): JsonResponse
     {
-        return $this->success([
-            'top_gainers' => [],
-            'top_losers' => [],
-            'most_actively_traded' => [],
-            'last_updated' => null,
-        ], 'Market movers unavailable.', 200, [
-            'provider' => 'alphavantage',
-            'source' => 'unavailable',
+        $data = self::FALLBACK_MOVERS;
+        $data['meta'] = [
+            'provider' => 'simulated',
+            'source' => 'fallback',
             'reason' => $reason,
-        ]);
+        ];
+
+        return $this->success($data, 'Market movers fallback data returned.', 200, $data['meta']);
     }
 
     public function indices(): JsonResponse
     {
-        try {
-            $data = array_map(function (array $item) {
+        $usedFallback = false;
+        $data = array_map(function (array $item) use (&$usedFallback) {
+            try {
                 $quote = $this->finnhub->getQuote($item['symbol']);
 
                 return [
@@ -238,40 +256,48 @@ class MarketController extends Controller
                     'previousClose' => (float) ($quote['pc'] ?? 0),
                     'source' => 'finnhub',
                 ];
-            }, self::INDEX_ETFS);
+            } catch (\RuntimeException $e) {
+                $usedFallback = true;
+                return $this->fallbackIndexQuote($item, $e::class);
+            }
+        }, self::INDEX_ETFS);
 
-            return $this->success($data, 'Market indices fetched successfully.', 200, [
-                'provider' => 'finnhub',
-                'count' => count($data),
-            ]);
-        } catch (\RuntimeException $e) {
-            return $this->finnhubError($e);
-        }
+        return $this->success($data, 'Market indices fetched successfully.', 200, [
+            'provider' => $usedFallback ? 'mixed' : 'finnhub',
+            'source' => $usedFallback ? 'partial-fallback' : 'live',
+            'count' => count($data),
+        ]);
     }
 
     public function sectors(): JsonResponse
     {
-        try {
-            $data = array_map(function (array $item) {
+        $usedFallback = false;
+        $data = array_map(function (array $item) use (&$usedFallback) {
+            try {
                 $quote = $this->finnhub->getQuote($item['symbol']);
+                $changePercent = (float) ($quote['dp'] ?? 0);
 
                 return [
                     'name' => $item['name'],
                     'symbol' => $item['symbol'],
-                    'changePercent' => (float) ($quote['dp'] ?? 0),
+                    'weight' => $item['weight'],
+                    'changePercent' => $changePercent,
                     'change' => (float) ($quote['d'] ?? 0),
                     'price' => (float) ($quote['c'] ?? 0),
+                    'status' => $this->sectorStatus($changePercent),
                     'source' => 'finnhub',
                 ];
-            }, self::SECTOR_ETFS);
+            } catch (\RuntimeException $e) {
+                $usedFallback = true;
+                return $this->fallbackSectorQuote($item, $e::class);
+            }
+        }, self::SECTOR_ETFS);
 
-            return $this->success($data, 'Sector performance fetched successfully.', 200, [
-                'provider' => 'finnhub',
-                'count' => count($data),
-            ]);
-        } catch (\RuntimeException $e) {
-            return $this->finnhubError($e);
-        }
+        return $this->success($data, 'Sector performance fetched successfully.', 200, [
+            'provider' => $usedFallback ? 'mixed' : 'finnhub',
+            'source' => $usedFallback ? 'partial-fallback' : 'live',
+            'count' => count($data),
+        ]);
     }
 
     public function earnings(string $symbol): JsonResponse
@@ -319,6 +345,8 @@ class MarketController extends Controller
                 return $this->calculatedCandles($symbol, $request, 'alternative provider returned empty or sparse candle data');
             }
 
+            $data = $this->withCandleMeta($data, $symbol, 'alphavantage');
+
             return $this->success($data, 'Candles fetched from alternative provider.', 200, [
                 'symbol'   => $symbol,
                 'provider' => 'alphavantage',
@@ -330,10 +358,7 @@ class MarketController extends Controller
         } catch (AvRateLimitedException) {
             return $this->calculatedCandles($symbol, $request, 'Alpha Vantage rate limit reached');
         } catch (AvInvalidSymbolException) {
-            return $this->error(
-                "Symbol '{$symbol}' was not recognised by the alternative provider.",
-                404
-            );
+            return $this->calculatedCandles($symbol, $request, 'Alpha Vantage did not recognise the symbol');
         } catch (AvRequestFailedException) {
             return $this->calculatedCandles($symbol, $request, 'Alpha Vantage request failed');
         } catch (\Throwable) {
@@ -361,11 +386,25 @@ class MarketController extends Controller
             $request->validated('resolution'),
         );
 
+        $data = $this->withCandleMeta($data, $symbol, 'calculated');
+
         return $this->success($data, 'Candles calculated from fallback data.', 200, [
             'symbol' => $symbol,
             'provider' => 'calculated',
             'count' => count($data['t'] ?? []),
         ])->header('X-Data-Source', 'calculated');
+    }
+
+    private function withCandleMeta(array $data, string $symbol, string $provider): array
+    {
+        $data['s'] = 'ok';
+        $data['meta'] = [
+            'symbol' => $symbol,
+            'provider' => $provider,
+            'count' => count($data['t'] ?? []),
+        ];
+
+        return $data;
     }
 
     private function fallbackQuotePrice(string $symbol): float
@@ -391,7 +430,58 @@ class MarketController extends Controller
 
     private function minimumFallbackCandles(string $resolution): int
     {
-        return in_array($resolution, ['1', '5', '15', '30', '60'], true) ? 14 : 1;
+        return $resolution === '60' ? 24 : 30;
+    }
+
+    private function fallbackIndexQuote(array $item, string $reason): array
+    {
+        $seed = $this->deterministicMarketSeed($item['symbol']);
+        $price = round(80 + $seed * 420, 2);
+        $changePercent = round(($seed - 0.48) * 3.2, 2);
+        $change = round($price * $changePercent / 100, 2);
+
+        return [
+            'name' => $item['name'],
+            'symbol' => $item['symbol'],
+            'price' => $price,
+            'change' => $change,
+            'changePercent' => $changePercent,
+            'previousClose' => round($price - $change, 2),
+            'source' => 'simulated',
+            'reason' => $reason,
+        ];
+    }
+
+    private function fallbackSectorQuote(array $item, string $reason): array
+    {
+        $seed = $this->deterministicMarketSeed($item['symbol']);
+        $price = round(35 + $seed * 180, 2);
+        $changePercent = round(($seed - 0.50) * 3.0, 2);
+        $change = round($price * $changePercent / 100, 2);
+
+        return [
+            'name' => $item['name'],
+            'symbol' => $item['symbol'],
+            'weight' => $item['weight'],
+            'changePercent' => $changePercent,
+            'change' => $change,
+            'price' => $price,
+            'status' => $this->sectorStatus($changePercent),
+            'source' => 'simulated',
+            'reason' => $reason,
+        ];
+    }
+
+    private function deterministicMarketSeed(string $symbol): float
+    {
+        return hexdec(substr(hash('sha256', $symbol), 0, 8)) / 0xffffffff;
+    }
+
+    private function sectorStatus(float $changePercent): string
+    {
+        if ($changePercent > 0.05) return 'advancing';
+        if ($changePercent < -0.05) return 'declining';
+        return 'neutral';
     }
 
     // ─── Error Handling ───────────────────────────────────────────────────────
