@@ -139,6 +139,8 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
     });
     return { chartData: mapped, minPrice: min, maxPrice: max };
   }, [liveData]);
+  const hasChartData = chartData.length >= 2;
+  const showEmptyState = !loading && !hasChartData;
 
   return (
     <div className="glass-card rounded-xl overflow-hidden gradient-border">
@@ -207,7 +209,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
         )}
 
         {/* Plan restriction — no fallback fake data */}
-        {!loading && isPlanRestriction && (
+        {showEmptyState && isPlanRestriction && (
           <ChartPlaceholder
             icon={Lock}
             title="Provider denied candle data"
@@ -217,7 +219,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
         )}
 
         {/* No data returned */}
-        {!loading && isNoData && (
+        {showEmptyState && isNoData && (
           <ChartPlaceholder
             icon={AlertCircle}
             title="No candle data available"
@@ -227,7 +229,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
         )}
 
         {/* Alpha Vantage rate limit */}
-        {!loading && isAvRateLimited && (
+        {showEmptyState && isAvRateLimited && (
           <ChartPlaceholder
             icon={AlertCircle}
             title="Alternative provider rate-limited"
@@ -237,7 +239,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
         )}
 
         {/* Other error */}
-        {!loading && isOtherError && (
+        {showEmptyState && isOtherError && (
           <ChartPlaceholder
             icon={AlertCircle}
             title="Could not load chart"
@@ -247,7 +249,7 @@ export function CandlestickChart({ symbol = 'AAPL' }: CandlestickChartProps) {
         )}
 
         {/* Live chart — only rendered when we have real data */}
-        {!loading && isLive && chartData.length > 0 && (
+        {!loading && hasChartData && (
           <>
             <ResponsiveContainer width="100%" height={380}>
               <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>

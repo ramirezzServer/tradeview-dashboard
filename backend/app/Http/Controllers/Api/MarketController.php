@@ -340,17 +340,28 @@ class MarketController extends Controller
 
             if (
                 ($data['s'] ?? 'no_data') !== 'ok'
-                || count($data['t'] ?? []) < $this->minimumFallbackCandles($request->validated('resolution'))
+                || count($data['t'] ?? []) < $this->minimumFallbackCandles($request)
             ) {
                 return $this->calculatedCandles($symbol, $request, 'alternative provider returned empty or sparse candle data');
             }
 
             $data = $this->withCandleMeta($data, $symbol, 'alphavantage');
+            $count = count($data['t'] ?? []);
+
+            Log::info('Candle fallback result.', [
+                'symbol' => $symbol,
+                'resolution' => $request->validated('resolution'),
+                'from' => (int) $request->validated('from'),
+                'to' => (int) $request->validated('to'),
+                'provider' => 'alphavantage',
+                'count' => $count,
+                'reason' => 'alternative provider returned usable candle data',
+            ]);
 
             return $this->success($data, 'Candles fetched from alternative provider.', 200, [
                 'symbol'   => $symbol,
                 'provider' => 'alphavantage',
-                'count'    => count($data['t'] ?? []),
+                'count'    => $count,
             ]);
 
         } catch (AvNotConfiguredException) {
@@ -368,14 +379,6 @@ class MarketController extends Controller
 
     private function calculatedCandles(string $symbol, CandleRequest $request, string $reason): JsonResponse
     {
-        Log::warning('Using calculated candle fallback.', [
-            'symbol' => $symbol,
-            'resolution' => $request->validated('resolution'),
-            'from' => (int) $request->validated('from'),
-            'to' => (int) $request->validated('to'),
-            'reason' => $reason,
-        ]);
-
         $price = $this->fallbackQuotePrice($symbol);
 
         $data = app(SimulatedCandleService::class)->generateEquityCandles(
@@ -387,11 +390,22 @@ class MarketController extends Controller
         );
 
         $data = $this->withCandleMeta($data, $symbol, 'calculated');
+        $count = count($data['t'] ?? []);
+
+        Log::warning('Candle fallback result.', [
+            'symbol' => $symbol,
+            'resolution' => $request->validated('resolution'),
+            'from' => (int) $request->validated('from'),
+            'to' => (int) $request->validated('to'),
+            'provider' => 'calculated',
+            'count' => $count,
+            'reason' => $reason,
+        ]);
 
         return $this->success($data, 'Candles calculated from fallback data.', 200, [
             'symbol' => $symbol,
             'provider' => 'calculated',
-            'count' => count($data['t'] ?? []),
+            'count' => $count,
         ])->header('X-Data-Source', 'calculated');
     }
 
@@ -428,9 +442,19 @@ class MarketController extends Controller
         return round(50 + ($hash % 45000) / 100, 2);
     }
 
-    private function minimumFallbackCandles(string $resolution): int
+    private function minimumFallbackCandles(CandleRequest $request): int
     {
-        return $resolution === '60' ? 24 : 30;
+        $resolution = $request->validated('resolution');
+
+        if ($resolution === '60') {
+            $rangeDays = max(1, (int) ceil(((int) $request->validated('to') - (int) $request->validated('from')) / 86400));
+
+            return $rangeDays >= 7 ? 48 : 24;
+        }
+
+        $rangeDays = max(1, (int) ceil(((int) $request->validated('to') - (int) $request->validated('from')) / 86400));
+
+        return $rangeDays >= 60 ? 60 : 30;
     }
 
     private function fallbackIndexQuote(array $item, string $reason): array

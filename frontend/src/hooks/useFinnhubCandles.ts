@@ -57,7 +57,7 @@ export function useFinnhubCandles(
       ? getCryptoCandles(normalizedSymbol, selectedResolution, from, to, { signal: controller.signal })
           .then(raw => {
             const data = mapCandles(raw);
-            if (data.length === 0) throw new Error('EMPTY_CANDLES');
+            if (data.length < 2) throw new Error('EMPTY_CANDLES');
             return { data, provider: 'coingecko' as const };
           })
       : fetchCandlesWithFallback(

@@ -12,15 +12,27 @@ export type CandleDeps = {
 
 export function mapCandles(raw: FinnhubCandle): OHLCVData[] {
   if (raw.s !== 'ok' || !raw.t?.length) return []
-  if (![raw.o, raw.h, raw.l, raw.c, raw.v].every(values => values?.length === raw.t.length)) return []
-  return raw.t.map((t, i) => ({
-    date:   new Date(t * 1000).toISOString().split('T')[0],
-    open:   raw.o[i],
-    high:   raw.h[i],
-    low:    raw.l[i],
-    close:  raw.c[i],
-    volume: raw.v[i],
-  }))
+
+  const lengths = [raw.t, raw.o, raw.h, raw.l, raw.c, raw.v].map(values => values?.length ?? 0)
+  const count = Math.min(...lengths)
+
+  if (count <= 0) return []
+
+  return raw.t.slice(0, count)
+    .map((t, i) => ({
+      date:   new Date(t * 1000).toISOString().split('T')[0],
+      open:   Number(raw.o[i]),
+      high:   Number(raw.h[i]),
+      low:    Number(raw.l[i]),
+      close:  Number(raw.c[i]),
+      volume: Number(raw.v[i] ?? 0),
+    }))
+    .filter(candle => Number.isFinite(new Date(candle.date).getTime())
+      && Number.isFinite(candle.open)
+      && Number.isFinite(candle.high)
+      && Number.isFinite(candle.low)
+      && Number.isFinite(candle.close)
+      && Number.isFinite(candle.volume))
 }
 
 export function getRange(tf: Timeframe): { from: number; to: number; resolution: string } {
@@ -62,7 +74,7 @@ export async function fetchCandlesWithFallback(
   try {
     const raw  = await deps.getCandles(symbol, resolution, from, to, options)
     const data = mapCandles(raw)
-    if (data.length === 0) throw new Error('EMPTY_CANDLES')
+    if (data.length < 2) throw new Error('EMPTY_CANDLES')
     return { data, provider: 'finnhub' }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -71,7 +83,7 @@ export async function fetchCandlesWithFallback(
     try {
       const raw  = await deps.getAlternativeCandles(symbol, resolution, from, to, options)
       const data = mapCandles(raw)
-      if (data.length === 0) throw new Error('EMPTY_CANDLES')
+      if (data.length < 2) throw new Error('EMPTY_CANDLES')
       const provider = raw.meta?.provider ?? 'alphavantage'
       return { data, provider }
     } catch (fallbackError) {
