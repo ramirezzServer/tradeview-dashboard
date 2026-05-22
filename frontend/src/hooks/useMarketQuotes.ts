@@ -1,98 +1,78 @@
-// ─── useMarketQuotes ──────────────────────────────────────────────────────────
-// Batch market data hook that fetches quotes for a mixed list of stocks and
-// crypto symbols, normalizes them into a single unified shape, and exposes a
-// consistent live/unavailable status per symbol.
-//
-// Stocks  → Finnhub /market/quote/{symbol}     (via React Query per-symbol)
-// Crypto  → CoinGecko /market/crypto/prices    (one request for all)
-//
-// Both sources share the same normalized NormalizedQuote interface so components
-// do not need to branch on asset class.
-// ─────────────────────────────────────────────────────────────────────────────
-
-import { useQuery, useQueries } from '@tanstack/react-query';
-import { getQuote, isFinnhubConfigured } from '@/services/finnhub';
+import { useQuery } from '@tanstack/react-query';
+import { getQuotes, isFinnhubConfigured } from '@/services/finnhub';
 import { getCryptoPrices, isCryptoSymbol } from '@/services/coingecko';
-
-// ─── Unified quote shape ──────────────────────────────────────────────────────
 
 export type QuoteSource = 'finnhub' | 'coingecko' | 'unavailable';
 export type QuoteStatus = 'live' | 'simulated' | 'unavailable';
 
 export interface NormalizedQuote {
-  symbol:        string;
-  price:         number;
-  change:        number;   // 24h / daily $ change
-  changePercent: number;   // 24h / daily % change
-  volume?:       number;
-  source:        QuoteSource;
-  status:        QuoteStatus;
-  /** Epoch ms when this quote was last successfully fetched (React Query dataUpdatedAt) */
-  fetchedAt:     number;
-  error?:        string;
+  symbol: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume?: number;
+  source: QuoteSource;
+  status: QuoteStatus;
+  fetchedAt: number;
+  error?: string;
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useMarketQuotes(symbols: string[], liveUpdates = true) {
   const uniqueSymbols = [...new Set(symbols.map(s => s.toUpperCase().trim()).filter(Boolean))];
-  const stockSymbols  = uniqueSymbols.filter(s => !isCryptoSymbol(s));
+  const stockSymbols = uniqueSymbols.filter(s => !isCryptoSymbol(s));
   const cryptoSymbols = uniqueSymbols.filter(s => isCryptoSymbol(s));
-  const configured    = isFinnhubConfigured();
+  const configured = isFinnhubConfigured();
+  const stockKey = [...stockSymbols].sort().join(',');
 
-  // Individual queries for each stock symbol — React Query deduplicates
-  // automatically when the same symbol is requested from multiple components.
-  const stockQueries = useQueries({
-    queries: stockSymbols.map(sym => ({
-      queryKey: ['quote', sym.toUpperCase()],
-      queryFn:  ({ signal }) => getQuote(sym.toUpperCase(), { signal }),
-      enabled:  configured && !!sym,
-      staleTime:     10_000,
-      refetchInterval: liveUpdates ? 15_000 : false,
-      refetchIntervalInBackground: false,
-      retry: 1,
-      placeholderData: previous => previous,
-    })),
+  const stockQuery = useQuery({
+    queryKey: ['quotes', stockKey],
+    queryFn: ({ signal }) => getQuotes(stockSymbols, { signal }),
+    enabled: configured && stockSymbols.length > 0,
+    staleTime: 20_000,
+    gcTime: 5 * 60_000,
+    refetchInterval: liveUpdates ? 20_000 : false,
+    refetchIntervalInBackground: false,
+    retry: 1,
+    placeholderData: previous => previous,
   });
 
-  // Single batched query for all crypto symbols to avoid N separate CoinGecko calls.
   const cryptoQuery = useQuery({
     queryKey: ['crypto-prices', [...cryptoSymbols].sort().join(',')],
-    queryFn:  () => getCryptoPrices(cryptoSymbols),
-    enabled:  cryptoSymbols.length > 0,
-    staleTime:       25_000,
+    queryFn: () => getCryptoPrices(cryptoSymbols),
+    enabled: cryptoSymbols.length > 0,
+    staleTime: 25_000,
     refetchInterval: liveUpdates ? 30_000 : false,
     refetchIntervalInBackground: false,
     retry: 1,
     placeholderData: previous => previous,
   });
 
-  // ── Normalize into a unified map ──────────────────────────────────────────
-
   const quotes: Record<string, NormalizedQuote> = {};
 
-  stockSymbols.forEach((sym, idx) => {
-    const q = stockQueries[idx];
-    if (q.data && q.data.c > 0) {
+  stockSymbols.forEach(sym => {
+    const result = stockQuery.data?.[sym];
+    const quote = result?.quote;
+
+    if (result?.success && quote && quote.c > 0) {
       quotes[sym] = {
-        symbol:        sym,
-        price:         q.data.c,
-        change:        q.data.d,
-        changePercent: q.data.dp,
-        source:        'finnhub',
-        status:        'live',
-        fetchedAt:     q.dataUpdatedAt || Date.now(),
+        symbol: sym,
+        price: quote.c,
+        change: quote.d,
+        changePercent: quote.dp,
+        source: 'finnhub',
+        status: 'live',
+        fetchedAt: stockQuery.dataUpdatedAt || Date.now(),
       };
-    } else if (q.isError || (q.data && q.data.c === 0)) {
+    } else if (result || stockQuery.isError) {
       quotes[sym] = {
-        symbol:        sym,
-        price:         0,
-        change:        0,
+        symbol: sym,
+        price: 0,
+        change: 0,
         changePercent: 0,
-        source:        'unavailable',
-        status:        'unavailable',
-        fetchedAt:     q.dataUpdatedAt || Date.now(),
-        error:         q.error instanceof Error ? q.error.message : 'No data',
+        source: 'unavailable',
+        status: 'unavailable',
+        fetchedAt: stockQuery.dataUpdatedAt || Date.now(),
+        error: result?.message ?? (stockQuery.error instanceof Error ? stockQuery.error.message : 'No data'),
       };
     }
   });
@@ -101,36 +81,35 @@ export function useMarketQuotes(symbols: string[], liveUpdates = true) {
     for (const [sym, cq] of Object.entries(cryptoQuery.data)) {
       if (cq.c > 0) {
         quotes[sym] = {
-          symbol:        sym,
-          price:         cq.c,
-          change:        cq.d,
+          symbol: sym,
+          price: cq.c,
+          change: cq.d,
           changePercent: cq.dp,
-          source:        'coingecko',
-          status:        'live',
-          fetchedAt:     cryptoQuery.dataUpdatedAt || Date.now(),
+          source: 'coingecko',
+          status: 'live',
+          fetchedAt: cryptoQuery.dataUpdatedAt || Date.now(),
         };
       }
     }
   }
 
-  // Crypto symbols with no data from CoinGecko get an explicit unavailable entry
   cryptoSymbols.forEach(sym => {
     if (!quotes[sym] && (cryptoQuery.isError || cryptoQuery.isFetched)) {
       quotes[sym] = {
-        symbol:        sym,
-        price:         0,
-        change:        0,
+        symbol: sym,
+        price: 0,
+        change: 0,
         changePercent: 0,
-        source:        'unavailable',
-        status:        'unavailable',
-        fetchedAt:     cryptoQuery.dataUpdatedAt || Date.now(),
-        error:         'Crypto price unavailable',
+        source: 'unavailable',
+        status: 'unavailable',
+        fetchedAt: cryptoQuery.dataUpdatedAt || Date.now(),
+        error: 'Crypto price unavailable',
       };
     }
   });
 
-  const isLoading  = stockQueries.some(q => q.isLoading) || cryptoQuery.isLoading;
-  const liveCount  = Object.values(quotes).filter(q => q.status === 'live').length;
+  const isLoading = stockQuery.isLoading || cryptoQuery.isLoading;
+  const liveCount = Object.values(quotes).filter(q => q.status === 'live').length;
 
   return {
     quotes,

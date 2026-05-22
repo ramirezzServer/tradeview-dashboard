@@ -141,6 +141,7 @@ const Portfolio = () => {
 
   // Force-invalidate all quote caches so React Query re-fetches immediately
   const refreshPrices = () => {
+    qc.invalidateQueries({ queryKey: ['quotes'] });
     symbols.forEach(sym => {
       qc.invalidateQueries({ queryKey: ['quote', sym] });
     });

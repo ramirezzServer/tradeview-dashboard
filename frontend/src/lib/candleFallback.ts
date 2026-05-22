@@ -10,8 +10,22 @@ export type CandleDeps = {
   getAlternativeCandles: (symbol: string, resolution: string, from: number, to: number, options?: { signal?: AbortSignal }) => Promise<FinnhubCandle>
 }
 
-export function mapCandles(raw: FinnhubCandle): OHLCVData[] {
-  if (raw.s !== 'ok' || !raw.t?.length) return []
+type WrappedCandleResponse = {
+  success?: boolean
+  data?: FinnhubCandle
+}
+
+function unwrapCandleResponse(response: FinnhubCandle | WrappedCandleResponse): FinnhubCandle | null {
+  if (!response || typeof response !== 'object') return null
+  if ('data' in response && response.data && typeof response.data === 'object') {
+    return response.data
+  }
+  return response as FinnhubCandle
+}
+
+export function normalizeCandleResponse(response: FinnhubCandle | WrappedCandleResponse): OHLCVData[] {
+  const raw = unwrapCandleResponse(response)
+  if (!raw || raw.s !== 'ok' || !raw.t?.length) return []
 
   const lengths = [raw.t, raw.o, raw.h, raw.l, raw.c, raw.v].map(values => values?.length ?? 0)
   const count = Math.min(...lengths)
@@ -20,6 +34,7 @@ export function mapCandles(raw: FinnhubCandle): OHLCVData[] {
 
   return raw.t.slice(0, count)
     .map((t, i) => ({
+      time:   Number(t),
       date:   new Date(t * 1000).toISOString().split('T')[0],
       open:   Number(raw.o[i]),
       high:   Number(raw.h[i]),
@@ -34,6 +49,8 @@ export function mapCandles(raw: FinnhubCandle): OHLCVData[] {
       && Number.isFinite(candle.close)
       && Number.isFinite(candle.volume))
 }
+
+export const mapCandles = normalizeCandleResponse
 
 export function getRange(tf: Timeframe): { from: number; to: number; resolution: string } {
   const to  = Math.floor(Date.now() / 1000)
@@ -56,6 +73,7 @@ const FALLBACK_TRIGGERS = new Set([
   'NO_DATA',
   'RATE_LIMITED',
   'BACKEND_ERROR',
+  'HTTP_404',
   'HTTP_422',
   'HTTP_429',
   'HTTP_500',
@@ -82,7 +100,7 @@ export async function fetchCandlesWithFallback(
 
     try {
       const raw  = await deps.getAlternativeCandles(symbol, resolution, from, to, options)
-      const data = mapCandles(raw)
+      const data = normalizeCandleResponse(raw)
       if (data.length < 2) throw new Error('EMPTY_CANDLES')
       const provider = raw.meta?.provider ?? 'alphavantage'
       return { data, provider }

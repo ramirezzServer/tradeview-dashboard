@@ -31,6 +31,18 @@ export interface FinnhubQuote {
   t: number;   // timestamp
 }
 
+export interface BatchQuoteResult {
+  success: boolean;
+  quote: FinnhubQuote | null;
+  message?: string;
+  meta?: {
+    symbol: string;
+    provider: 'finnhub';
+  };
+}
+
+export type BatchQuotesResponse = Record<string, BatchQuoteResult>;
+
 export interface FinnhubCandle {
   c: number[];
   h: number[];
@@ -214,6 +226,18 @@ export async function getQuote(symbol: string, options?: RequestOptions): Promis
   return fetchFromBackend<FinnhubQuote>(
     `/market/quote/${encodeURIComponent(symbol)}`,
     {},
+    { ...options, cacheTtlMs: options?.cacheTtlMs ?? 20_000 }
+  );
+}
+
+/** Batched stock quotes via Laravel. One failed symbol returns only that symbol as unavailable. */
+export async function getQuotes(symbols: string[], options?: RequestOptions): Promise<BatchQuotesResponse> {
+  const normalized = [...new Set(symbols.map(symbol => symbol.toUpperCase().trim()).filter(Boolean))].slice(0, 20);
+  if (normalized.length === 0) return {};
+
+  return fetchFromBackend<BatchQuotesResponse>(
+    '/market/quotes',
+    { symbols: normalized.join(',') },
     { ...options, cacheTtlMs: options?.cacheTtlMs ?? 20_000 }
   );
 }

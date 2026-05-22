@@ -34,6 +34,7 @@ Route::prefix('market')->group(function () {
 
     // Real-time price snapshot
     Route::get('/quote/{symbol}', [MarketController::class, 'quote']);
+    Route::get('/quotes', [MarketController::class, 'quotes']);
 
     // OHLCV chart data — query params: resolution, from, to (Unix timestamps)
     Route::get('/candles/{symbol}',     [MarketController::class, 'candles']);

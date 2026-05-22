@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { mapCandles, getRange, fetchCandlesWithFallback } from '../candleFallback';
+import { mapCandles, normalizeCandleResponse, getRange, fetchCandlesWithFallback } from '../candleFallback';
 import type { CandleDeps } from '../candleFallback';
 import type { FinnhubCandle } from '@/services/finnhub';
 
@@ -25,6 +25,7 @@ describe('mapCandles', () => {
     const result = mapCandles(raw);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ open: 100, high: 110, low: 90, close: 105, volume: 1000 });
+    expect(result[0].time).toBe(1700000000);
     expect(result[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -38,6 +39,27 @@ describe('mapCandles', () => {
     expect(result).toHaveLength(2);
     expect(result[1].open).toBe(106);
     expect(result[1].volume).toBe(2000);
+  });
+
+  it('normalizes wrapped backend candle envelopes', () => {
+    const raw: FinnhubCandle = {
+      s: 'ok',
+      t: [1700000000, 1700086400],
+      o: [100, 106], h: [110, 112], l: [90, 104], c: [105, 108], v: [0, 0],
+      meta: { symbol: 'AAPL', provider: 'calculated', count: 2 },
+    };
+    const result = normalizeCandleResponse({ success: true, data: raw });
+    expect(result).toHaveLength(2);
+    expect(result[0].volume).toBe(0);
+  });
+
+  it('normalizes uneven arrays to the shortest aligned length', () => {
+    const raw: FinnhubCandle = {
+      s: 'ok',
+      t: [1700000000, 1700086400, 1700172800],
+      o: [100, 106], h: [110, 112], l: [90, 104], c: [105, 108], v: [0, 0],
+    };
+    expect(normalizeCandleResponse(raw)).toHaveLength(2);
   });
 });
 
@@ -78,8 +100,8 @@ describe('getRange', () => {
 
 const validCandle: FinnhubCandle = {
   s: 'ok',
-  t: [1700000000],
-  o: [100], h: [110], l: [90], c: [105], v: [1000],
+  t: [1700000000, 1700086400],
+  o: [100, 105], h: [110, 112], l: [90, 101], c: [105, 108], v: [1000, 0],
 };
 
 const ARGS: [string, string, number, number] = ['AAPL', 'D', 1700000000, 1700086400];
@@ -92,7 +114,7 @@ describe('fetchCandlesWithFallback', () => {
     };
     const result = await fetchCandlesWithFallback(...ARGS, deps);
     expect(result.provider).toBe('finnhub');
-    expect(result.data).toHaveLength(1);
+    expect(result.data).toHaveLength(2);
     expect(deps.getAlternativeCandles).not.toHaveBeenCalled();
   });
 
@@ -128,6 +150,15 @@ describe('fetchCandlesWithFallback', () => {
     const empty: FinnhubCandle = { s: 'ok', t: [], o: [], h: [], l: [], c: [], v: [] };
     const deps: CandleDeps = {
       getCandles: vi.fn().mockResolvedValue(empty),
+      getAlternativeCandles: vi.fn().mockResolvedValue(validCandle),
+    };
+    const result = await fetchCandlesWithFallback(...ARGS, deps);
+    expect(result.provider).toBe('alphavantage');
+  });
+
+  it('falls back when the primary backend returns no candle data as 404', async () => {
+    const deps: CandleDeps = {
+      getCandles: vi.fn().mockRejectedValue(new Error('HTTP_404')),
       getAlternativeCandles: vi.fn().mockResolvedValue(validCandle),
     };
     const result = await fetchCandlesWithFallback(...ARGS, deps);

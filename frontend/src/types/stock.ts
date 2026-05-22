@@ -1,4 +1,5 @@
 export interface OHLCVData {
+  time?: number;
   date: string;
   open: number;
   high: number;

@@ -25,6 +25,8 @@ use App\Services\AlphaVantageService;
 use App\Services\FinnhubService;
 use App\Services\SimulatedCandleService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class MarketController extends Controller
@@ -94,6 +96,64 @@ class MarketController extends Controller
         } catch (\RuntimeException $e) {
             return $this->finnhubError($e);
         }
+    }
+
+    public function quotes(Request $request): JsonResponse
+    {
+        $rawSymbols = (string) $request->query('symbols', '');
+        $symbols = collect(explode(',', $rawSymbols))
+            ->map(fn (string $symbol) => strtoupper(trim($symbol)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($symbols->isEmpty()) {
+            return $this->error('At least one symbol is required.', 422);
+        }
+
+        if ($symbols->count() > 20) {
+            return $this->error('A maximum of 20 symbols can be requested at once.', 422);
+        }
+
+        $invalid = $symbols->first(fn (string $symbol) => ! preg_match('/^[A-Z0-9.:\-]{1,20}$/', $symbol));
+        if ($invalid !== null) {
+            return $this->error("Invalid symbol format: {$invalid}.", 422);
+        }
+
+        $ttl = (int) config('finnhub.cache.quote');
+        $data = [];
+
+        foreach ($symbols as $symbol) {
+            try {
+                $quote = Cache::remember("market.quote.batch.{$symbol}", $ttl, fn () => $this->finnhub->getQuote($symbol));
+
+                if (($quote['c'] ?? 0) == 0 && ($quote['t'] ?? 0) == 0) {
+                    $data[$symbol] = [
+                        'success' => false,
+                        'quote' => null,
+                        'message' => "Symbol '{$symbol}' not found or has no data.",
+                    ];
+                    continue;
+                }
+
+                $data[$symbol] = [
+                    'success' => true,
+                    'quote' => $quote,
+                    'meta' => ['symbol' => $symbol, 'provider' => 'finnhub'],
+                ];
+            } catch (\RuntimeException $e) {
+                $data[$symbol] = [
+                    'success' => false,
+                    'quote' => null,
+                    'message' => $this->publicQuoteFailureMessage($e),
+                ];
+            }
+        }
+
+        return $this->success($data, 'Quotes fetched successfully.', 200, [
+            'count' => count($data),
+            'provider' => 'finnhub',
+        ]);
     }
 
     public function candles(CandleRequest $request, string $symbol): JsonResponse
@@ -521,6 +581,20 @@ class MarketController extends Controller
             $e instanceof FinnhubInvalidResponseException => $this->error('Finnhub returned an unexpected response format.', 502),
             $e instanceof FinnhubHttpException           => $this->error('Finnhub returned an unexpected error. Please try again.', 502),
             default                                      => $this->error('An unexpected error occurred.', 500),
+        };
+    }
+
+    private function publicQuoteFailureMessage(\RuntimeException $e): string
+    {
+        return match (true) {
+            $e instanceof FinnhubRateLimitedException => 'Provider rate limit reached.',
+            $e instanceof FinnhubUnauthorizedException,
+            $e instanceof FinnhubForbiddenException,
+            $e instanceof ApiKeyMissingException => 'Provider unavailable.',
+            $e instanceof FinnhubRequestFailedException,
+            $e instanceof FinnhubInvalidResponseException,
+            $e instanceof FinnhubHttpException => 'Provider request failed.',
+            default => 'Quote unavailable.',
         };
     }
 }

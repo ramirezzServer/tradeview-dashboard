@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class MarketEndpointTest extends TestCase
@@ -12,6 +13,7 @@ class MarketEndpointTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Cache::flush();
         config(['finnhub.api_key' => 'test-key']);
         $this->finnhubBase = config('finnhub.base_url', 'https://finnhub.io/api/v1');
     }
@@ -71,6 +73,29 @@ class MarketEndpointTest extends TestCase
         config(['finnhub.api_key' => '']);
 
         $this->getJson('/api/market/quote/AAPL')->assertStatus(503);
+    }
+
+    public function test_batch_quotes_returns_per_symbol_results(): void
+    {
+        Http::fake([
+            "{$this->finnhubBase}/quote?*" => function ($request) {
+                parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+                $symbol = $query['symbol'] ?? '';
+
+                return match ($symbol) {
+                    'AAPL' => Http::response(['c' => 150.0, 'd' => 1.2, 'dp' => 0.8, 'h' => 151.0, 'l' => 148.0, 'o' => 149.0, 'pc' => 148.8, 't' => 1700000000], 200),
+                    'MSFT' => Http::response(['c' => 0, 't' => 0], 200),
+                    default => Http::response([], 500),
+                };
+            },
+        ]);
+
+        $this->getJson('/api/market/quotes?symbols=AAPL,MSFT')
+            ->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.AAPL.success', true)
+            ->assertJsonPath('data.AAPL.quote.c', 150)
+            ->assertJsonPath('data.MSFT.success', false);
     }
 
     // ─── Candles ─────────────────────────────────────────────────────────────
