@@ -1,42 +1,115 @@
 # TradeView Dashboard
 
-Platform dashboard trading dan portofolio saham berbasis web. Dibangun dengan arsitektur monorepo yang mencakup aplikasi web (React + TypeScript), REST API backend (Laravel), dan aplikasi mobile.
+Aplikasi full-stack untuk simulasi dashboard trading, pemantauan portofolio, watchlist, data pasar, berita saham, analisis teknikal, dan akses multi-platform melalui web dan mobile.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=111111)](https://react.dev/)
 [![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-gray?style=flat-square)](LICENSE)
 
 ---
 
-## Tentang Proyek
+## Status Project
 
-TradeView Dashboard dirancang untuk membantu investor dan trader memvisualisasikan data pasar, memantau portofolio, dan menganalisis pergerakan harga. Proyek ini memisahkan tanggung jawab secara jelas antara lapisan frontend, backend API, dan mobile dalam satu repository.
+Project ini masih dalam tahap pengembangan dan pengujian. Beberapa fitur market data menggunakan fallback ketika provider eksternal tidak tersedia, terkena rate limit, atau gagal merespons.
+
+Dokumentasi ini hanya menjelaskan setup dan struktur project. Tidak ada perubahan flow testing Katalon yang diperlukan dari sisi dokumentasi ini.
+
+---
+
+## Tentang Project
+
+TradeView Dashboard adalah monorepo untuk dashboard trading dan portfolio management. Web frontend dan mobile app mengonsumsi API Laravel yang sama untuk autentikasi, portfolio, watchlist, settings, saved news, push subscription, dan market data.
+
+Market data diambil melalui backend Laravel sebagai proxy ke provider eksternal seperti Finnhub, Alpha Vantage, dan CoinGecko. Data user disimpan di PostgreSQL online/cloud.
+
+---
+
+## Fitur Utama
+
+- Auth register, login, logout dengan Laravel Sanctum
+- Dashboard market overview
+- Watchlist saham
+- Portfolio management
+- Chart OHLCV
+- Market news
+- Company profile dan financials
+- Crypto market support
+- User settings
+- Saved news
+- Push subscription jika VAPID/Web Push sudah dikonfigurasi
+- Web client dan mobile client
 
 ---
 
 ## Tech Stack
 
-**Frontend** — TypeScript, React, Tailwind CSS, Recharts, Axios
+### Frontend
 
-**Backend** — PHP 8.2+, Laravel 12, Laravel Sanctum, MySQL
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Recharts
+- TanStack React Query
 
-**Mobile** — React Native (mengonsumsi API yang sama dengan frontend web)
+### Backend
 
-**Infrastructure** — Nginx, Vite (dev server & build tool)
+- PHP 8.2+
+- Laravel 12
+- Laravel Sanctum
+- PostgreSQL
+- Finnhub API
+- Alpha Vantage API
+- CoinGecko API
+- Web Push notification
+
+### Mobile
+
+- React Native
+- Expo
+- Expo Router
+- Zustand
+- Axios
+- TanStack React Query
 
 ---
 
 ## Struktur Repository
 
-```
+```txt
 tradeview-dashboard/
-├── frontend/          # Aplikasi web React + TypeScript
-├── backend/           # REST API & server-side Laravel
-├── mobile/            # Aplikasi mobile React Native
-└── .github/           # CI/CD workflows & git hooks
++-- backend/     # REST API Laravel 12
++-- frontend/    # Web dashboard React + TypeScript + Vite
++-- mobile/      # Mobile app React Native / Expo
++-- docs/        # Dokumentasi API, agent workflow, dan catatan project
++-- shared/      # Shared types/utilities jika tersedia
+`-- README.md    # Dokumentasi utama project
 ```
 
-Setiap direktori berdiri sendiri dan memiliki `package.json` atau `composer.json` masing-masing.
+---
+
+## Arsitektur Singkat
+
+Web frontend dan mobile app mengirim request ke Laravel API. Laravel API menangani auth, portfolio, watchlist, settings, saved news, dan push subscription. Laravel API juga menjadi proxy untuk market data provider agar API key tetap berada di server.
+
+Database PostgreSQL online menyimpan user data, portfolio, watchlist, settings, push subscription, dan saved news. Market data dari provider eksternal tidak disimpan permanen kecuali ada fitur tertentu yang secara eksplisit menyimpannya.
+
+```txt
+Web Frontend
+     |
+     v
+Laravel API ---> PostgreSQL Online
+     |
+     v
+Finnhub / Alpha Vantage / CoinGecko
+
+Mobile App
+     |
+     v
+Laravel API
+```
 
 ---
 
@@ -45,13 +118,17 @@ Setiap direktori berdiri sendiri dan memiliki `package.json` atau `composer.json
 - PHP 8.2+
 - Composer 2.x
 - Node.js 18+
-- MySQL 8.x
+- npm
+- PostgreSQL online/cloud atau PostgreSQL server yang bisa diakses backend
+- API key Finnhub dan Alpha Vantage untuk market data saham
+- API key CoinGecko jika memakai endpoint/plan yang membutuhkan key
+- Expo Go atau emulator/simulator untuk mobile
 
 ---
 
-## Instalasi
+## Instalasi Lokal
 
-### 1. Clone
+### 1. Clone Repository
 
 ```bash
 git clone https://github.com/ramirezzServer/tradeview-dashboard.git
@@ -64,23 +141,33 @@ cd tradeview-dashboard
 cd backend
 composer install
 cp .env.example .env
-php artisan key:generate
 ```
 
-Sesuaikan konfigurasi database di `.env`:
+Isi konfigurasi PostgreSQL online di `.env`. Bisa memakai `DB_URL` jika provider database menyediakan connection string, atau isi host/port/database/username/password secara manual.
 
 ```env
-DB_DATABASE=tradeview_db
-DB_USERNAME=root
+DB_CONNECTION=pgsql
+DB_URL=postgresql://username:password@host:5432/database
+DB_HOST=your-postgres-host
+DB_PORT=5432
+DB_DATABASE=your_database
+DB_USERNAME=your_username
 DB_PASSWORD=your_password
 ```
 
+Lanjutkan setup Laravel:
+
 ```bash
+php artisan key:generate
 php artisan migrate --seed
 php artisan serve
 ```
 
-Backend berjalan di `http://localhost:8000`.
+Backend default berjalan di:
+
+```txt
+http://localhost:8000
+```
 
 ### 3. Frontend
 
@@ -92,133 +179,223 @@ npm install
 cp .env.example .env.local
 ```
 
-Isi `VITE_API_BASE_URL` di `.env.local` dengan URL backend:
+Isi URL backend API:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api
+VITE_VAPID_PUBLIC_KEY=your-vapid-public-key
 ```
+
+Jalankan frontend:
 
 ```bash
 npm run dev
 ```
 
-Frontend berjalan di `http://localhost:5173`.
+Frontend default berjalan di:
+
+```txt
+http://localhost:5173
+```
 
 ### 4. Mobile
 
 ```bash
 cd mobile
 npm install
-npm run android   # atau npm run ios
+```
+
+Mobile menggunakan `apiBaseUrl` dari konfigurasi Expo. Untuk emulator web/iOS simulator, `localhost` kadang masih bisa dipakai. Untuk real device, jangan pakai `localhost`; gunakan IP laptop/server yang bisa diakses dari jaringan yang sama, misalnya:
+
+```txt
+http://192.168.x.x:8000
+```
+
+Jalankan mobile:
+
+```bash
+npm run android
+# atau
+npm run ios
 ```
 
 ---
 
 ## Environment Variables
 
-### `backend/.env`
+### Backend
 
 | Key | Keterangan |
 |---|---|
-| `APP_KEY` | Laravel application key (auto-generated) |
-| `DB_DATABASE` | Nama database MySQL |
+| `APP_NAME` | Nama aplikasi Laravel |
+| `APP_ENV` | Environment, misalnya `local` atau `production` |
+| `APP_KEY` | Application key Laravel dari `php artisan key:generate` |
+| `APP_DEBUG` | Gunakan `false` untuk production |
+| `APP_URL` | URL backend, misalnya `http://localhost:8000` |
+| `DB_CONNECTION` | Gunakan `pgsql` |
+| `DB_URL` | Connection string PostgreSQL online/cloud jika tersedia |
+| `DB_HOST` | Host PostgreSQL |
+| `DB_PORT` | Port PostgreSQL, biasanya `5432` |
+| `DB_DATABASE` | Nama database PostgreSQL |
 | `DB_USERNAME` | Username database |
 | `DB_PASSWORD` | Password database |
-| `SANCTUM_STATEFUL_DOMAINS` | Domain frontend, misal `localhost:5173` |
+| `FINNHUB_API_KEY` | API key Finnhub |
+| `ALPHA_VANTAGE_API_KEY` | API key Alpha Vantage |
+| `COINGECKO_API_KEY` | API key CoinGecko jika diperlukan |
+| `FRONTEND_URL` | URL frontend yang diizinkan |
+| `CORS_ALLOWED_ORIGINS` | Daftar origin frontend/mobile web yang boleh mengakses API |
+| `WEBPUSH_VAPID_PUBLIC_KEY` | Public key Web Push |
+| `WEBPUSH_VAPID_PRIVATE_KEY` | Private key Web Push, hanya di backend |
+| `WEBPUSH_VAPID_SUBJECT` | Subject VAPID, biasanya email admin |
 
-### `frontend/.env.local`
+### Frontend
 
 | Key | Keterangan |
 |---|---|
-| `VITE_API_BASE_URL` | Base URL backend API |
+| `VITE_API_BASE_URL` | Base URL Laravel API, contoh `http://localhost:8000/api` |
+| `VITE_VAPID_PUBLIC_KEY` | Public key untuk browser push notification |
+
+### Mobile
+
+Mobile memakai `apiBaseUrl` dari konfigurasi Expo. Untuk real device, gunakan IP laptop/server yang bisa dijangkau perangkat, bukan `localhost`.
+
+Contoh:
+
+```txt
+http://192.168.x.x:8000
+```
 
 ---
 
 ## API Reference
 
-Base URL: `/api` — semua endpoint memerlukan header `Authorization: Bearer {token}` kecuali rute auth.
+Base URL:
 
-### Autentikasi
-
-```
-POST   /auth/register      Registrasi akun baru
-POST   /auth/login         Login, mengembalikan Bearer Token
-POST   /auth/logout        Logout & invalidasi token
-GET    /auth/me            Data user yang sedang login
+```txt
+/api
 ```
 
-### Saham
+Protected endpoint membutuhkan header:
 
-```
-GET    /stocks                      Daftar saham tersedia
-GET    /stocks/{symbol}             Detail satu saham
-GET    /stocks/{symbol}/history     Riwayat harga
-GET    /stocks/search?q={keyword}   Pencarian saham
+```txt
+Authorization: Bearer {token}
 ```
 
-### Portofolio
+### Public
 
-```
-GET    /portfolio           Semua aset milik user
-POST   /portfolio           Tambah aset
-PUT    /portfolio/{id}      Update aset
-DELETE /portfolio/{id}      Hapus aset
-GET    /portfolio/summary   Ringkasan nilai & gain/loss
+```txt
+GET  /api/healthz
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/market/quote/{symbol}
+GET  /api/market/quotes?symbols=AAPL,MSFT
+GET  /api/market/candles/{symbol}
+GET  /api/market/candles-alt/{symbol}
+GET  /api/market/news
+GET  /api/market/profile/{symbol}
+GET  /api/market/financials/{symbol}
+GET  /api/market/company-news/{symbol}
+GET  /api/market/movers
+GET  /api/market/indices
+GET  /api/market/sectors
+GET  /api/market/earnings/{symbol}
+GET  /api/market/crypto/prices
+GET  /api/market/crypto/ohlcv/{symbol}
+GET  /api/market/crypto/supported
 ```
 
-### Watchlist
+### Protected With Bearer Token
 
-```
-GET    /watchlist           Daftar watchlist user
-POST   /watchlist           Tambah saham ke watchlist
-DELETE /watchlist/{id}      Hapus dari watchlist
+```txt
+POST   /api/auth/logout
+GET    /api/auth/me
+
+GET    /api/watchlists
+POST   /api/watchlists
+GET    /api/watchlists/{id}
+PUT    /api/watchlists/{id}
+DELETE /api/watchlists/{id}
+POST   /api/watchlists/{id}/items
+PUT    /api/watchlist-items/{id}
+DELETE /api/watchlist-items/{id}
+
+GET    /api/portfolios
+POST   /api/portfolios
+GET    /api/portfolios/{id}
+PUT    /api/portfolios/{id}
+DELETE /api/portfolios/{id}
+POST   /api/portfolios/{id}/items
+PUT    /api/portfolio-items/{id}
+DELETE /api/portfolio-items/{id}
+
+GET    /api/settings
+PUT    /api/settings
+
+POST   /api/push/subscribe
+DELETE /api/push/unsubscribe
+
+GET    /api/news/saved
+POST   /api/news/saved
+PUT    /api/news/saved/{savedNews}
+DELETE /api/news/saved/{savedNews}
 ```
 
-> Postman Collection tersedia di `docs/postman_collection.json` (segera hadir).
+Dokumentasi endpoint yang lebih detail ada di [docs/api-endpoints.md](docs/api-endpoints.md).
 
 ---
 
-## Fitur
+## Testing
 
-- Autentikasi berbasis token (Laravel Sanctum)
-- Dashboard ringkasan portofolio
-- Grafik harga saham interaktif
-- CRUD portofolio & watchlist
-- Tampilan responsif (web & mobile)
-- Role-based access (admin & user biasa)
+Command yang tersedia:
+
+```bash
+# Frontend
+cd frontend
+npm run build
+npm test
+
+# Backend
+cd backend
+php artisan test
+```
+
+Pengujian manual API bisa dilakukan dengan Postman, Thunder Client, atau tool sejenis. E2E/UI test tetap bisa memakai Katalon sesuai kebutuhan tim. Dokumentasi ini tidak mengubah flow testing Katalon, source aplikasi, atau konfigurasi runtime aktif.
 
 ---
 
 ## Deployment
 
-Build frontend untuk production:
+- Frontend cocok di-deploy ke Vercel atau Netlify.
+- Backend Laravel bisa di-deploy ke Railway, Render, VPS, atau hosting PHP yang mendukung Laravel.
+- Database menggunakan PostgreSQL online/cloud.
+- Set `APP_DEBUG=false` untuk production.
+- Pastikan `FRONTEND_URL` dan `CORS_ALLOWED_ORIGINS` sesuai domain frontend production.
+- Pastikan API keys hanya disimpan di backend/server environment, bukan di frontend.
+- Set `VITE_API_BASE_URL` ke URL backend production dengan suffix `/api`.
 
-```bash
-cd frontend
-npm run build
-# Output: frontend/dist/
-```
+---
 
-Optimasi backend:
+## Catatan Market Data
 
-```bash
-cd backend
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
+Data saham dan crypto bergantung pada provider eksternal seperti Finnhub, Alpha Vantage, dan CoinGecko. Jika provider terkena limit, tidak aktif, atau gagal merespons, aplikasi dapat memakai fallback, simulated, atau calculated data agar UI tetap bisa ditampilkan saat demo dan pengujian.
 
-Untuk deployment cloud, frontend cocok di-host di **Vercel**, backend di **Railway** atau VPS dengan Nginx.
+Data fallback hanya untuk kebutuhan demo/pengujian. Jangan gunakan data fallback sebagai dasar keputusan finansial real.
+
+---
+
+## Disclaimer
+
+Project ini dibuat untuk pembelajaran, simulasi, dan demonstrasi aplikasi dashboard trading/portfolio. Data yang ditampilkan tidak boleh dianggap sebagai saran investasi.
 
 ---
 
 ## Kontribusi
 
-Pull request terbuka. Untuk perubahan besar, buka issue terlebih dahulu untuk mendiskusikan apa yang ingin kamu ubah.
+Pull request terbuka. Untuk perubahan besar, buka issue terlebih dahulu agar perubahan bisa dibahas dengan jelas.
 
-Gunakan format commit yang konsisten:
+Contoh format commit:
 
-```
+```txt
 feat: tambah fitur price alert
 fix: perbaiki kalkulasi gain/loss portofolio
 docs: update instruksi instalasi backend
@@ -228,4 +405,4 @@ docs: update instruksi instalasi backend
 
 ## Lisensi
 
-[MIT](LICENSE) © 2025 Faris Yahya Ayyash Alfatih
+[MIT](LICENSE) (c) 2025 Faris Yahya Ayyash Alfatih

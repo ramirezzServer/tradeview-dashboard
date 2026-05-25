@@ -1,109 +1,111 @@
-# TradeView Mobile — Setup Guide
+# TradeView Mobile Setup
+
+Panduan singkat untuk menjalankan mobile app TradeView Dashboard berbasis React Native, Expo, dan Expo Router.
+
+---
 
 ## Quick Start
 
 ```bash
 cd mobile
 npm install
-npx expo start
+npm start
 ```
 
-Scan the QR code with **Expo Go** on your phone (must be on the same LAN as your dev machine).
+Scan QR code dengan Expo Go atau jalankan melalui emulator/simulator.
 
 ---
 
 ## Requirements
 
 | Tool | Version |
-|------|---------|
+|---|---|
 | Node.js | 18+ |
 | npm | 9+ |
-| Expo Go | Latest (App Store / Play Store) |
-| Laravel backend | Running at `http://192.168.18.13:8000` |
+| Expo Go | Latest |
+| Laravel backend | Berjalan dan bisa diakses mobile app |
 
 ---
 
-## Backend must be running first
+## Backend Harus Berjalan
+
+Untuk testing dengan real device di jaringan LAN yang sama, jalankan backend agar listen ke semua interface:
 
 ```bash
 cd backend
 php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-The `--host=0.0.0.0` flag is critical — it makes Laravel listen on your LAN IP  
-so that Expo Go on your phone can reach it.
+Backend tetap memakai base URL API dengan suffix `/api`.
 
 ---
 
 ## API Base URL
 
-The API base URL is hardcoded in [src/services/api.ts](src/services/api.ts):
+Mobile memakai `apiBaseUrl` dari konfigurasi Expo. Default development biasanya mengarah ke backend lokal.
 
-```ts
-export const API_BASE_URL = 'http://192.168.18.13:8000/api';
+Untuk real device, jangan gunakan:
+
+```txt
+http://localhost:8000
 ```
 
-**If your LAN IP is different**, update this constant before running `expo start`.  
-Find your IP with:
-- Windows: `ipconfig` → look for IPv4 Address
-- macOS/Linux: `ifconfig` → look for `inet` under your Wi-Fi adapter
+Gunakan IP laptop/server yang bisa diakses dari perangkat:
+
+```txt
+http://192.168.x.x:8000
+```
+
+Cara mencari IP lokal:
+
+- Windows: `ipconfig`, lihat `IPv4 Address`
+- macOS/Linux: `ifconfig` atau `ip addr`, lihat alamat interface Wi-Fi/LAN
 
 ---
 
 ## Architecture
 
-```
+```txt
 mobile/
-├── app/                     # Expo Router file-based routing
-│   ├── _layout.tsx          # Root: providers + auth gate
-│   ├── (auth)/              # Login / Register (unauthenticated)
-│   │   ├── login.tsx
-│   │   └── register.tsx
-│   └── (tabs)/              # Bottom tab navigator (authenticated)
-│       ├── index.tsx        # Dashboard
-│       ├── watchlist.tsx
-│       ├── portfolio.tsx
-│       ├── news.tsx
-│       └── settings.tsx
-└── src/
-    ├── components/
-    │   ├── dashboard/       # QuoteCard, CryptoCard, MarketMoversSection
-    │   └── ui/              # SkeletonLoader, ErrorState, EmptyState, Badge
-    ├── hooks/               # React Query data hooks
-    ├── services/            # Axios API service functions
-    ├── store/               # Zustand auth store (expo-secure-store backed)
-    ├── theme/               # COLORS design system
-    └── types/               # TypeScript interfaces
++-- app/              # Expo Router file-based routing
+|   +-- _layout.tsx   # Providers dan auth gate
+|   +-- (auth)/       # Login dan register
+|   `-- (tabs)/       # Dashboard, watchlist, portfolio, news, settings
+`-- src/
+    +-- components/   # UI dan feature components
+    +-- hooks/        # React Query hooks
+    +-- services/     # Axios API services
+    +-- store/        # Zustand auth/session state
+    +-- theme/        # Theme dan warna
+    `-- types/        # TypeScript interfaces
 ```
 
----
-
-## Key Design Decisions
-
-| Decision | Reason |
-|----------|--------|
-| **Zustand** for auth state | Lightweight, no boilerplate, integrates well with expo-secure-store |
-| **React Query** for data | Automatic caching, background refetch, loading/error states |
-| **expo-secure-store** | Native encrypted storage for the auth token |
-| **Axios** over fetch | Interceptors for automatic token injection and 401 handling |
-| **Expo Router** | File-based routing, typed routes, easy auth guards |
-| **Dark theme** | Matches the web dashboard colour system exactly |
+Mobile app mengonsumsi Laravel API yang sama dengan web frontend. Token auth dikirim sebagai Bearer token, dan session dibersihkan ketika API mengembalikan HTTP 401.
 
 ---
 
-## Milestone 1 — Implemented
+## Tech Notes
 
-- [x] Login screen with validation
-- [x] Register screen with validation
-- [x] Dashboard: live AAPL quote (15s refresh)
-- [x] Dashboard: live BTC + ETH prices (1m refresh)
-- [x] Dashboard: Market Movers (gainers / losers / active)
-- [x] Pull-to-refresh on all data
-- [x] Loading skeletons, error states, empty states
+- Zustand digunakan untuk auth/session state.
+- TanStack React Query digunakan untuk cache dan data fetching.
+- Axios digunakan untuk request API dan interceptor auth.
+- Expo Router digunakan untuk navigasi berbasis file.
 
-## Milestone 2 — Ready (needs data)
+---
 
-- [x] Watchlist CRUD (create lists, add/remove symbols, live prices)
-- [x] Portfolio CRUD (create portfolios, add holdings, P&L)
-- [x] News feed with category tabs and deep-link to articles
-- [x] Settings with logout
+## Testing
+
+```bash
+npm run android
+npm run ios
+npm run web
+npm run lint
+```
+
+Untuk masalah cache Expo:
+
+```bash
+npx expo start -c
+```
+
+Dokumentasi ini tidak mengubah konfigurasi runtime mobile atau flow testing Katalon.
