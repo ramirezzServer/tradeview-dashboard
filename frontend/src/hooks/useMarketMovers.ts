@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { isFinnhubConfigured } from '@/services/finnhub';
 import { dedupeMarketRequest, getCachedMarketData, setCachedMarketData } from '@/lib/marketCache';
+import { queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '');
 
@@ -103,9 +104,10 @@ export function useMarketMovers() {
     queryFn:  fetchMovers,
     enabled:  configured,
     staleTime:       5 * 60_000,  // 5 min — matches backend cache
+    gcTime:          queryGc.userData,
     refetchInterval: 5 * 60_000,
     refetchIntervalInBackground: false,
-    retry: 1,
+    retry: retryUnlessClientError,
     placeholderData: previous => previous,
   });
 

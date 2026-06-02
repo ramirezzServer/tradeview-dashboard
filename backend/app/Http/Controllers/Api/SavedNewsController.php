@@ -18,6 +18,7 @@ class SavedNewsController extends Controller
         $savedNews = $request->user()
             ->savedNews()
             ->latest()
+            ->limit(100)
             ->get();
 
         return $this->success($savedNews, 'Saved news fetched successfully.', 200, [

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import type { SavedNewsItem } from '@shared/schemas/saved-news';
+import { queryFreshness, queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 export type { SavedNewsItem };
 
@@ -20,7 +21,10 @@ export function useSavedNews() {
   const query = useQuery<SavedNewsItem[]>({
     queryKey: ['saved-news'],
     queryFn: () => api.get<SavedNewsItem[]>('/news/saved'),
-    retry: 1,
+    retry: retryUnlessClientError,
+    staleTime: queryFreshness.userData,
+    gcTime: queryGc.userData,
+    placeholderData: previous => previous,
   });
 
   const savedNews = query.data ?? [];

@@ -10,6 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getQuote, isFinnhubConfigured, type FinnhubQuote } from '@/services/finnhub';
+import { queryFreshness, queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 export interface MarketQuoteResult {
   data:    FinnhubQuote | undefined;
@@ -32,10 +33,11 @@ export function useMarketQuote(
     queryKey: ['quote', symbol.toUpperCase()],
     queryFn:  ({ signal }) => getQuote(symbol.toUpperCase(), { signal }),
     enabled:  enabled && isFinnhubConfigured() && !!symbol,
-    staleTime: 10_000,                    // 10s — data is considered fresh
+    staleTime: queryFreshness.quote,
+    gcTime: queryGc.short,
     refetchInterval: refetchIntervalMs,   // auto-refresh in foreground
     refetchIntervalInBackground: false,   // pause when tab is hidden
-    retry: 2,
+    retry: retryUnlessClientError,
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 8_000),
     placeholderData: previous => previous,
   });

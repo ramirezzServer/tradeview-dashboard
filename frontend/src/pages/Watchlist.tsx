@@ -16,6 +16,7 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getHumanApiError } from '@/services/api';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 // ─── Static display names (no prices — prices come from live APIs) ────────────
 const symbolNames: Record<string, string> = {
@@ -86,6 +87,7 @@ const Watchlist = () => {
   const [pendingRemove, setPendingRemove] = useState<{ id: number; symbol: string } | null>(null);
   const [removeError, setRemoveError] = useState('');
   const previousPrices = useRef<Record<string, number>>({});
+  const debouncedSearch = useDebouncedValue(search, 150);
   const watchlistPrefs = settings?.watchlist_prefs;
   const preferredSortBy = normalizeSortBy(watchlistPrefs?.sort_by);
   const preferredLivePriceUpdates = watchlistPrefs?.live_price_updates ?? SETTINGS_DEFAULTS.watchlist_prefs!.live_price_updates!;
@@ -105,7 +107,7 @@ const Watchlist = () => {
   ]);
 
   // ── Live quotes from unified market data layer ────────────────────────────
-  const symbols = items.map(i => i.symbol);
+  const symbols = useMemo(() => items.map(i => i.symbol), [items]);
   const { quotes, liveCount } = useMarketQuotes(symbols, livePriceUpdates);
 
   useEffect(() => {
@@ -141,18 +143,19 @@ const Watchlist = () => {
   }, [quotes, flashAnimations]);
 
   // ── Filtered rows ─────────────────────────────────────────────────────────
-  const filteredItems = items.filter(item => {
+  const filteredItems = useMemo(() => items.filter(item => {
     const name = symbolNames[item.symbol] ?? item.symbol;
+    const query = debouncedSearch.toLowerCase();
     const matchesSearch =
-      item.symbol.toLowerCase().includes(search.toLowerCase()) ||
-      name.toLowerCase().includes(search.toLowerCase());
+      item.symbol.toLowerCase().includes(query) ||
+      name.toLowerCase().includes(query);
     const assetType = isCryptoSymbol(item.symbol) ? 'crypto' : 'stock';
     const matchesFilter =
       filter === 'all' ||
       (filter === 'stocks' && assetType === 'stock') ||
       (filter === 'crypto' && assetType === 'crypto');
     return matchesSearch && matchesFilter;
-  });
+  }), [debouncedSearch, filter, items]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => {

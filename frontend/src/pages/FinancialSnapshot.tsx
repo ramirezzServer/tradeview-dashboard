@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useMemo } from 'react';
 import { FileBarChart, DollarSign, BarChart2, Activity, Wifi, WifiOff, FlaskConical } from 'lucide-react';
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { useFinnhubProfile } from '@/hooks/useFinnhubProfile';
@@ -76,7 +77,7 @@ const FinancialSnapshot = () => {
   const loading = profileLoading || earningsLoading;
 
   // Key metrics — prefer live profile
-  const keyMetrics = profileLive && profileData.profile
+  const keyMetrics = useMemo(() => profileLive && profileData.profile
     ? [
         { label: 'Company',    value: profileData.profile.name,  change: profileData.profile.exchange, positive: true, neutral: true },
         { label: 'Industry',   value: profileData.profile.finnhubIndustry, change: profileData.profile.country, positive: true, neutral: true },
@@ -91,19 +92,19 @@ const FinancialSnapshot = () => {
         { label: 'IPO Date',   value: profileData.profile.ipo, change: profileData.profile.currency, positive: true, neutral: true },
         { label: 'Exchange',   value: profileData.profile.exchange, change: profileData.profile.country, positive: true, neutral: true },
       ]
-    : mockKeyMetrics;
+    : mockKeyMetrics, [profileData.profile, profileLive]);
 
   // Valuation metrics — prefer live
-  const valuationData = mockValuationMetrics.map(m => ({
+  const valuationData = useMemo(() => mockValuationMetrics.map(m => ({
     label: m.label,
     value: profileLive && profileData.metrics[m.key] !== undefined && profileData.metrics[m.key] !== null
       ? formatMetricValue(m.key, profileData.metrics[m.key] as number)
       : mockValuationValues[m.label] || '—',
     isLive: profileLive && profileData.metrics[m.key] !== undefined && profileData.metrics[m.key] !== null,
-  }));
+  })), [profileData.metrics, profileLive]);
 
   // Earnings chart — prefer real data
-  const revenueChart = earningsLive && earnings.length > 0
+  const revenueChart = useMemo(() => earningsLive && earnings.length > 0
     ? earnings
         .slice()
         .sort((a, b) => a.period.localeCompare(b.period)) // oldest first for chart
@@ -112,10 +113,10 @@ const FinancialSnapshot = () => {
         { q: 'Q1 24', eps: 1.53, isEstimate: false }, { q: 'Q2 24', eps: 1.40, isEstimate: false },
         { q: 'Q3 24', eps: 1.64, isEstimate: false }, { q: 'Q4 24', eps: 2.18, isEstimate: false },
         { q: 'Q1 25', eps: 1.65, isEstimate: true  }, { q: 'Q2 25', eps: 1.43, isEstimate: true  },
-      ];
+      ], [earnings, earningsLive]);
 
   // Earnings history table
-  const earningsTable = earningsLive && earnings.length > 0
+  const earningsTable = useMemo(() => earningsLive && earnings.length > 0
     ? earnings.slice(0, 6).map(e => ({
         quarter:   quarterLabel(e.period),
         eps:       e.actual !== null ? `$${e.actual.toFixed(2)}` : '—',
@@ -129,7 +130,7 @@ const FinancialSnapshot = () => {
         { quarter: 'Q2 2025', eps: '$1.40', estimate: '$1.38', surprise: '+1.5%', positive: true, isLive: false },
         { quarter: 'Q3 2025', eps: '$1.64', estimate: '$1.60', surprise: '+2.8%', positive: true, isLive: false },
         { quarter: 'Q4 2025', eps: '$2.18', estimate: '$2.09', surprise: '+4.2%', positive: true, isLive: false },
-      ];
+      ], [earnings, earningsLive]);
 
   return (
     <DashboardLayout title="Financial Snapshot">

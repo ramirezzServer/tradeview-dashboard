@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCompanyProfile, getBasicFinancials, FinnhubProfile, isFinnhubConfigured } from '@/services/finnhub';
+import { queryFreshness, queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 export interface ProfileData {
   profile: FinnhubProfile | null;
@@ -28,8 +29,9 @@ export function useFinnhubProfile(symbol: string): ProfileState {
       return { profile, metrics: financials.metric || {} };
     },
     enabled: configured && Boolean(normalizedSymbol),
-    staleTime: 15 * 60_000,
-    retry: 1,
+    staleTime: queryFreshness.fundamentals,
+    gcTime: queryGc.long,
+    retry: retryUnlessClientError,
     placeholderData: previous => previous,
   });
 

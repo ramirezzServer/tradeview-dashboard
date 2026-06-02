@@ -92,6 +92,33 @@ class SecurityHardeningTest extends TestCase
         ]);
     }
 
+    public function test_saved_news_index_is_capped_to_recent_articles(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 105; $i++) {
+            $article = SavedNews::create([
+                'user_id' => $user->id,
+                'article_url' => "https://example.com/market/story-{$i}",
+                'headline' => "Market story {$i}",
+                'source' => 'Example',
+                'category' => 'Market',
+            ]);
+
+            $article->forceFill([
+                'created_at' => now()->subMinutes(105 - $i),
+                'updated_at' => now()->subMinutes(105 - $i),
+            ])->save();
+        }
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/news/saved')
+            ->assertStatus(200)
+            ->assertJsonCount(100, 'data')
+            ->assertJsonPath('data.0.headline', 'Market story 104');
+    }
+
     public function test_push_unsubscribe_only_removes_current_users_subscription(): void
     {
         [$owner, $other] = User::factory()->count(2)->create();

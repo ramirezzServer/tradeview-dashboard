@@ -100,6 +100,7 @@ const Settings = () => {
   const [symbolSaveStatus, setSymbolSaveStatus] = useState<SaveStatus>('idle');
   const symbolSaveTimer = useRef<number | null>(null);
   const symbolStatusTimer = useRef<number | null>(null);
+  const saveStatusTimer = useRef<number | null>(null);
 
   // ── Derived display values from settings ──────────────────────────────────
 
@@ -168,6 +169,9 @@ const Settings = () => {
     if (symbolStatusTimer.current) {
       window.clearTimeout(symbolStatusTimer.current);
     }
+    if (saveStatusTimer.current) {
+      window.clearTimeout(saveStatusTimer.current);
+    }
   }, []);
 
   // ── Unified save wrapper (surfaces status in the banner) ─────────────────
@@ -178,7 +182,8 @@ const Settings = () => {
     try {
       await updateSettings(updates);
       setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2500);
+      if (saveStatusTimer.current) window.clearTimeout(saveStatusTimer.current);
+      saveStatusTimer.current = window.setTimeout(() => setSaveStatus('idle'), 2500);
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save.');
       setSaveStatus('error');
@@ -191,7 +196,8 @@ const Settings = () => {
     try {
       await resetSettings();
       setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2500);
+      if (saveStatusTimer.current) window.clearTimeout(saveStatusTimer.current);
+      saveStatusTimer.current = window.setTimeout(() => setSaveStatus('idle'), 2500);
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'Failed to reset.');
       setSaveStatus('error');

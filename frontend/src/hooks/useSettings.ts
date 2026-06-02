@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getToken } from '@/services/api';
 import type { UserSettings, PartialSettings } from '@shared/schemas/settings';
+import { queryFreshness, queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 export type { UserSettings, PartialSettings };
 
@@ -105,8 +106,10 @@ export function useSettings() {
     queryKey: ['settings'],
     queryFn: () => api.get<UserSettings>('/settings'),
     enabled: hasToken,
-    retry: 1,
-    staleTime: 60_000, // settings don't change often — cache for 1 min
+    retry: retryUnlessClientError,
+    staleTime: queryFreshness.settings,
+    gcTime: queryGc.userData,
+    placeholderData: previous => previous,
   });
 
   const flushPending = useCallback(async () => {

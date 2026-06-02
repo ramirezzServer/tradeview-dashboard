@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/services/api';
 import { shouldAutoCreate } from '@/lib/defaultResource';
 import type { Watchlist, WatchlistItem } from '@shared/schemas/watchlist';
+import { queryFreshness, queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 export type { Watchlist, WatchlistItem };
 
@@ -25,7 +26,10 @@ export function useWatchlist() {
   const listsQuery = useQuery<Watchlist[]>({
     queryKey: ['watchlists'],
     queryFn: () => api.get<Watchlist[]>('/watchlists'),
-    retry: 1,
+    retry: retryUnlessClientError,
+    staleTime: queryFreshness.userData,
+    gcTime: queryGc.userData,
+    placeholderData: previous => previous,
   });
 
   // The first watchlist id (undefined while loading)
@@ -36,7 +40,10 @@ export function useWatchlist() {
     queryKey: ['watchlist', watchlistId],
     queryFn: () => api.get<Watchlist>(`/watchlists/${watchlistId}`),
     enabled: !!watchlistId,
-    retry: 1,
+    retry: retryUnlessClientError,
+    staleTime: queryFreshness.userData,
+    gcTime: queryGc.userData,
+    placeholderData: previous => previous,
   });
 
   const items: WatchlistItem[] = itemsQuery.data?.items ?? [];

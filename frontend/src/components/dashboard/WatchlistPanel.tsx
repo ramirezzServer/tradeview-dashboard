@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { useMemo } from 'react';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { isCryptoSymbol } from '@/services/coingecko';
@@ -19,7 +20,7 @@ export function WatchlistPanel() {
   // ── Pull the user's actual watchlist from the backend ──────────────────────
   const { items, isLoading: listLoading } = useWatchlist();
 
-  const symbols = items.map(i => i.symbol);
+  const symbols = useMemo(() => items.map(i => i.symbol), [items]);
 
   // ── Fetch live prices for all symbols (stocks via Finnhub, crypto via CoinGecko)
   const { quotes, isLoading: quotesLoading, liveCount } = useMarketQuotes(symbols);

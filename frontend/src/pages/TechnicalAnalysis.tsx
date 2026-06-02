@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Activity, TrendingUp, TrendingDown, Target, Shield, Zap,
@@ -84,7 +84,7 @@ const TechnicalAnalysis = () => {
     : null;
 
   // Moving average rows
-  const maRows = indicators ? [
+  const maRows = useMemo(() => indicators ? [
     { name: 'SMA (10)',  value: fmt(indicators.sma10),  signal: indicators.sma10  !== null ? (p > indicators.sma10  ? 'Buy' : 'Sell') : 'N/A', positive: indicators.sma10  !== null && p > indicators.sma10 },
     { name: 'SMA (20)',  value: fmt(indicators.sma20),  signal: indicators.sma20  !== null ? (p > indicators.sma20  ? 'Buy' : 'Sell') : 'N/A', positive: indicators.sma20  !== null && p > indicators.sma20 },
     { name: 'SMA (50)',  value: fmt(indicators.sma50),  signal: indicators.sma50  !== null ? (p > indicators.sma50  ? 'Buy' : 'Sell') : 'N/A', positive: indicators.sma50  !== null && p > indicators.sma50 },
@@ -93,10 +93,10 @@ const TechnicalAnalysis = () => {
     { name: 'EMA (10)',  value: fmt(indicators.ema10),  signal: indicators.ema10  !== null ? (p > indicators.ema10  ? 'Buy' : 'Sell') : 'N/A', positive: indicators.ema10  !== null && p > indicators.ema10 },
     { name: 'EMA (20)',  value: fmt(indicators.ema20),  signal: indicators.ema20  !== null ? (p > indicators.ema20  ? 'Buy' : 'Sell') : 'N/A', positive: indicators.ema20  !== null && p > indicators.ema20 },
     { name: 'EMA (50)',  value: fmt(indicators.ema50),  signal: indicators.ema50  !== null ? (p > indicators.ema50  ? 'Buy' : 'Sell') : 'N/A', positive: indicators.ema50  !== null && p > indicators.ema50 },
-  ] : [];
+  ] : [], [indicators, p]);
 
   // Oscillator rows
-  const oscRows = indicators ? [
+  const oscRows = useMemo(() => indicators ? [
     {
       name: 'RSI (14)',
       value: indicators.rsiValue !== null ? indicators.rsiValue.toFixed(1) : '—',
@@ -139,7 +139,7 @@ const TechnicalAnalysis = () => {
       color:  indicators.bbands !== null && p < indicators.bbands.lower ? 'text-bull' : 'text-chart-accent',
       desc: 'Bollinger Lower Band',
     },
-  ] : [];
+  ] : [], [indicators, p]);
 
   const pivots = indicators?.pivots;
 

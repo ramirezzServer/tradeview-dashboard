@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { isFinnhubConfigured } from '@/services/finnhub';
+import { queryFreshness, queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '');
 
@@ -20,9 +21,10 @@ interface EarningsState {
   error:   string | null;
 }
 
-async function fetchEarnings(symbol: string): Promise<EarningsEntry[]> {
+async function fetchEarnings(symbol: string, signal?: AbortSignal): Promise<EarningsEntry[]> {
   const res = await fetch(`${API_BASE}/market/earnings/${encodeURIComponent(symbol)}`, {
     headers: { Accept: 'application/json' },
+    signal,
   });
   if (!res.ok) throw new Error(`HTTP_${res.status}`);
   const json = await res.json() as { success: boolean; data: EarningsEntry[] };
@@ -35,35 +37,35 @@ async function fetchEarnings(symbol: string): Promise<EarningsEntry[]> {
  * Available on the Finnhub free plan.
  */
 export function useFinnhubEarnings(symbol: string): EarningsState {
-  const [state, setState] = useState<EarningsState>({
-    data: [], loading: true, isLive: false, error: null,
+  const configured = isFinnhubConfigured();
+  const normalizedSymbol = symbol.toUpperCase().trim();
+
+  const query = useQuery<EarningsEntry[], Error>({
+    queryKey: ['earnings', normalizedSymbol],
+    queryFn: async ({ signal }) => {
+      const items = await fetchEarnings(normalizedSymbol, signal);
+
+      return [...items]
+        .sort((a, b) => b.period.localeCompare(a.period))
+        .slice(0, 8);
+    },
+    enabled: configured && Boolean(normalizedSymbol),
+    staleTime: queryFreshness.fundamentals,
+    gcTime: queryGc.long,
+    retry: retryUnlessClientError,
+    placeholderData: previous => previous,
   });
 
-  useEffect(() => {
-    if (!isFinnhubConfigured()) {
-      setState({ data: [], loading: false, isLive: false, error: 'NOT_CONFIGURED' });
-      return;
-    }
+  if (!configured) {
+    return { data: [], loading: false, isLive: false, error: 'NOT_CONFIGURED' };
+  }
 
-    let cancelled = false;
-    setState(s => ({ ...s, loading: true, error: null }));
+  const data = query.data ?? [];
 
-    fetchEarnings(symbol)
-      .then(items => {
-        if (cancelled) return;
-        // Sort newest-first, take last 8 quarters
-        const sorted = [...items]
-          .sort((a, b) => b.period.localeCompare(a.period))
-          .slice(0, 8);
-        setState({ data: sorted, loading: false, isLive: sorted.length > 0, error: null });
-      })
-      .catch((e: unknown) => {
-        if (cancelled) return;
-        setState({ data: [], loading: false, isLive: false, error: e instanceof Error ? e.message : String(e) });
-      });
-
-    return () => { cancelled = true; };
-  }, [symbol]);
-
-  return state;
+  return {
+    data,
+    loading: query.isLoading,
+    isLive: data.length > 0 && !query.isError,
+    error: query.error?.message ?? null,
+  };
 }

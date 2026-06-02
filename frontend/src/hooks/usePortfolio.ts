@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/services/api';
 import { shouldAutoCreate } from '@/lib/defaultResource';
 import type { Portfolio, PortfolioItem, AddHoldingInput } from '@shared/schemas/portfolio';
+import { queryFreshness, queryGc, retryUnlessClientError } from '@/lib/queryOptions';
 
 export type { Portfolio, PortfolioItem, AddHoldingInput };
 
@@ -24,7 +25,10 @@ export function usePortfolio() {
   const listsQuery = useQuery<Portfolio[]>({
     queryKey: ['portfolios'],
     queryFn: () => api.get<Portfolio[]>('/portfolios'),
-    retry: 1,
+    retry: retryUnlessClientError,
+    staleTime: queryFreshness.userData,
+    gcTime: queryGc.userData,
+    placeholderData: previous => previous,
   });
 
   const portfolioId = listsQuery.data?.[0]?.id;
@@ -34,7 +38,10 @@ export function usePortfolio() {
     queryKey: ['portfolio', portfolioId],
     queryFn: () => api.get<Portfolio>(`/portfolios/${portfolioId}`),
     enabled: !!portfolioId,
-    retry: 1,
+    retry: retryUnlessClientError,
+    staleTime: queryFreshness.userData,
+    gcTime: queryGc.userData,
+    placeholderData: previous => previous,
   });
 
   const items: PortfolioItem[] = itemsQuery.data?.items ?? [];
