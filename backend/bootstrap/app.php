@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -57,6 +58,27 @@ return Application::configure(basePath: dirname(__DIR__))
                 'message' => 'Unauthenticated.',
                 'data'    => null,
             ], 401);
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $status = $e->getStatusCode();
+            $message = match ($status) {
+                404 => 'Not found.',
+                405 => 'Method not allowed.',
+                429 => 'Too many requests. Please wait a moment and try again.',
+                503 => 'Service unavailable. Please try again later.',
+                default => $status >= 500 ? 'Server error. Please try again later.' : 'Request failed.',
+            };
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'data'    => null,
+            ], $status);
         });
 
     })->create();

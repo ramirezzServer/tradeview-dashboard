@@ -573,13 +573,13 @@ class MarketController extends Controller
     private function finnhubError(\RuntimeException $e): JsonResponse
     {
         return match (true) {
-            $e instanceof FinnhubRateLimitedException    => $this->error('Finnhub rate limit reached. Please wait a moment and try again.', 429),
-            $e instanceof FinnhubUnauthorizedException   => $this->error('The Finnhub API key is invalid or expired. Check FINNHUB_API_KEY in .env.', 503),
-            $e instanceof FinnhubForbiddenException      => $this->error('Your Finnhub plan does not include access to this data. A paid plan may be required.', 403),
-            $e instanceof ApiKeyMissingException         => $this->error('Finnhub API key is not configured on the server.', 503),
-            $e instanceof FinnhubRequestFailedException  => $this->error('Could not connect to Finnhub. Check server logs for the exception class and message.', 503),
-            $e instanceof FinnhubInvalidResponseException => $this->error('Finnhub returned an unexpected response format.', 502),
-            $e instanceof FinnhubHttpException           => $this->error('Finnhub returned an unexpected error. Please try again.', 502),
+            $e instanceof FinnhubRateLimitedException    => $this->error('Market data is temporarily rate limited. Please wait a moment and try again.', 429),
+            $e instanceof FinnhubUnauthorizedException,
+            $e instanceof FinnhubForbiddenException,
+            $e instanceof ApiKeyMissingException         => $this->error('Market data is temporarily unavailable.', 503),
+            $e instanceof FinnhubRequestFailedException  => $this->error('Market data provider is temporarily unavailable.', 503),
+            $e instanceof FinnhubInvalidResponseException,
+            $e instanceof FinnhubHttpException           => $this->error('Market data provider returned an unexpected response.', 502),
             default                                      => $this->error('An unexpected error occurred.', 500),
         };
     }

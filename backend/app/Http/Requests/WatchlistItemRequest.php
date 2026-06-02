@@ -17,7 +17,7 @@ class WatchlistItemRequest extends FormRequest
             // Symbol is required only when adding a new item
             'symbol'     => [$this->isMethod('POST') ? 'required' : 'sometimes', 'string', 'max:20', 'regex:/^[A-Z0-9.:\-]{1,20}$/'],
             'notes'      => ['sometimes', 'nullable', 'string', 'max:500'],
-            'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'sort_order' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
         ];
     }
 

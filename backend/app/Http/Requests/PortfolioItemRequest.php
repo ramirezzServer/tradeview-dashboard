@@ -18,9 +18,9 @@ class PortfolioItemRequest extends FormRequest
         return [
             'symbol'       => [$isPost ? 'required' : 'sometimes', 'string', 'regex:/^[A-Z0-9.:\-]{1,20}$/'],
             // quantity: supports fractional shares (e.g. 0.5 BTC)
-            'quantity'     => [$isPost ? 'required' : 'sometimes', 'numeric', 'min:0.00000001'],
+            'quantity'     => [$isPost ? 'required' : 'sometimes', 'numeric', 'min:0.00000001', 'max:1000000000'],
             // average_cost: the average price paid per share/unit
-            'average_cost' => [$isPost ? 'required' : 'sometimes', 'numeric', 'min:0'],
+            'average_cost' => [$isPost ? 'required' : 'sometimes', 'numeric', 'min:0', 'max:1000000000'],
             'currency'     => ['sometimes', 'string', 'size:3'],
             'purchased_at' => ['sometimes', 'nullable', 'date'],
             'notes'        => ['sometimes', 'nullable', 'string', 'max:500'],

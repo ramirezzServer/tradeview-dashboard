@@ -30,7 +30,7 @@ Route::get('/healthz', fn () => response()->json(['status' => 'ok']));
 // PHASE 1 — Finnhub Proxy (public)
 // ═══════════════════════════════════════════════════════════════════════
 
-Route::prefix('market')->group(function () {
+Route::prefix('market')->middleware('throttle:market')->group(function () {
 
     // Real-time price snapshot
     Route::get('/quote/{symbol}', [MarketController::class, 'quote']);
@@ -78,8 +78,8 @@ Route::prefix('market')->group(function () {
 Route::prefix('auth')->group(function () {
 
     // Public auth endpoints — no token required
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login',    [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
+    Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:auth');
 
     // Protected auth endpoints — token required
     Route::middleware('auth:sanctum')->group(function () {

@@ -59,13 +59,15 @@ class MarketEndpointTest extends TestCase
         $this->getJson('/api/market/quote/AAPL')->assertStatus(429);
     }
 
-    public function test_quote_returns_403_when_access_forbidden(): void
+    public function test_quote_returns_503_when_provider_access_forbidden(): void
     {
         Http::fake([
             "{$this->finnhubBase}/*" => Http::response([], 403),
         ]);
 
-        $this->getJson('/api/market/quote/AAPL')->assertStatus(403);
+        $this->getJson('/api/market/quote/AAPL')
+            ->assertStatus(503)
+            ->assertJsonPath('message', 'Market data is temporarily unavailable.');
     }
 
     public function test_quote_returns_503_when_api_key_missing(): void
