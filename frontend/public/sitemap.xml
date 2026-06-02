@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder domain: replace with the real production origin before launch. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://tradeview-dashboard.example.com/login</loc>
+  </url>
+  <url>
+    <loc>https://tradeview-dashboard.example.com/register</loc>
+  </url>
+  <url>
+    <loc>https://tradeview-dashboard.example.com/privacy</loc>
+  </url>
+  <url>
+    <loc>https://tradeview-dashboard.example.com/terms</loc>
+  </url>
+  <url>
+    <loc>https://tradeview-dashboard.example.com/disclaimer</loc>
+  </url>
+</urlset>

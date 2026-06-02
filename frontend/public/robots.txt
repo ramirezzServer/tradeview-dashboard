@@ -1,14 +1,14 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Disallow: /analytics
+Disallow: /financials
+Disallow: /market-overview
+Disallow: /news
+Disallow: /portfolio
+Disallow: /sectors
+Disallow: /settings
+Disallow: /technical-analysis
+Disallow: /watchlist
+
+# Replace the placeholder host in sitemap.xml when a production domain is assigned.
+Sitemap: https://tradeview-dashboard.example.com/sitemap.xml

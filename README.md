@@ -372,6 +372,9 @@ Pengujian manual API bisa dilakukan dengan Postman, Thunder Client, atau tool se
 - Pastikan `FRONTEND_URL` dan `CORS_ALLOWED_ORIGINS` sesuai domain frontend production.
 - Pastikan API keys hanya disimpan di backend/server environment, bukan di frontend.
 - Set `VITE_API_BASE_URL` ke URL backend production dengan suffix `/api`.
+- Frontend menyediakan halaman publik `/privacy`, `/terms`, dan `/disclaimer` untuk kesiapan produksi dasar.
+- Frontend menyediakan `robots.txt` dan `sitemap.xml`; ganti domain placeholder `tradeview-dashboard.example.com` dengan domain production yang sebenarnya sebelum launch.
+- Analytics/monitoring pihak ketiga tidak aktif secara default dan belum diwajibkan. Jika nanti ditambahkan, aktifkan hanya melalui environment variable publik yang aman dan jangan kirim data sensitif.
 
 ---
 
@@ -380,6 +383,8 @@ Pengujian manual API bisa dilakukan dengan Postman, Thunder Client, atau tool se
 Data saham dan crypto bergantung pada provider eksternal seperti Finnhub, Alpha Vantage, dan CoinGecko. Jika provider terkena limit, tidak aktif, atau gagal merespons, aplikasi dapat memakai fallback, simulated, atau calculated data agar UI tetap bisa ditampilkan saat demo dan pengujian.
 
 Data fallback hanya untuk kebutuhan demo/pengujian. Jangan gunakan data fallback sebagai dasar keputusan finansial real.
+
+Halaman disclaimer publik tersedia di `/disclaimer` dan menjelaskan bahwa aplikasi ini bukan sumber saran finansial.
 
 ---
 

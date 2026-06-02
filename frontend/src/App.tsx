@@ -14,6 +14,8 @@ import Index    from "./pages/Index";
 import Login    from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import LegalPage from "./pages/LegalPage";
+import { PageMeta } from "@/components/public/PageMeta";
 
 // ─── Lazy-loaded (heavy routes) ───────────────────────────────────────────────
 const Watchlist         = lazy(() => import("./pages/Watchlist"));
@@ -84,7 +86,12 @@ function PublicRoute({ children }: { children: ReactNode }) {
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return <PageSkeleton />;
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  return isAuthenticated ? (
+    <>
+      <PageMeta title="TradeView Dashboard" robots="noindex,nofollow" />
+      {children}
+    </>
+  ) : <Navigate to="/login" replace />;
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -103,6 +110,9 @@ const App = () => (
               {/* Public auth routes */}
               <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />
               <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+              <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+              <Route path="/terms" element={<LegalPage kind="terms" />} />
+              <Route path="/disclaimer" element={<LegalPage kind="disclaimer" />} />
 
               {/* Protected — critical path (eager) */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />

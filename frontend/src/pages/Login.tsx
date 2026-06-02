@@ -5,6 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import { ApiError, getHumanApiError } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { LoadingButton } from '@/components/ui/loading-button';
+import { PageMeta } from '@/components/public/PageMeta';
+import { PublicFooter } from '@/components/public/PublicFooter';
 
 const Login = () => {
   const { login } = useAuth();
@@ -40,6 +42,10 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <PageMeta
+        title="Sign in | TradeView Dashboard"
+        description="Sign in to TradeView Dashboard to manage watchlists, portfolio tracking, market news, and dashboard settings."
+      />
       <div className="w-full max-w-sm animate-fade-up">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-8 justify-center">
@@ -50,15 +56,15 @@ const Login = () => {
         </div>
 
         {/* Card */}
-        <div className="glass-card rounded-2xl p-7">
+        <main className="glass-card rounded-2xl p-7" aria-labelledby="login-title">
           <div className="mb-6">
-            <h1 className="text-[18px] font-bold text-foreground">Welcome back</h1>
+            <h1 id="login-title" className="text-[18px] font-bold text-foreground">Welcome back</h1>
             <p className="text-[10px] text-muted-foreground/40 mt-1 tracking-wide">Sign in to your trading dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
+              <label htmlFor="login-email" className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
                 Email
               </label>
               <Input
@@ -78,7 +84,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
+              <label htmlFor="login-password" className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
                 Password
               </label>
               <div className="relative">
@@ -107,7 +113,7 @@ const Login = () => {
             </div>
 
             {error && (
-              <p className="text-[11px] text-bear font-medium px-1">{error}</p>
+              <p role="alert" className="text-[11px] text-bear font-medium px-1">{error}</p>
             )}
 
             <LoadingButton
@@ -127,7 +133,8 @@ const Login = () => {
               Create one
             </Link>
           </p>
-        </div>
+        </main>
+        <PublicFooter />
       </div>
     </div>
   );

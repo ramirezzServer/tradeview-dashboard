@@ -5,6 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import { ApiError, getHumanApiError } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { LoadingButton } from '@/components/ui/loading-button';
+import { PageMeta } from '@/components/public/PageMeta';
+import { PublicFooter } from '@/components/public/PublicFooter';
 
 const Register = () => {
   const { register } = useAuth();
@@ -50,6 +52,10 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <PageMeta
+        title="Create account | TradeView Dashboard"
+        description="Create a TradeView Dashboard account for portfolio tracking, watchlists, market news, and dashboard simulation."
+      />
       <div className="w-full max-w-sm animate-fade-up">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-8 justify-center">
@@ -60,15 +66,15 @@ const Register = () => {
         </div>
 
         {/* Card */}
-        <div className="glass-card rounded-2xl p-7">
+        <main className="glass-card rounded-2xl p-7" aria-labelledby="register-title">
           <div className="mb-6">
-            <h1 className="text-[18px] font-bold text-foreground">Create account</h1>
+            <h1 id="register-title" className="text-[18px] font-bold text-foreground">Create account</h1>
             <p className="text-[10px] text-muted-foreground/40 mt-1 tracking-wide">Start tracking your portfolio today</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3.5">
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
+              <label htmlFor="register-name" className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
                 Name
               </label>
               <Input
@@ -88,7 +94,7 @@ const Register = () => {
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
+              <label htmlFor="register-email" className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
                 Email
               </label>
               <Input
@@ -107,7 +113,7 @@ const Register = () => {
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
+              <label htmlFor="register-password" className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
                 Password
               </label>
               <div className="relative">
@@ -136,7 +142,7 @@ const Register = () => {
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
+              <label htmlFor="register-password-confirmation" className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest mb-1.5 block">
                 Confirm Password
               </label>
               <Input
@@ -152,7 +158,7 @@ const Register = () => {
             </div>
 
             {error && (
-              <p className="text-[11px] text-bear font-medium px-1">{error}</p>
+              <p role="alert" className="text-[11px] text-bear font-medium px-1">{error}</p>
             )}
 
             <LoadingButton
@@ -172,7 +178,8 @@ const Register = () => {
               Sign in
             </Link>
           </p>
-        </div>
+        </main>
+        <PublicFooter />
       </div>
     </div>
   );

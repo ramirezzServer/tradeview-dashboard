@@ -1,0 +1,23 @@
+{
+  "name": "TradeView Dashboard",
+  "short_name": "TradeView",
+  "description": "Demo trading dashboard for watchlists, portfolios, market news, and educational analysis.",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#070913",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
