@@ -56,5 +56,7 @@ export function useSavedNews() {
     updateNotes: (id: number, notes: string | null) => updateMutation.mutateAsync({ id, notes }),
     removeArticle: (id: number) => removeMutation.mutateAsync(id),
     isSaving: saveMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isRemoving: removeMutation.isPending,
   };
 }

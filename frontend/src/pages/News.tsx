@@ -10,6 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FreshnessBadge } from '@/components/ui/FreshnessBadge';
 import { useSavedNews } from '@/hooks/useSavedNews';
 import { useSettings } from '@/hooks/useSettings';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { getHumanApiError } from '@/services/api';
 
 type Category = 'All' | 'Earnings' | 'Market' | 'Macro' | 'Tech' | 'Crypto' | 'Company';
 
@@ -136,10 +139,12 @@ const News = () => {
       ? 'crypto'
       : 'general';
   const { data: liveNews, loading, isLive } = useFinnhubNews(activeFinnhubCategory);
-  const { savedNews, isSaved, saveArticle, updateNotes, removeArticle, isSaving } = useSavedNews();
+  const { savedNews, isSaved, saveArticle, updateNotes, removeArticle, isSaving, isRemoving } = useSavedNews();
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
+  const [pendingRemove, setPendingRemove] = useState<{ id: number; headline: string } | null>(null);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     setActiveCategory(preferredUiCategory);
@@ -167,16 +172,31 @@ const News = () => {
     if (!url) return;
     if (isSaved(url)) {
       const item = savedNews.find(s => s.article_url === url);
-      if (item) await removeArticle(item.id);
+      if (item) setPendingRemove({ id: item.id, headline: item.headline });
     } else {
-      await saveArticle({
-        article_url:      url,
-        headline:         article.title,
-        source:           article.source,
-        summary:          article.summary,
-        category:         article.category,
-        article_datetime: Math.floor(article.fetchedAt / 1000),
-      });
+      try {
+        await saveArticle({
+          article_url:      url,
+          headline:         article.title,
+          source:           article.source,
+          summary:          article.summary,
+          category:         article.category,
+          article_datetime: Math.floor(article.fetchedAt / 1000),
+        });
+      } catch (error) {
+        setActionError(getHumanApiError(error));
+      }
+    }
+  }
+
+  async function confirmRemoveSavedArticle() {
+    if (!pendingRemove) return;
+    setActionError('');
+    try {
+      await removeArticle(pendingRemove.id);
+      setPendingRemove(null);
+    } catch (error) {
+      setActionError(getHumanApiError(error));
     }
   }
 
@@ -254,6 +274,7 @@ const News = () => {
                         <button
                           onClick={e => toggleBookmark(e, n as Parameters<typeof toggleBookmark>[1])}
                           disabled={!url || isSaving}
+                          aria-label={saved ? `Remove saved article ${n.title}` : `Save article ${n.title}`}
                           className={`ml-auto transition-colors ${
                             saved
                               ? 'text-primary/70 hover:text-primary'
@@ -340,6 +361,7 @@ const News = () => {
                           <button
                             onClick={e => toggleBookmark(e, n as Parameters<typeof toggleBookmark>[1])}
                             disabled={!url || isSaving}
+                            aria-label={saved ? `Remove saved article ${n.title}` : `Save article ${n.title}`}
                             className={`transition-colors ${
                               saved
                                 ? 'text-primary/70 hover:text-primary'
@@ -374,9 +396,12 @@ const News = () => {
                 )}
               </div>
               {savedNews.length === 0 ? (
-                <p className="text-app-xs text-muted-foreground/30 text-center py-3 leading-relaxed">
-                  No saved articles yet. Click the bookmark icon on any article.
-                </p>
+                <EmptyState
+                  icon={<Bookmark className="h-5 w-5" />}
+                  title="No saved articles yet"
+                  description="Use the bookmark icon on any headline to keep it here for later."
+                  className="py-6"
+                />
               ) : (
                 <div className="space-y-3">
                   {savedNews.map((item, i) => (
@@ -406,18 +431,31 @@ const News = () => {
                                 placeholder="Add notes..."
                                 autoFocus
                                 onKeyDown={e => {
-                                  if (e.key === 'Enter') { updateNotes(item.id, editingNotes || null); setEditingId(null); }
+                                  if (e.key === 'Enter') {
+                                    updateNotes(item.id, editingNotes || null)
+                                      .then(() => setEditingId(null))
+                                      .catch(error => setActionError(getHumanApiError(error)));
+                                  }
                                   if (e.key === 'Escape') setEditingId(null);
                                 }}
                               />
                               <button
-                                onClick={() => { updateNotes(item.id, editingNotes || null); setEditingId(null); }}
+                                onClick={async () => {
+                                  try {
+                                    await updateNotes(item.id, editingNotes || null);
+                                    setEditingId(null);
+                                  } catch (error) {
+                                    setActionError(getHumanApiError(error));
+                                  }
+                                }}
+                                aria-label={`Save notes for ${item.headline}`}
                                 className="text-bull/70 hover:text-bull transition-colors"
                               >
                                 <Check className="h-3 w-3" />
                               </button>
                               <button
                                 onClick={() => setEditingId(null)}
+                                aria-label={`Cancel editing notes for ${item.headline}`}
                                 className="text-muted-foreground/40 hover:text-foreground/60 transition-colors"
                               >
                                 <X className="h-3 w-3" />
@@ -430,13 +468,15 @@ const News = () => {
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
                           <button
                             onClick={() => { setEditingId(item.id); setEditingNotes(item.notes ?? ''); }}
+                            aria-label={`Edit notes for ${item.headline}`}
                             className="text-muted-foreground/40 hover:text-primary/70 transition-colors"
                             title="Edit notes"
                           >
                             <Pencil className="h-3 w-3" />
                           </button>
                           <button
-                            onClick={() => removeArticle(item.id)}
+                            onClick={() => { setPendingRemove({ id: item.id, headline: item.headline }); setActionError(''); }}
+                            aria-label={`Remove saved article ${item.headline}`}
                             className="text-muted-foreground/40 hover:text-bear/70 transition-colors"
                             title="Remove bookmark"
                           >
@@ -449,6 +489,7 @@ const News = () => {
                   ))}
                 </div>
               )}
+              {actionError && <p className="text-app-xs text-bear mt-3">{actionError}</p>}
             </div>
 
             <div className="glass-card rounded-xl p-5">
@@ -495,6 +536,15 @@ const News = () => {
             </div>
           </div>
         </div>
+        <ConfirmDialog
+          open={!!pendingRemove}
+          onOpenChange={open => !open && setPendingRemove(null)}
+          title="Remove saved article?"
+          description={`This removes "${pendingRemove?.headline ?? 'this article'}" from your saved news.`}
+          confirmLabel="Remove"
+          loading={isRemoving}
+          onConfirm={confirmRemoveSavedArticle}
+        />
       </div>
     </DashboardLayout>
   );

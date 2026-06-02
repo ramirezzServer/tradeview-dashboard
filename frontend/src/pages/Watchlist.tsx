@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   Eye, TrendingUp, TrendingDown, Search, Star,
-  ArrowUpRight, ArrowDownRight, Wifi, WifiOff, Plus, X, Loader2,
+  ArrowUpRight, ArrowDownRight, Wifi, WifiOff, Plus, X,
 } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer } from 'recharts';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,11 @@ import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { SETTINGS_DEFAULTS, useSettings } from '@/hooks/useSettings';
 import { useFinnhubCandles } from '@/hooks/useFinnhubCandles';
 import { isCryptoSymbol } from '@/services/coingecko';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { getHumanApiError } from '@/services/api';
 
 // ─── Static display names (no prices — prices come from live APIs) ────────────
 const symbolNames: Record<string, string> = {
@@ -67,7 +72,7 @@ function Sparkline({ symbol }: { symbol: string }) {
 
 const Watchlist = () => {
   const { settings } = useSettings();
-  const { items, isLoading: listLoading, addSymbol, removeItem, isAdding, addError } = useWatchlist();
+  const { items, isLoading: listLoading, addSymbol, removeItem, isAdding, isRemoving, addError } = useWatchlist();
   const [search, setSearch]           = useState('');
   const [filter, setFilter]           = useState<FilterTab>('all');
   const [addInput, setAddInput]       = useState('');
@@ -78,6 +83,8 @@ const Watchlist = () => {
   const [flashAnimations, setFlashAnimations] = useState(SETTINGS_DEFAULTS.watchlist_prefs?.flash_animations ?? true);
   const [showSparklines, setShowSparklines] = useState(SETTINGS_DEFAULTS.watchlist_prefs?.show_sparklines ?? true);
   const [flashDirections, setFlashDirections] = useState<Record<string, FlashDirection>>({});
+  const [pendingRemove, setPendingRemove] = useState<{ id: number; symbol: string } | null>(null);
+  const [removeError, setRemoveError] = useState('');
   const previousPrices = useRef<Record<string, number>>({});
   const watchlistPrefs = settings?.watchlist_prefs;
   const preferredSortBy = normalizeSortBy(watchlistPrefs?.sort_by);
@@ -167,20 +174,26 @@ const Watchlist = () => {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleAdd = async () => {
     const sym = addInput.trim().toUpperCase();
-    if (!sym) return;
+    if (!sym || isAdding) return;
     setLocalAddError('');
     try {
       await addSymbol(sym);
       setAddInput('');
       setShowAddForm(false);
-    } catch {
-      setLocalAddError(addError ?? 'Failed to add symbol.');
+    } catch (error) {
+      setLocalAddError(getHumanApiError(error) || addError || 'Failed to add symbol.');
     }
   };
 
-  const handleRemove = async (symbol: string) => {
-    const item = items.find(i => i.symbol === symbol);
-    if (item) await removeItem(item.id);
+  const confirmRemove = async () => {
+    if (!pendingRemove) return;
+    setRemoveError('');
+    try {
+      await removeItem(pendingRemove.id);
+      setPendingRemove(null);
+    } catch (error) {
+      setRemoveError(getHumanApiError(error));
+    }
   };
 
   const tabs: { key: FilterTab; label: string }[] = [
@@ -297,6 +310,7 @@ const Watchlist = () => {
               </span>
               <button
                 onClick={() => { setShowAddForm(v => !v); setLocalAddError(''); }}
+                aria-label="Add symbol to watchlist"
                 className="flex items-center gap-1 text-app-xs font-semibold text-primary/60 hover:text-primary border border-primary/12 hover:border-primary/25 rounded-md px-2 py-1 transition-all"
               >
                 <Plus className="h-3 w-3" />
@@ -314,16 +328,19 @@ const Watchlist = () => {
                 onKeyDown={e => e.key === 'Enter' && handleAdd()}
                 placeholder="e.g. AAPL"
                 autoFocus
+                aria-label="Symbol"
                 className="h-8 w-40 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25 uppercase"
               />
-              <button
+              <LoadingButton
+                type="button"
                 onClick={handleAdd}
-                disabled={isAdding || !addInput.trim()}
+                loading={isAdding}
+                loadingLabel="Adding..."
+                disabled={!addInput.trim()}
                 className="h-8 px-3 rounded-lg bg-primary/90 hover:bg-primary text-primary-foreground text-app-sm font-semibold transition-all disabled:opacity-50 flex items-center gap-1"
               >
-                {isAdding ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                {isAdding ? 'Adding…' : 'Add'}
-              </button>
+                Add
+              </LoadingButton>
               {localAddError && <p className="text-app-xs text-bear">{localAddError}</p>}
             </div>
           )}
@@ -339,18 +356,22 @@ const Watchlist = () => {
 
           {/* Loading state (list only) */}
           {listLoading && (
-            <div className="flex items-center justify-center py-10 text-muted-foreground/30">
-              <Loader2 className="h-5 w-5 animate-spin" />
+            <div className="space-y-2 p-density-card">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full bg-secondary/20 rounded-lg" />
+              ))}
             </div>
           )}
 
           {/* Empty state */}
           {!listLoading && sortedItems.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/30">
-              <Star className="h-6 w-6 mb-2 opacity-30" />
-              <p className="text-app-sm">Your watchlist is empty</p>
-              <p className="text-app-xs mt-0.5">Click "Add" to track a symbol</p>
-            </div>
+            <EmptyState
+              icon={<Star className="h-6 w-6" />}
+              title={items.length === 0 ? 'Your watchlist is empty' : 'No symbols match this filter'}
+              description={items.length === 0 ? 'Add a stock or crypto symbol to start tracking live prices.' : 'Try another search term or switch filters.'}
+              actionLabel={items.length === 0 ? 'Add symbol' : undefined}
+              onAction={items.length === 0 ? () => setShowAddForm(true) : undefined}
+            />
           )}
 
           {/* Rows */}
@@ -426,7 +447,8 @@ const Watchlist = () => {
                   {/* Action (desktop) */}
                   <div className="hidden md:flex justify-end">
                     <button
-                      onClick={() => handleRemove(item.symbol)}
+                      onClick={() => { setPendingRemove({ id: item.id, symbol: item.symbol }); setRemoveError(''); }}
+                      aria-label={`Remove ${item.symbol} from watchlist`}
                       className="text-muted-foreground/30 hover:text-bear border border-transparent hover:border-bear/20 rounded-md p-1.5 transition-all"
                       title="Remove from watchlist"
                     >
@@ -449,6 +471,18 @@ const Watchlist = () => {
             })}
           </div>
         </div>
+
+        {removeError && <p className="text-app-xs text-bear">{removeError}</p>}
+
+        <ConfirmDialog
+          open={!!pendingRemove}
+          onOpenChange={open => !open && setPendingRemove(null)}
+          title={`Remove ${pendingRemove?.symbol ?? 'symbol'}?`}
+          description="This removes the symbol from your watchlist. You can add it again later."
+          confirmLabel="Remove"
+          loading={isRemoving}
+          onConfirm={confirmRemove}
+        />
 
       </div>
     </DashboardLayout>

@@ -9,6 +9,10 @@ import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { isCryptoSymbol } from '@/services/coingecko';
 import { useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { getHumanApiError } from '@/services/api';
 
 const allocationColors = [
   'bg-primary', 'bg-chart-accent', 'bg-bull', 'bg-primary/70',
@@ -43,13 +47,14 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isAdding) return;
     if (!validate()) return;
     const qty  = parseFloat(quantity);
     const cost = parseFloat(avgCost);
     try {
       await onAdd(symbol.trim().toUpperCase(), qty, cost);
-    } catch {
-      setErrors({ form: error ?? 'Failed to add holding.' });
+    } catch (submitError) {
+      setErrors({ form: getHumanApiError(submitError) || error || 'Failed to add holding.' });
     }
   };
 
@@ -72,12 +77,11 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
         <div>
           <label className="text-app-xs text-muted-foreground/40 mb-1 block">Shares</label>
           <Input
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={quantity}
             onChange={e => setQuantity(e.target.value)}
             placeholder="10"
-            min="0.000001"
-            step="any"
             className="h-8 w-24 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25"
             required
           />
@@ -86,25 +90,24 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
         <div>
           <label className="text-app-xs text-muted-foreground/40 mb-1 block">Avg Cost ($)</label>
           <Input
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={avgCost}
             onChange={e => setAvgCost(e.target.value)}
             placeholder="150.00"
-            min="0.0001"
-            step="any"
             className="h-8 w-28 bg-secondary/30 border-border/20 text-app-sm placeholder:text-muted-foreground/25"
             required
           />
           {errors.avgCost && <p className="text-app-xs text-bear mt-1">{errors.avgCost}</p>}
         </div>
-        <button
+        <LoadingButton
           type="submit"
-          disabled={isAdding}
+          loading={isAdding}
+          loadingLabel="Adding..."
           className="h-8 px-3 rounded-lg bg-primary/90 hover:bg-primary text-primary-foreground text-app-sm font-semibold transition-all disabled:opacity-50 flex items-center gap-1"
         >
-          {isAdding ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-          {isAdding ? 'Adding…' : 'Add'}
-        </button>
+          Add
+        </LoadingButton>
         <button
           type="button"
           onClick={onCancel}
@@ -123,12 +126,14 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const Portfolio = () => {
-  const { items, isLoading, addHolding, removeHolding, updateHolding, isAdding, addError } = usePortfolio();
+  const { items, isLoading, addHolding, removeHolding, updateHolding, isAdding, isRemoving, isUpdating, addError } = usePortfolio();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editQuantity, setEditQuantity] = useState('');
   const [editAvgCost, setEditAvgCost] = useState('');
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [pendingRemove, setPendingRemove] = useState<{ id: number; symbol: string } | null>(null);
+  const [mutationError, setMutationError] = useState('');
   const qc = useQueryClient();
 
   // ── Unified live quotes (stocks via Finnhub, crypto via CoinGecko) ─────────
@@ -209,9 +214,25 @@ const Portfolio = () => {
     if (!Number.isFinite(averageCost) || averageCost <= 0) nextErrors.averageCost = 'Average cost must be positive.';
     setEditErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    await updateHolding(id, { quantity, average_cost: averageCost });
-    setEditingId(null);
-    setEditErrors({});
+    setMutationError('');
+    try {
+      await updateHolding(id, { quantity, average_cost: averageCost });
+      setEditingId(null);
+      setEditErrors({});
+    } catch (error) {
+      setMutationError(getHumanApiError(error));
+    }
+  };
+
+  const confirmRemove = async () => {
+    if (!pendingRemove) return;
+    setMutationError('');
+    try {
+      await removeHolding(pendingRemove.id);
+      setPendingRemove(null);
+    } catch (error) {
+      setMutationError(getHumanApiError(error));
+    }
   };
 
   const anyEstimated = holdings.some(h => h.isEstimated);
@@ -283,6 +304,7 @@ const Portfolio = () => {
                 {!quotesLoading && items.length > 0 && (
                   <button
                     onClick={refreshPrices}
+                    aria-label="Refresh portfolio prices"
                     className="text-muted-foreground/30 hover:text-primary transition-colors"
                     title="Refresh prices"
                   >
@@ -291,6 +313,7 @@ const Portfolio = () => {
                 )}
                 <button
                   onClick={() => setShowAddForm(v => !v)}
+                  aria-label="Add holding"
                   className="flex items-center gap-1 text-app-xs font-semibold text-primary/60 hover:text-primary border border-primary/12 hover:border-primary/25 rounded-md px-2 py-1 transition-all"
                 >
                   <Plus className="h-3 w-3" />
@@ -334,11 +357,13 @@ const Portfolio = () => {
             )}
 
             {!isLoading && holdings.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/30">
-                <Briefcase className="h-6 w-6 mb-2 opacity-30" />
-                <p className="text-app-sm">No holdings yet</p>
-                <p className="text-app-xs mt-0.5">Click "Add" to track a position</p>
-              </div>
+              <EmptyState
+                icon={<Briefcase className="h-6 w-6" />}
+                title="No holdings yet"
+                description="Add your first position to track value, allocation, and profit or loss."
+                actionLabel="Add holding"
+                onAction={() => setShowAddForm(true)}
+              />
             )}
 
             <div className="divide-y divide-border/8">
@@ -362,12 +387,12 @@ const Portfolio = () => {
                     <div className="hidden md:flex justify-end">
                       {editing ? (
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={editQuantity}
                           onChange={e => setEditQuantity(e.target.value)}
                           className={`h-7 w-20 bg-secondary/30 text-app-xs text-right ${editErrors.quantity ? 'border-bear/50' : 'border-border/20'}`}
-                          min="0.000001"
-                          step="any"
+                          aria-label={`Quantity for ${h.symbol}`}
                         />
                       ) : (
                         <p className="text-app-sm text-foreground/70 tabular-nums">{h.shares}</p>
@@ -376,12 +401,12 @@ const Portfolio = () => {
                     <div className="hidden md:flex justify-end">
                       {editing ? (
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={editAvgCost}
                           onChange={e => setEditAvgCost(e.target.value)}
                           className={`h-7 w-24 bg-secondary/30 text-app-xs text-right ${editErrors.averageCost ? 'border-bear/50' : 'border-border/20'}`}
-                          min="0.0001"
-                          step="any"
+                          aria-label={`Average cost for ${h.symbol}`}
                         />
                       ) : (
                         <p className="text-app-sm text-muted-foreground/50 tabular-nums">${h.avgCost.toLocaleString()}</p>
@@ -424,6 +449,8 @@ const Portfolio = () => {
                         <>
                           <button
                             onClick={() => saveEdit(h.id)}
+                            disabled={isUpdating}
+                            aria-label={`Save ${h.symbol} holding`}
                             className="text-muted-foreground/30 hover:text-bull transition-colors ml-1"
                             title="Save holding"
                           >
@@ -431,6 +458,7 @@ const Portfolio = () => {
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
+                            aria-label={`Cancel editing ${h.symbol}`}
                             className="text-muted-foreground/30 hover:text-foreground transition-colors"
                             title="Cancel edit"
                           >
@@ -440,6 +468,7 @@ const Portfolio = () => {
                       ) : (
                         <button
                           onClick={() => startEdit(h)}
+                          aria-label={`Edit ${h.symbol} holding`}
                           className="text-muted-foreground/20 hover:text-primary transition-colors ml-1"
                           title="Edit holding"
                         >
@@ -447,7 +476,8 @@ const Portfolio = () => {
                         </button>
                       )}
                       <button
-                        onClick={() => removeHolding(h.id)}
+                        onClick={() => { setPendingRemove({ id: h.id, symbol: h.symbol }); setMutationError(''); }}
+                        aria-label={`Remove ${h.symbol} holding`}
                         className="text-muted-foreground/20 hover:text-bear transition-colors"
                         title="Remove holding"
                       >
@@ -461,6 +491,11 @@ const Portfolio = () => {
             {editingId !== null && (editErrors.quantity || editErrors.averageCost) && (
               <p className="px-density-card py-density-row text-app-xs text-bear border-t border-border/10">
                 {editErrors.quantity ?? editErrors.averageCost}
+              </p>
+            )}
+            {mutationError && (
+              <p className="px-density-card py-density-row text-app-xs text-bear border-t border-border/10">
+                {mutationError}
               </p>
             )}
           </div>
@@ -539,6 +574,15 @@ const Portfolio = () => {
             )}
           </div>
         </div>
+        <ConfirmDialog
+          open={!!pendingRemove}
+          onOpenChange={open => !open && setPendingRemove(null)}
+          title={`Remove ${pendingRemove?.symbol ?? 'holding'}?`}
+          description="This removes the holding from your portfolio. Your other holdings will not be changed."
+          confirmLabel="Remove"
+          loading={isRemoving}
+          onConfirm={confirmRemove}
+        />
       </div>
     </DashboardLayout>
   );

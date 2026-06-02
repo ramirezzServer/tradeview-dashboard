@@ -47,6 +47,49 @@ export class ApiError extends Error {
   }
 }
 
+const statusMessages: Record<number, string> = {
+  400: 'Permintaan tidak dapat diproses. Periksa kembali data Anda.',
+  401: 'Sesi Anda sudah berakhir. Silakan masuk lagi.',
+  403: 'Anda tidak memiliki akses untuk melakukan tindakan ini.',
+  404: 'Data yang diminta tidak ditemukan.',
+  422: 'Ada data yang belum valid. Periksa kembali isian Anda.',
+  429: 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.',
+  500: 'Server sedang bermasalah. Coba lagi nanti.',
+  502: 'Data market sedang tidak tersedia. Coba lagi nanti.',
+  503: 'Data market sedang tidak tersedia. Coba lagi nanti.',
+};
+
+function firstValidationError(errors?: Record<string, string[]>): string | null {
+  if (!errors) return null;
+  const first = Object.values(errors).find(messages => messages.length > 0)?.[0];
+  if (!first) return null;
+  return first;
+}
+
+export function getHumanApiError(error: unknown): string {
+  if (error instanceof ApiError) {
+    const validationMessage = firstValidationError(error.errors);
+    if (validationMessage) {
+      if (validationMessage.toLowerCase().includes('email') && validationMessage.toLowerCase().includes('valid')) {
+        return 'Format email salah, pastikan menggunakan tanda @.';
+      }
+      return validationMessage;
+    }
+
+    if (error.status === 0) {
+      return 'Koneksi internet bermasalah. Periksa jaringan Anda lalu coba lagi.';
+    }
+
+    return statusMessages[error.status] ?? 'Permintaan gagal. Coba lagi sebentar lagi.';
+  }
+
+  if (error instanceof TypeError) {
+    return 'Koneksi internet bermasalah. Periksa jaringan Anda lalu coba lagi.';
+  }
+
+  return 'Terjadi kendala. Coba lagi sebentar lagi.';
+}
+
 // ─── Core request function ────────────────────────────────────────────────────
 
 interface LaravelResponse<T> {
@@ -74,11 +117,16 @@ async function request<T>(
     }
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    throw new ApiError(0, getHumanApiError(error));
+  }
 
   if (auth && res.status === 401) {
     handleUnauthorized();
@@ -86,7 +134,7 @@ async function request<T>(
 
   // 204 No Content (typical DELETE response) — nothing to parse
   if (res.status === 204) {
-    if (!res.ok) throw new ApiError(res.status, 'Request failed');
+    if (!res.ok) throw new ApiError(res.status, statusMessages[res.status] ?? 'Permintaan gagal.');
     return undefined as unknown as T;
   }
 
@@ -95,11 +143,12 @@ async function request<T>(
   try {
     json = await res.json();
   } catch {
-    throw new ApiError(res.status, `Server returned a non-JSON response (HTTP ${res.status})`);
+    throw new ApiError(res.status, getHumanApiError(new ApiError(res.status, 'Non-JSON response')));
   }
 
   if (!res.ok) {
-    throw new ApiError(res.status, json.message ?? 'Request failed', json.errors);
+    const apiError = new ApiError(res.status, json.message ?? 'Request failed', json.errors);
+    throw new ApiError(res.status, getHumanApiError(apiError), json.errors);
   }
 
   return json.data;
