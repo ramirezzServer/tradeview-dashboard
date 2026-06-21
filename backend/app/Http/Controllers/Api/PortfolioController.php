@@ -6,15 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PortfolioRequest;
 use App\Http\Traits\ApiResponse;
 use App\Models\Portfolio;
-use App\Services\NotificationTriggerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PortfolioController extends Controller
 {
     use ApiResponse;
-
-    public function __construct(private readonly NotificationTriggerService $notifications) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -23,8 +20,6 @@ class PortfolioController extends Controller
             ->withCount('items')
             ->orderBy('created_at')
             ->get();
-
-        $this->notifications->maybeSendPortfolioChange($request->user());
 
         return $this->success($portfolios, 'Portfolios fetched successfully.', 200, [
             'count' => $portfolios->count(),
@@ -45,8 +40,6 @@ class PortfolioController extends Controller
         $this->authorize('view', $portfolio);
 
         $portfolio->load('items');
-
-        $this->notifications->maybeSendPortfolioChange($portfolio->user);
 
         return $this->success($portfolio, 'Portfolio fetched successfully.');
     }

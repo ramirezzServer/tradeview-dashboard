@@ -34,6 +34,10 @@ class WatchlistItemController extends Controller
 
     public function update(WatchlistItemRequest $request, WatchlistItem $item): JsonResponse
     {
+        // Preload watchlist so the policy (needs watchlist.user_id) reuses
+        // the cached relation instead of triggering a separate lazy query.
+        $item->loadMissing('watchlist');
+
         $this->authorize('manageItem', $item);
 
         $item->update($request->validated());
@@ -43,6 +47,8 @@ class WatchlistItemController extends Controller
 
     public function destroy(WatchlistItem $item): JsonResponse
     {
+        $item->loadMissing('watchlist');
+
         $this->authorize('manageItem', $item);
 
         $item->delete();
