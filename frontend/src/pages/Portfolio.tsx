@@ -19,6 +19,8 @@ const allocationColors = [
   'bg-chart-accent/70', 'bg-bull/70', 'bg-bear/50', 'bg-muted-foreground/40',
 ];
 
+const MAX_HOLDING_VALUE = 1_000_000_000;
+
 // ─── Add Holding Form ─────────────────────────────────────────────────────────
 
 interface AddFormProps {
@@ -40,7 +42,9 @@ function AddHoldingForm({ onAdd, isAdding, error, onCancel }: AddFormProps) {
     const cost = parseFloat(avgCost);
     if (!symbol.trim()) next.symbol = 'Symbol is required.';
     if (!Number.isFinite(qty) || qty <= 0) next.quantity = 'Quantity must be a positive number.';
-    if (!Number.isFinite(cost) || cost <= 0) next.avgCost = 'Average cost must be a positive number.';
+    else if (qty > MAX_HOLDING_VALUE) next.quantity = 'Quantity must not exceed 1,000,000,000.';
+    if (!Number.isFinite(cost) || cost < 0.01) next.avgCost = 'Average cost must be at least $0.01.';
+    else if (cost > MAX_HOLDING_VALUE) next.avgCost = 'Average cost must not exceed 1,000,000,000.';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -211,7 +215,9 @@ const Portfolio = () => {
     const averageCost = parseFloat(editAvgCost);
     const nextErrors: Record<string, string> = {};
     if (!Number.isFinite(quantity) || quantity <= 0) nextErrors.quantity = 'Quantity must be positive.';
-    if (!Number.isFinite(averageCost) || averageCost <= 0) nextErrors.averageCost = 'Average cost must be positive.';
+    else if (quantity > MAX_HOLDING_VALUE) nextErrors.quantity = 'Quantity must not exceed 1,000,000,000.';
+    if (!Number.isFinite(averageCost) || averageCost < 0.01) nextErrors.averageCost = 'Average cost must be at least $0.01.';
+    else if (averageCost > MAX_HOLDING_VALUE) nextErrors.averageCost = 'Average cost must not exceed 1,000,000,000.';
     setEditErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
     setMutationError('');
@@ -448,6 +454,7 @@ const Portfolio = () => {
                       {editing ? (
                         <>
                           <button
+                            type="button"
                             onClick={() => saveEdit(h.id)}
                             disabled={isUpdating}
                             aria-label={`Save ${h.symbol} holding`}
@@ -457,6 +464,7 @@ const Portfolio = () => {
                             <Check className="h-3 w-3" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setEditingId(null)}
                             aria-label={`Cancel editing ${h.symbol}`}
                             className="text-muted-foreground/30 hover:text-foreground transition-colors"
@@ -467,6 +475,7 @@ const Portfolio = () => {
                         </>
                       ) : (
                         <button
+                          type="button"
                           onClick={() => startEdit(h)}
                           aria-label={`Edit ${h.symbol} holding`}
                           className="text-muted-foreground/20 hover:text-primary transition-colors ml-1"
@@ -476,6 +485,7 @@ const Portfolio = () => {
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() => { setPendingRemove({ id: h.id, symbol: h.symbol }); setMutationError(''); }}
                         aria-label={`Remove ${h.symbol} holding`}
                         className="text-muted-foreground/20 hover:text-bear transition-colors"
@@ -484,14 +494,81 @@ const Portfolio = () => {
                         <X className="h-3 w-3" />
                       </button>
                     </div>
+
+                    {/* Mobile-only action row — hidden on md+ where desktop column handles actions */}
+                    <div className="col-span-3 md:hidden border-t border-border/5 pt-1.5 pb-0.5">
+                      {editing ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={editQuantity}
+                            onChange={e => setEditQuantity(e.target.value)}
+                            placeholder="Shares"
+                            className={`h-7 flex-1 bg-secondary/30 text-app-xs text-right ${editErrors.quantity ? 'border-bear/50' : 'border-border/20'}`}
+                            aria-label={`Quantity for ${h.symbol}`}
+                          />
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={editAvgCost}
+                            onChange={e => setEditAvgCost(e.target.value)}
+                            placeholder="Avg Cost ($)"
+                            className={`h-7 flex-1 bg-secondary/30 text-app-xs text-right ${editErrors.averageCost ? 'border-bear/50' : 'border-border/20'}`}
+                            aria-label={`Average cost for ${h.symbol}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(h.id)}
+                            disabled={isUpdating}
+                            aria-label={`Save ${h.symbol} holding`}
+                            className="text-muted-foreground/30 hover:text-bull transition-colors shrink-0"
+                            title="Save holding"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            aria-label={`Cancel editing ${h.symbol}`}
+                            className="text-muted-foreground/30 hover:text-foreground transition-colors shrink-0"
+                            title="Cancel edit"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(h)}
+                            aria-label={`Edit ${h.symbol} holding`}
+                            className="text-muted-foreground/30 hover:text-primary transition-colors"
+                            title="Edit holding"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setPendingRemove({ id: h.id, symbol: h.symbol }); setMutationError(''); }}
+                            aria-label={`Remove ${h.symbol} holding`}
+                            className="text-muted-foreground/30 hover:text-bear transition-colors"
+                            title="Remove holding"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
             {editingId !== null && (editErrors.quantity || editErrors.averageCost) && (
-              <p className="px-density-card py-density-row text-app-xs text-bear border-t border-border/10">
-                {editErrors.quantity ?? editErrors.averageCost}
-              </p>
+              <div className="px-density-card py-density-row text-app-xs text-bear border-t border-border/10 space-y-0.5">
+                {editErrors.quantity && <p>{editErrors.quantity}</p>}
+                {editErrors.averageCost && <p>{editErrors.averageCost}</p>}
+              </div>
             )}
             {mutationError && (
               <p className="px-density-card py-density-row text-app-xs text-bear border-t border-border/10">

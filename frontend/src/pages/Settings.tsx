@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // ─── Controlled Toggle ────────────────────────────────────────────────────────
 
@@ -93,8 +94,9 @@ const Settings = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const [saveError, setSaveError]   = useState<string | null>(null);
+  const [saveStatus, setSaveStatus]       = useState<SaveStatus>('idle');
+  const [saveError, setSaveError]         = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [defaultSymbolInput, setDefaultSymbolInput] = useState(SETTINGS_DEFAULTS.default_symbol ?? 'AAPL');
   const [defaultSymbolError, setDefaultSymbolError] = useState<string | null>(null);
   const [symbolSaveStatus, setSymbolSaveStatus] = useState<SaveStatus>('idle');
@@ -132,7 +134,7 @@ const Settings = () => {
       window.clearTimeout(symbolSaveTimer.current);
     }
 
-    if (defaultSymbolError || defaultSymbolInput === defaultSymbol) {
+    if (defaultSymbolInput === defaultSymbol) {
       return;
     }
 
@@ -160,7 +162,7 @@ const Settings = () => {
         window.clearTimeout(symbolSaveTimer.current);
       }
     };
-  }, [defaultSymbol, defaultSymbolError, defaultSymbolInput, updateSettings]);
+  }, [defaultSymbol, defaultSymbolInput, updateSettings]);
 
   useEffect(() => () => {
     if (symbolSaveTimer.current) {
@@ -193,8 +195,12 @@ const Settings = () => {
   const handleReset = async () => {
     setSaveStatus('saving');
     setSaveError(null);
+    setShowResetConfirm(false);
     try {
       await resetSettings();
+      if (push.isSubscribed) {
+        await push.unsubscribe();
+      }
       setSaveStatus('saved');
       if (saveStatusTimer.current) window.clearTimeout(saveStatusTimer.current);
       saveStatusTimer.current = window.setTimeout(() => setSaveStatus('idle'), 2500);
@@ -591,7 +597,8 @@ const Settings = () => {
             <p className="text-app-xs text-muted-foreground/35 mt-0.5">Restore all settings to their original values</p>
           </div>
           <button
-            onClick={handleReset}
+            type="button"
+            onClick={() => setShowResetConfirm(true)}
             disabled={isResetting}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-app-sm font-semibold text-bear/70 hover:text-bear border border-bear/15 hover:border-bear/30 hover:bg-bear/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -602,6 +609,17 @@ const Settings = () => {
             Reset
           </button>
         </div>
+
+        <ConfirmDialog
+          open={showResetConfirm}
+          onOpenChange={setShowResetConfirm}
+          title="Reset all settings?"
+          description="This will restore every preference to its default value. Push notifications will also be disabled. This action cannot be undone."
+          confirmLabel="Reset to defaults"
+          cancelLabel="Cancel"
+          loading={isResetting}
+          onConfirm={handleReset}
+        />
 
       </div>
     </DashboardLayout>
