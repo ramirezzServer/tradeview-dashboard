@@ -5,7 +5,11 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
-    host: "::",
+    // Bind to loopback only. The previous "::" exposed the dev server on every
+    // network interface — unnecessary here and a needless attack surface while
+    // Vite's dev-server file-serving advisories remain open. Set VITE_EXPOSE=1
+    // for the occasional need to reach the dev server from another device.
+    host: process.env.VITE_EXPOSE ? true : "localhost",
     port: 8080,
     hmr: {
       overlay: false,
