@@ -10,7 +10,6 @@ import { DashboardPrefsProvider } from "@/context/DashboardPrefsContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Eager-loaded (critical path) ────────────────────────────────────────────
-import Index    from "./pages/Index";
 import Login    from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -18,6 +17,7 @@ import LegalPage from "./pages/LegalPage";
 import { PageMeta } from "@/components/public/PageMeta";
 
 // ─── Lazy-loaded (heavy routes) ───────────────────────────────────────────────
+const Index             = lazy(() => import("./pages/Index"));
 const Watchlist         = lazy(() => import("./pages/Watchlist"));
 const Portfolio         = lazy(() => import("./pages/Portfolio"));
 const Analytics         = lazy(() => import("./pages/Analytics"));
@@ -114,10 +114,8 @@ const App = () => (
               <Route path="/terms" element={<LegalPage kind="terms" />} />
               <Route path="/disclaimer" element={<LegalPage kind="disclaimer" />} />
 
-              {/* Protected — critical path (eager) */}
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-
               {/* Protected — lazy loaded */}
+              <Route path="/"                   element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/watchlist"          element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
               <Route path="/portfolio"          element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
               <Route path="/analytics"          element={<ProtectedRoute><Analytics /></ProtectedRoute>} />

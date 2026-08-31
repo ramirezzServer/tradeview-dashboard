@@ -34,8 +34,6 @@ export default defineConfig(() => ({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           // Data layer
           'vendor-query': ['@tanstack/react-query'],
-          // UI / charting
-          'vendor-recharts': ['recharts'],
           // Radix UI primitives (large — split from main)
           'vendor-radix': [
             '@radix-ui/react-dialog',
