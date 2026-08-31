@@ -1,4 +1,4 @@
-# OS / editor
+# ─── OS / editor ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 .vscode/
@@ -6,37 +6,39 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude / AI tooling
+# ─── AI tooling (lokal, jangan pernah di-commit) ─────────────────────────────
 .claude/
 .agents/
-docs/
+.gitnexus/
 skills-lock.json
 CLAUDE.md
 AGENTS.md
 
-# Local settings (developer-specific)
-.claude/settings.local.json
+# Konteks & rencana untuk agent — lokal
+docs/agents/
+docs/PLAN.md
+docs/BASELINE.md
+CONTEXT-MAP.md
+**/CONTEXT.md
 
-.gitnexus/
-
-# ENV
+# ─── Secrets & hasil scan ────────────────────────────────────────────────────
 .env
 .env.local
+.env.backup
+.env.production
 .env.*.local
+gitleaks-report.json
+*.pem
+*.key
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
+# ─── Artefak build & test ────────────────────────────────────────────────────
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
 
-# Backend
-backend/public/build/
-backend/public/hot/
-
-# Logs & misc
+# ─── Log ─────────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
-pnpm-debug.log*
+pnpm-debug.log*docs/BASELINE.md
