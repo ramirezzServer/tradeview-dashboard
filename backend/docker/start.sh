@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
-php artisan config:clear
 php artisan migrate --force
-php artisan serve --host=0.0.0.0 --port="${PORT:-10000}"
+php artisan config:cache
+php artisan route:cache
+php artisan event:cache
+
+exec php artisan serve --host=0.0.0.0 --port="${PORT:-10000}"
