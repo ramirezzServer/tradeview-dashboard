@@ -24,6 +24,7 @@ CONTEXT-MAP.md
 # ─── Secrets & hasil scan ────────────────────────────────────────────────────
 .env
 .env.local
+.env.*.bak
 .env.backup
 .env.production
 .env.*.local
