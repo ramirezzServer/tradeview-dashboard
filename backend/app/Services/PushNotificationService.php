@@ -34,7 +34,10 @@ class PushNotificationService
             'title' => $title,
             'body'  => $body,
             'url'   => $url,
-            'icon'  => '/favicon.ico',
+            // Keep in sync with frontend/public/sw.js, which documents why this is a
+            // 192x192 PNG (not favicon.ico, which never existed, and not favicon.svg,
+            // which most push-consuming browsers don't render) and how it's generated.
+            'icon'  => '/favicon-192.png',
         ], JSON_THROW_ON_ERROR);
 
         foreach ($subscriptions as $subscription) {
